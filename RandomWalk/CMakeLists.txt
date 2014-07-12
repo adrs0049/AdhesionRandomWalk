@@ -1,10 +1,16 @@
 project(randomwalk)
 
 # cmake min version
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 
 # CFLAGS
-set(CMAKE_BUILD_TYPE Debug)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "DEBUG")
+  #set(CMAKE_BUILD_TYPE "RELEASE")
+  #set(CMAKE_BUILD_TYPE "RELWITHDEBINFO")
+  #set(CMAKE_BUILD_TYPE "MINSIZEREL")
+endif()
+
 set(CMAKE_CXX_FLAGS_C11 " -std=gnu++11 -march=core-avx2 ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_C11} -O2 -DNDEBUG_BUILD")
 
@@ -22,11 +28,26 @@ if ( CMAKE_COMPILER_IS_GNUCC )
 	set(CMAKE_EXE_LINKER_FLAGS "-pg")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-find_package (Boost COMPONENTS unit_test_framework REQUIRED)
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include
-	     "${INCLUDE_DIRECTORIES}/../../array/include"
-                     ${Boost_INCLUDE_DIRS}
-)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+  add_definitions("-Wall")
+else()
+  message(FATAL_ERROR "CMakeLists.txt has not been tested/written for your compiler.")
+endif()
+
+find_package(PythonLibs 2.7 REQUIRED)
+include_directories("${PYTHON_INCLUDE_DIRS}")
+
+find_package (Boost)
+if (Boost_FOUND)
+	include_directories("${Boost_INCLUDE_DIRS}")
+	set(Boost_USE_STATIC_LIBS OFF)
+	set(Boost_USE_MULTITHREADED ON)
+	set(Boost_USE_STATIC_RUNTIME OFF)
+	find_package(Boost COMPONENTS python unit_test_framework REQUIRED)
+elseif(NOT Boost_FOUND)
+	message(FATAL_ERROR "Unable to find correct Boost version. Did you set BOOST_ROOT?")
+endif()
 
 set(SRC_FILES2 RandomBase.cpp ParkMiller.cpp)
 add_library(Random ${SRC_FILES2})
