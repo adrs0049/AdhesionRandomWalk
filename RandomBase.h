@@ -28,6 +28,9 @@ public:
 	virtual void ResetNumbersToGenerate(value_type NewNumbersToGenerate);
 	virtual void GetGaussian(Array& variates);
 	
+	// virtual dtor
+ 	virtual ~RandomBase() {}
+	
 private:
 	// random numbers to generate per call to function
 	value_type NumbersToGenerate;
