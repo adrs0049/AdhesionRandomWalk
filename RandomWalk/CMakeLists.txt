@@ -49,13 +49,17 @@ elseif(NOT Boost_FOUND)
 	message(FATAL_ERROR "Unable to find correct Boost version. Did you set BOOST_ROOT?")
 endif()
 
+# add main include directory
+include_directories("include/")
+
 set(SRC_FILES2 RandomBase.cpp ParkMiller.cpp)
 add_library(Random ${SRC_FILES2})
 
 set(SRC_FILES Statistics.h Statistics.cpp)
 add_library(Statistics ${SRC_FILES})
 
-add_executable(randomwalk main.cpp)
+set(RANDOMWALK_SRC_FILES RandomWalkBase.h RandomWalkBase.cpp)
+add_library(RandomWalk ${RANDOMWALK_SRC_FILES})
 
 add_definitions (-DBOOST_TEST_DYN_LINK)
 add_executable(ParkMiller_test ParkMiller_test.cpp)
@@ -64,4 +68,4 @@ target_link_libraries(ParkMiller_test Random ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY
 add_executable(Statistics_test Statistics_test.cpp)
 target_link_libraries(Statistics_test Statistics ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
-install(TARGETS randomwalk RUNTIME DESTINATION bin)
+#install(TARGETS randomwalk RUNTIME DESTINATION bin)
