@@ -52,14 +52,15 @@ endif()
 # add main include directory
 include_directories("include/")
 
-set(SRC_FILES2 RandomBase.cpp ParkMiller.cpp)
-add_library(Random ${SRC_FILES2})
+set(RANDOM_SRC_FILES RandomBase.cpp ParkMiller.cpp)
+add_library(Random SHARED ${RANDOM_SRC_FILES})
+target_link_libraries(Random ${PYTHON_LIBRARY} ${Boost_LIBRARIES})
 
-set(SRC_FILES Statistics.h Statistics.cpp)
-add_library(Statistics ${SRC_FILES})
+set(STATISTICS_SRC_FILES Statistics.h Statistics.cpp)
+add_library(Statistics SHARED ${STATISTICS_SRC_FILES})
 
 set(RANDOMWALK_SRC_FILES RandomWalkBase.h RandomWalkBase.cpp)
-add_library(RandomWalk ${RANDOMWALK_SRC_FILES})
+add_library(RandomWalk SHARED ${RANDOMWALK_SRC_FILES})
 
 add_definitions (-DBOOST_TEST_DYN_LINK)
 add_executable(ParkMiller_test ParkMiller_test.cpp)
@@ -67,5 +68,8 @@ target_link_libraries(ParkMiller_test Random ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY
 
 add_executable(Statistics_test Statistics_test.cpp)
 target_link_libraries(Statistics_test Statistics ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+
+add_executable(RandomWalk_test RandomWalk_test.cpp)
+target_link_libraries(RandomWalk_test RandomWalk Random Statistics ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 #install(TARGETS randomwalk RUNTIME DESTINATION bin)
