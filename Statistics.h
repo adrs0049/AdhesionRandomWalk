@@ -4,14 +4,17 @@
 #define STATISTICS_H
 
 #include "array.h"
+#include <type_traits>
 
 class StatisticsBase
 {
 public:
+	using float_type = double;
+	
 	StatisticsBase() {}
 	
-	virtual void DumpOneResult(double result) = 0;
-	virtual std::vector<std::vector<double> > GetResultsSoFar() const = 0;
+	virtual void DumpOneResult(const float_type result) = 0;
+	virtual std::vector<std::vector<float_type> > GetResultsSoFar() const = 0;
 	virtual StatisticsBase* clone() const = 0;
 	virtual ~StatisticsBase() {}
 private:
@@ -22,12 +25,13 @@ class StatisticsMean : public StatisticsBase
 public:
 	StatisticsMean();
 	
-	virtual void DumpOneResult(double result);
-	virtual std::vector<std::vector<double> > GetResultsSoFar() const;
+	virtual void DumpOneResult(const float_type result);
+	virtual std::vector<std::vector<float_type> > GetResultsSoFar() const;
 	virtual StatisticsMean* clone() const;
 	virtual ~StatisticsMean() {}
 private:
-	double RunningSum;
+	float_type RunningSum;
+	float_type RunningSumSquare;
 	unsigned long PathsDone;
 };
 
