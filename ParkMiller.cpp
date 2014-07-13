@@ -40,6 +40,12 @@ void RandomParkMiller::GetUniforms(Array& variates)
 		variates[i] = InnerGenerator.GetOneRandomInteger()*Reciprocal;
 }
 
+void RandomParkMiller::GetUniforms(boost::python::list& ns)
+{
+	for (size_type i = 0; i < GetNumbersToGenerate(); ++i)
+		ns.append(InnerGenerator.GetOneRandomInteger()*Reciprocal);
+}
+
 void RandomParkMiller::Reset()
 {
 	InnerGenerator.SetSeed(InitialSeed);

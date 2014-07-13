@@ -6,6 +6,9 @@
 #include "RandomBase.h"
 #include <random>
 
+// include all the required boost python headers
+#include <boost/python.hpp>
+
 // class using the c++11 rand linear_congruential random number gen
 class ParkMiller
 {
@@ -40,8 +43,9 @@ public:
 	RandomParkMiller* new_random() const override { return new RandomParkMiller(1); }
 	
 	virtual void GetUniforms(Array& variates) override;
+	void GetUniforms(boost::python::list &  ns);	
 	virtual void SetSeed(value_type Seed) override;
-	virtual void Skip(value_type NumberOfPaths) override;
+	virtual void Skip(value_type NumberOfPaths=1) override;
 	virtual void Reset() override;
 	
 private:
@@ -50,5 +54,25 @@ private:
 	// constexpr?
 	const double Reciprocal;
 };
+
+// python interface wrappers for default options + member func overloads
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(RandomParkMiller_overloads, Skip, 0, 1)
+// choose which of the overloaded functions we want
+void (RandomParkMiller::*GetUniforms_py)(boost::python::list&) = &RandomParkMiller::GetUniforms;
+
+// define all the boost.python functions
+BOOST_PYTHON_MODULE(libRandom)
+{
+	using namespace boost::python;
+	
+	class_<RandomParkMiller>("RandomParkMiller", 
+				 init<RandomParkMiller::value_type, 
+			  optional<RandomParkMiller::value_type> >())
+ 		.def("GetUniforms", GetUniforms_py)
+		.def("SetSeed", &RandomParkMiller::SetSeed)
+		.def("Skip", &RandomParkMiller::Skip, RandomParkMiller_overloads())
+		.def("Reset", &RandomParkMiller::Reset)
+	;
+}
 
 #endif

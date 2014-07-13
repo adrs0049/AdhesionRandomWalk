@@ -21,7 +21,7 @@ public:
 	// NOTE variate is an outcome of a random variable
 	virtual void GetUniforms(Array& variates) = 0;
 	virtual void SetSeed(value_type Seed) = 0;
-	virtual void Skip(value_type NumberOfPaths)=0;
+	virtual void Skip(value_type NumberOfPaths=1)=0;
 	virtual void Reset()=0;
 	
 	// virtual methods
