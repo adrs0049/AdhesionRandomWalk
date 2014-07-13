@@ -9,7 +9,9 @@
 #include <ios>
 
 #include <valarray>
-typedef  std::valarray<double> Array;
+typedef std::valarray<double> Array;
+typedef std::valarray<double> fArray;
+typedef std::valarray<long> iArray;
 
 #define PRINT_VAL(x) { \
 	std::string str {#x}; \
