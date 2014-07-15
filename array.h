@@ -13,7 +13,7 @@ typedef std::valarray<double> Array;
 typedef std::valarray<double> fArray;
 typedef std::valarray<long> iArray;
 
-constexpr unsigned int a_field_width {2U};
+constexpr unsigned int a_field_width {3U};
 
 #define PRINT_VAL(x) { \
 	std::string str {#x}; \
