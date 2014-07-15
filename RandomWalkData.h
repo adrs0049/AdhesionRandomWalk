@@ -9,9 +9,22 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <string>
 
 using result_type = std::vector<std::pair<unsigned long, long>>;
 constexpr std::size_t NumberOfElementsPerVector {2UL};
+constexpr unsigned int _RandomWalkData_field_width_ {2U};
+
+#define PRINT_RESULT(x) { \
+	std::string str {#x}; \
+	std::cout << std::setiosflags(std::ios::showpoint | std::ios::uppercase); \
+	std::cout << std::setw(str.length()) << #x << ": ["; \
+	for (const auto elem : x) \
+		std::cout << "{ " << std::setw(_RandomWalkData_field_width_) << \
+		std::setprecision(6) << elem.first << " ," << \
+		std::setw(_RandomWalkData_field_width_) << elem.second << "}"; \
+	std::cout << "]" << std::endl; \
+}
 
 struct RandomWalkData : public DataBase
 {
