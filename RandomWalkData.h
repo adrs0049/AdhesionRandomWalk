@@ -11,6 +11,7 @@
 #include <iomanip>
 
 using result_type = std::vector<std::pair<unsigned long, long>>;
+constexpr std::size_t NumberOfElementsPerVector {2UL};
 
 struct RandomWalkData : public DataBase
 {
@@ -27,9 +28,11 @@ struct RandomWalkData : public DataBase
 	
 	virtual void print() const
 	{
-		for (const auto elem : data)
-			std::cout << "{" << std::setw(8) << elem.first << ',' \
-					  << std::setw(8) << elem.second << "}, ";
+		constexpr unsigned int field_width = 2;
+		for (const auto elem : data) {
+			std::cout << "{" << std::setw(field_width) << elem.first << ',' \
+					  << std::setw(field_width) << elem.second << "}, ";
+		}
 		std::cout << std::endl;
 	}
 	
@@ -41,7 +44,7 @@ struct RandomWalkData : public DataBase
 	virtual std::size_t size() const
 	{
 		// each vector elem contains two longs
-		return 2*data.size();
+		return NumberOfElementsPerVector * data.size();
 	}
 	
 #ifdef DEBUG_BUILD
@@ -67,7 +70,7 @@ extern "C"
 #ifdef DEBUG_BUILD
 	void RandomWalkData_addData(RandomWalkData* data, unsigned long l1, long l2)
 	{
-		data->AddData(make_pair(l1, l2));
+		data->AddData(std::make_pair(l1, l2));
 	}
 #endif
 	
