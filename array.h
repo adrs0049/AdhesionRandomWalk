@@ -13,12 +13,14 @@ typedef std::valarray<double> Array;
 typedef std::valarray<double> fArray;
 typedef std::valarray<long> iArray;
 
+constexpr unsigned int a_field_width {2U};
+
 #define PRINT_VAL(x) { \
 	std::string str {#x}; \
 	std::cout << std::setiosflags(std::ios::showpoint | std::ios::uppercase); \
 	std::cout << std::setw(str.length()) << #x << ": ["; \
 	for (unsigned long i = 0; i < x.size(); ++i) \
-		std::cout << std::setw(10) << std::setprecision(6) << x[i];  \
+		std::cout << std::setw(a_field_width) << std::setprecision(6) << x[i];  \
 	std::cout << "]" << std::endl;		\
 }
 
