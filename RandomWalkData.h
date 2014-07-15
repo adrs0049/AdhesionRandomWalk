@@ -11,7 +11,9 @@
 #include <iomanip>
 #include <string>
 
-using result_type = std::vector<std::pair<unsigned long, long>>;
+// the first is position average can be negative
+// the second is the variance in the position ie square sum -> positive
+using result_type = std::vector<std::pair<long, unsigned long>>;
 constexpr std::size_t NumberOfElementsPerVector {2UL};
 constexpr unsigned int _RandomWalkData_field_width_ {2U};
 
@@ -62,7 +64,7 @@ struct RandomWalkData : public DataBase
 	
 #ifdef DEBUG_BUILD
 	// function for DEBUG
-	void AddData(std::pair<unsigned long, long>&& p)
+	void AddData(std::pair<long, unsigned long>&& p)
 	{
 		data.emplace_back(p);
 	}
@@ -81,7 +83,7 @@ extern "C"
 	}
 	
 #ifdef DEBUG_BUILD
-	void RandomWalkData_addData(RandomWalkData* data, unsigned long l1, long l2)
+	void RandomWalkData_addData(RandomWalkData* data, long l1, unsigned long l2)
 	{
 		data->AddData(std::make_pair(l1, l2));
 	}
