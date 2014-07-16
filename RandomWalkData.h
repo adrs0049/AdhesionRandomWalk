@@ -98,7 +98,7 @@ extern "C"
 		data->print();
 	}
 	
-	std::size_t RandomWalkData_size(RandomWalkData* data)
+	std::size_t RandomWalkData_getSize(RandomWalkData* data)
 	{
 		return data->size();
 	}
