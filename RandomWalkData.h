@@ -74,6 +74,7 @@ struct RandomWalkData : public DataBase
 	result_type data;
 };
 
+#ifdef USE_C_ABI_INTERFACE
 // C interface for use with python
 extern "C"
 {
@@ -104,5 +105,6 @@ extern "C"
 		return data->getData();
 	}
 }
+#endif
 
 #endif
