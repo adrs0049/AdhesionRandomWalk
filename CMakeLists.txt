@@ -28,6 +28,7 @@ if ( CMAKE_COMPILER_IS_GNUCC )
 	set(CMAKE_EXE_LINKER_FLAGS "-pg")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
+option(USE_C_ABI_INTERFACE "Compile the C interface that is required for python ctypes" ON)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
   add_definitions("-Wall")
