@@ -7,8 +7,14 @@ template<class T>
 class Wrapper
 {
 public:
-    Wrapper() { DataPtr = nullptr; }
-    Wrapper(const T& inner) { DataPtr = inner.clone(); }
+    Wrapper() 
+	: DataPtr(nullptr)
+	{}
+
+    Wrapper(const T& inner) 
+	: DataPtr(inner.clone())
+	{}
+	
     ~Wrapper()
     {
         if (DataPtr != nullptr)
@@ -16,11 +22,10 @@ public:
     }
     
     Wrapper(const Wrapper<T>& original)
+	: DataPtr(nullptr)
     {
         if (original.DataPtr!=nullptr)
             DataPtr = original.DataPtr->clone();
-        else
-            DataPtr = nullptr;
     }
     
     Wrapper& operator=(const Wrapper<T>& original)
