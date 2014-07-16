@@ -30,7 +30,10 @@ constexpr unsigned int _RandomWalkData_field_width_ {2U};
 
 struct RandomWalkData : public DataBase
 {
-    RandomWalkData() {}
+    RandomWalkData()
+	: data(0)
+	{}
+	
     RandomWalkData(result_type& result)
 	: data(result)
 	{}
