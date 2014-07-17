@@ -17,6 +17,9 @@ class RandomWalkStatistics(object):
 	def get_data(self):
 		return self.lib.RandomWalkStatistics_getData(self.obj)
 	
+	def get_cobj(self):
+		return self.obj
+	
 if __name__ == '__main__':
 	d = RandomWalkStatistics()
 	print 'object create at: ', d
