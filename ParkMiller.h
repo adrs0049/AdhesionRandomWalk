@@ -76,6 +76,7 @@ BOOST_PYTHON_MODULE(libRandom)
 	;
 }
 */
+#ifdef USE_C_INTERFACE
 extern "C"
 {
 	RandomParkMiller * new_RandomParkMiller(unsigned long l1, unsigned long l2)
@@ -88,5 +89,6 @@ extern "C"
 		rw->SetSeed(l1);
 	}
 }
+#endif
 
 #endif
