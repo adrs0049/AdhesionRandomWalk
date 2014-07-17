@@ -17,6 +17,7 @@ DataBase * RandomWalkStatistics::GetResultsSoFar() const
 
 DataBase * RandomWalkStatistics::GetResultsAtPos(const unsigned long pos) const
 {
+// 	std::cout << "ptrS="<<static_cast<void*>(data.at(pos).get())<<std::endl;
 	return data.at(pos).get();
 }
 

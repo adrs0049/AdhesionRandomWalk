@@ -39,6 +39,7 @@ extern "C"
 {
 	RandomWalkStatistics* new_RandomWalkStatistics(double p[][2], std::size_t dim)
 	{
+		/*
 		std::vector<std::pair<long, unsigned long>> res;
 		for (unsigned long i = 0; i < dim; ++i)
 			res.push_back(std::make_pair(p[i][0],p[i][1]));
@@ -52,10 +53,10 @@ extern "C"
 		auto ptr = new RandomWalkStatistics();
 		ptr->DumpOneResult(std::shared_ptr<DataBase> (new RandomWalkData(std::move(res))));
 		return ptr;
-		
-// 		return new RandomWalkStatistics();
+		*/
+ 		return new RandomWalkStatistics();
 	}
-	
+	/*
 	RandomWalkStatistics* new2_RandomWalkStatistics()
 	{
 		std::vector<std::pair<long, unsigned long>> res;
@@ -67,7 +68,7 @@ extern "C"
 		ptr->DumpOneResult(std::shared_ptr<DataBase> (new RandomWalkData(std::move(res))));
 		return ptr;
 	}
-	
+	*/
 	void * RandomWalkStatistics_getData(RandomWalkStatistics* stat, 
 										const unsigned long pos)
 	{
