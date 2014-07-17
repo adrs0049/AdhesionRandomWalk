@@ -59,22 +59,11 @@ struct RandomWalkData : public DataBase
 	
 	virtual void * getData() const
 	{
-		/*
-		auto p = data.data();
-		long* ptr = (long*)p;
-		std::cout <<"sz="<<2*size()<<  " ptr= ";
-		for (unsigned i = 0; i < 2*size(); ++i)
-			std::cout << *(ptr++) << " ";
-		std::cout << std::endl;
-		*/
-// 		std::cout << "p="<<p<<" *p="<<*(long*)p<<" p2="<<*(++ptr)<<std::endl;
-		
 		return (void*)(data.data());
 	}
 	
 	virtual std::size_t size() const
 	{
-		// each vector elem contains two longs
 		return  data.size();
 	}
 	
@@ -108,19 +97,16 @@ extern "C"
 	
 	void RandomWalkData_print(RandomWalkData* data)
 	{
-// 		std::cout << "ptr_prt=" << static_cast<void*>(data) << std::endl;
 		data->print();
 	}
 	
 	std::size_t RandomWalkData_getSize(RandomWalkData* data)
 	{
-// 		std::cout << "ptr_sz="<< static_cast<void*>(data) << std::endl;
 		return data->size();
 	}
 
 	void * RandomWalkData_getData(RandomWalkData* data)
 	{
-// 		std::cout << "ptr_data="<<static_cast<void*>(data)<<std::endl;
 		return data->getData();
 	}
 }
