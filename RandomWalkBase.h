@@ -20,9 +20,10 @@
 class RandomWalkBase
 {
 public:
-	RandomWalkBase() {}
+	// this doesn't make any sense
+ 	RandomWalkBase() = delete;
 	
-	RandomWalkBase(const Wrapper<RandomWalk>& theRandomWalk)
+	RandomWalkBase(const Wrapper<const RandomWalk>& theRandomWalk)
 	: TheRandomWalk(theRandomWalk)
 	{}
 	
@@ -31,15 +32,15 @@ public:
 	virtual ~RandomWalkBase(){}
 	std::unique_ptr<DataBase> DoOnePath(const iArray& values) const;
 
-private:
-	Wrapper<RandomWalk> TheRandomWalk;
+protected:
+	const Wrapper<const RandomWalk> TheRandomWalk;
 };
 
 class SimpleRandomWalk : public RandomWalkBase
 {
 public:
 	SimpleRandomWalk(const Wrapper<RandomBase>& TheGenerator_, 
-					 const Wrapper<RandomWalk>& TheRandomWalk_);
+					 const Wrapper<const RandomWalk>& TheRandomWalk_);
 	
 	virtual void GetOnePath(iArray& values);
 	virtual ~SimpleRandomWalk() {}
