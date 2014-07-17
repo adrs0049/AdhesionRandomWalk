@@ -13,12 +13,12 @@ public:
 	StatisticsBase() {}
 	~StatisticsBase() {}
 	
-	virtual void DumpOneResult(std::shared_ptr<DataBase> data) = 0;
+	virtual void DumpOneResult(std::unique_ptr<DataBase> data) = 0;
 	// FIXME
 	virtual void PrintResultsSoFar() const = 0;
 	virtual DataBase * GetResultsSoFar() const = 0;
-		virtual DataBase * GetResultsAtPos(const unsigned long pos) const =0;
-virtual std::size_t GetElementSizeMax() const =0;
+	virtual DataBase * GetResultsAtPos(const unsigned long pos) const =0;
+	virtual std::size_t GetElementSizeMax() const =0;
 	
 	// python interfaces need to know how data is formatted
 	virtual std::size_t GetSize() const = 0;

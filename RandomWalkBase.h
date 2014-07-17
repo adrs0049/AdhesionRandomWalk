@@ -30,7 +30,7 @@ public:
 	virtual void GetOnePath(iArray& values) = 0;
 	void DoSimulation(StatisticsBase& TheGatherer, unsigned long NumberOfPaths);
 	virtual ~RandomWalkBase(){}
-	std::shared_ptr<DataBase> DoOnePath(const iArray& values) const;
+	std::unique_ptr<DataBase> DoOnePath(const iArray& values) const;
 
 protected:
 	const Wrapper<const RandomWalk> TheRandomWalk;

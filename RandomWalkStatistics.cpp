@@ -2,7 +2,7 @@
 
 #include "RandomWalkStatistics.h"
 
-void RandomWalkStatistics::DumpOneResult(std::shared_ptr<DataBase> d)
+void RandomWalkStatistics::DumpOneResult(std::unique_ptr<DataBase> d)
 {
 	data.emplace_back(std::move(d));
 }
@@ -17,11 +17,9 @@ DataBase * RandomWalkStatistics::GetResultsSoFar() const
 
 DataBase * RandomWalkStatistics::GetResultsAtPos(const unsigned long pos) const
 {
-// 	std::cout << "ptrS="<<static_cast<void*>(data.at(pos).get())<<std::endl;
 	return data.at(pos).get();
 }
 
-// FIXME
 void RandomWalkStatistics::PrintResultsSoFar() const
 {
 	unsigned int run {1U};
@@ -38,7 +36,7 @@ std::size_t RandomWalkStatistics::GetSize() const
 
 std::size_t RandomWalkStatistics::GetElementSizeMax() const
 {
-std::size_t sz {0UL};
+	std::size_t sz {0UL};
 	for (const auto& elem : data)
 		if (sz < elem->size())
 			sz = elem->size();
@@ -47,11 +45,5 @@ std::size_t sz {0UL};
 
 std::size_t RandomWalkStatistics::GetElementSize(const unsigned long pos) const
 {
-	/*
-	std::size_t sz {0UL};
-	for (const auto& elem : data)
-		if (sz < elem->size())
-			sz = elem->size();
-	*/
 	return data.at(pos)->size();
 }
