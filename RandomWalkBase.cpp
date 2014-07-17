@@ -11,7 +11,7 @@ void RandomWalkBase::DoSimulation(StatisticsBase& TheGatherer,
 	
 	iArray PathValues(TheRandomWalk->GetNumberOfSteps());
 
-	for (unsigned long path = 0; path < NumberOfPaths; path++)
+	for (unsigned long path = 0; path < NumberOfPaths; ++path)
 	{
 		DEBUG2(path);
 		GetOnePath(PathValues);
@@ -83,7 +83,7 @@ void SimpleRandomWalk::GetOnePath(iArray& values)
 	DEBUG("start GetonePath\n");
 	TheGenerator->GetUniforms(variates);
 	
-	for (unsigned long i = 0; i < variates.size(); i++)
+	for (unsigned long i = 0; i < variates.size(); ++i)
 	{
 		if (variates[i] <= 0.5)
 			values[i]=1L;
