@@ -12,31 +12,34 @@ public:
 	using array_type = std::vector<unsigned long>;
 	
 	RandomWalk()
-	: LookAtTimes(0),
-	NumberOfSteps(0UL)
+	: LookAtTimes(0), NumberOfSteps(0UL), left(0.5F), right(0.5F)
 	{}
 	
 	RandomWalk(const array_type & a, const unsigned long steps)
-	: LookAtTimes(a), NumberOfSteps(steps)
+	: LookAtTimes(a), NumberOfSteps(steps), left(0.5F), right(0.5F)
 	{
 		insert_zero();
 	}
 	
 	RandomWalk(array_type&& a, const unsigned long steps)
-	: LookAtTimes(a), NumberOfSteps(steps)
+	: LookAtTimes(a), NumberOfSteps(steps), left(0.5F), right(0.5F)
 	{
 		a.resize(0);
 		insert_zero();
 	}
 	
-	const size_type GetLookAtTimesSize(void) const 
+	size_type GetLookAtTimesSize(void) const 
 	{ return LookAtTimes.size(); };
 	
 	const array_type& GetLookAtTimes(void) const
 	{ return LookAtTimes; }
 	
-	const unsigned long GetNumberOfSteps(void) const
+	unsigned long GetNumberOfSteps(void) const
 	{ return NumberOfSteps; }
+	
+	// probabilities
+	float LP(void) const { return left; }
+	float RP(void) const { return left + right; }
 	
 	RandomWalk* clone() const { return new RandomWalk(*this); }
 	
@@ -57,6 +60,10 @@ private:
 	// LookAtTimes is saved in terms of # of steps
 	array_type LookAtTimes;
 	unsigned long NumberOfSteps;
+	
+	// probabilities
+	const float left;
+	const float right;
 };
 
 // C Interface for python usage
