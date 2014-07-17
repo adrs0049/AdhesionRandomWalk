@@ -82,14 +82,17 @@ void SimpleRandomWalk::GetOnePath(iArray& values)
 {
 	DEBUG("start GetonePath\n");
 	TheGenerator->GetUniforms(variates);
+	auto iter = begin(values);
 	
-	for (unsigned long i = 0; i < variates.size(); ++i)
+	assert(values.size() == variates.size());
+	for (const auto& elem : variates) 
 	{
-		if (variates[i] <= 0.5)
-			values[i]=1L;
+		if (elem <= 0.5)
+			*iter=1L;
 		else
-			values[i]=-1L;
+			*iter=-1L;
+		++iter;	
 	}
-// 	PRINT_VAL(variates);
+
 	DEBUG("end GetonePath\n");
 }
