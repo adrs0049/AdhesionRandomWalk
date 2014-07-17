@@ -32,6 +32,7 @@ BOOST_AUTO_TEST_CASE( constructor_test )
 	
 	RandomWalk rw ({1,2,3,4}, numbersToGenerate);
 	
+	DEBUG("create simplerandomwalk\n");
 	SimpleRandomWalk test2(random_number_engine, rw);
 	
 // 	test2.GetOnePath(values);
