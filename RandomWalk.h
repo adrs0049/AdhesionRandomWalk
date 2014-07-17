@@ -11,7 +11,10 @@ public:
 	using size_type = std::size_t;
 	using array_type = std::vector<unsigned long>;
 	
-	RandomWalk() {}
+	RandomWalk()
+	: LookAtTimes(0),
+	NumberOfSteps(0UL)
+	{}
 	
 	RandomWalk(const array_type & a, const unsigned long steps)
 	: LookAtTimes(a), NumberOfSteps(steps)
