@@ -24,7 +24,7 @@ void RandomWalkBase::DoSimulation(StatisticsBase& TheGatherer,
 	
 }
 
-std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
+std::shared_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 {
 // 	DEBUG("DoOnePATH\n");
 
@@ -62,7 +62,7 @@ std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 // 	DEBUG("before moving to unique_ptr\n");
 // 	PRINT_RESULT(results);
 	
-	std::unique_ptr<DataBase> TheResultPtr {new RandomWalkData(std::move(results))};
+	std::shared_ptr<DataBase> TheResultPtr {new RandomWalkData(std::move(results))};
 	
 // 	DEBUG("Done DoOnePath\n");
 	return TheResultPtr;

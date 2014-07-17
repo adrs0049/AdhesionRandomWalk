@@ -14,7 +14,7 @@
 // the first is position average can be negative
 // the second is the variance in the position ie square sum -> positive
 using result_type = std::vector<std::pair<long, unsigned long>>;
-constexpr std::size_t NumberOfElementsPerVector {2UL};
+// constexpr std::size_t NumberOfElementsPerVector {2UL};
 constexpr unsigned int _RandomWalkData_field_width_ {2U};
 
 #define PRINT_RESULT(x) { \
@@ -65,7 +65,7 @@ struct RandomWalkData : public DataBase
 	virtual std::size_t size() const
 	{
 		// each vector elem contains two longs
-		return NumberOfElementsPerVector * data.size();
+		return  data.size();
 	}
 	
 #ifdef DEBUG_BUILD
