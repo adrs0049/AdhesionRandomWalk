@@ -20,7 +20,7 @@ class SimpleRandomWalk(object):
 		self.obj = self.lib.new_SimpleRandomWalk(self.random_engine, self.rw.get_cobj())
 
 	def DoSim(self, paths):
-		gatherer = stat.RandomWalkStatisticsp()
+		gatherer = stat.RandomWalkStatistics()
 		self.lib.RandomWalk_DoSimulation(self.obj, gatherer.get_cobj(), paths)
 		return gatherer.get_elements()
 
