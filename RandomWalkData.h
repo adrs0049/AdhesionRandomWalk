@@ -46,12 +46,15 @@ struct RandomWalkData : public DataBase
 	
 	virtual void print() const
 	{
+		if (size() == 0)
+			return;
+		
 		constexpr unsigned int field_width = 2;
 		for (const auto elem : data) {
 			std::cout << "{" << std::setw(field_width) << elem.first << ',' \
 					  << std::setw(field_width) << elem.second << "}, ";
 		}
-		std::cout << std::endl;
+ 		std::cout << std::endl;
 	}
 	
 	virtual void * getData() const
