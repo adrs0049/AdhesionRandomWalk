@@ -48,10 +48,10 @@ SimpleRandomWalk::SimpleRandomWalk(const Wrapper<RandomBase>& TheGenerator_,
 
 void SimpleRandomWalk::GetOnePath(iArray& values)
 {
-	TheGenerator->GetUniforms(variates);
-	auto iter = begin(values);
-	
 	assert(values.size() == variates.size());
+	TheGenerator->GetUniforms(variates);
+	
+	auto iter = begin(values);
 	for (const auto& elem : variates) 
 	{
 		if (elem <= TheRandomWalk->LP())
