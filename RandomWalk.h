@@ -4,7 +4,6 @@
 #define RANDOMWALK_H
 
 #include "array.h"
-#include <debug.h>
 
 class RandomWalk
 {
@@ -47,11 +46,44 @@ private:
 	{
 		if (LookAtTimes[0] != 0) 
 			LookAtTimes.insert(begin(LookAtTimes), 0UL);
+		
+		if (LookAtTimes[LookAtTimes.size()-1] != NumberOfSteps+1)
+			LookAtTimes.push_back(NumberOfSteps);
 	}
 	
 	// LookAtTimes is saved in terms of # of steps
 	array_type LookAtTimes;
 	unsigned long NumberOfSteps;
 };
+
+// C Interface for python usage
+#ifdef USE_C_INTERFACE
+extern "C"
+{
+	RandomWalk * new_RandomWalk(unsigned long * array, unsigned long array_sz, 
+								unsigned long steps)
+	{
+		std::vector<unsigned long> tmp {array, array + array_sz};
+		return new RandomWalk(std::move(tmp), steps);
+	}
+	
+	std::size_t RandomWalk_getLookAtTimeSize(RandomWalk * rw)
+	{
+		return rw->GetLookAtTimesSize();
+	}
+	
+	/* ATTENTION HOW TO DO THIS???
+	void * RandomWalk_getLookAtTime(RandomWalk * rw)
+	{
+		return (void *)rw->GetLookAtTimes();
+	}
+	*/
+	
+	unsigned long RandomWalk_GetNumberOfSteps(RandomWalk * rw)
+	{
+		return rw->GetNumberOfSteps();
+	}
+}
+#endif
 
 #endif
