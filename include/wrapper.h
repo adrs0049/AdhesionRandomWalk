@@ -15,6 +15,10 @@ public:
 	: DataPtr(inner.clone())
 	{}
 	
+	Wrapper(const T* iptr)
+	: DataPtr(iptr->clone())
+	{}
+	
     ~Wrapper()
     {
         if (DataPtr != nullptr)
