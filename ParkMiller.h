@@ -5,6 +5,7 @@
 
 #include "RandomBase.h"
 #include <random>
+#include <ctime>
 
 // include all the required boost python headers
 // #include <boost/python.hpp>
@@ -79,12 +80,12 @@ BOOST_PYTHON_MODULE(libRandom)
 #ifdef USE_C_INTERFACE
 extern "C"
 {
-	RandomParkMiller * new_RandomParkMiller(unsigned long l1, unsigned long l2)
+	RandomParkMiller * new_RandomParkMiller(unsigned long l1)
 	{
-		return new RandomParkMiller(l1, l2);
+		return new RandomParkMiller(l1, std::time( NULL ));
 	}
 	
-	void RandomParkMiller_SetSeet(RandomParkMiller * rw, unsigned long l1)
+	void RandomParkMiller_SetSeed(RandomParkMiller * rw, unsigned long l1)
 	{
 		rw->SetSeed(l1);
 	}
