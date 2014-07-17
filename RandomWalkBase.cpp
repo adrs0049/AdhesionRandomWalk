@@ -32,9 +32,6 @@ std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 // 	results.resize(TheRandomWalk->GetLookAtTimesSize());
 	std::vector<unsigned long> LookAtTimes = TheRandomWalk->GetLookAtTimes();
 	
-	for (auto elem : LookAtTimes)
-		assert(elem < values.size());
-	
 	DEBUG2(results.size());
 	DEBUG2(TheRandomWalk->GetLookAtTimesSize());
 	DEBUG2(values.size());
@@ -49,10 +46,10 @@ std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 		DEBUG2(LookAtTimes[i]);
 		DEBUG2(LookAtTimes[i+1]);
 		assert(LookAtTimes[i] < values.size());
-		assert(LookAtTimes[i+1] < values.size());
+		assert(LookAtTimes[i+1] <= values.size());
 		for (unsigned long j = LookAtTimes[i]; j < LookAtTimes[i+1]; ++j)
 		{
-			assert(j < values.size());
+			assert(j <= values.size());
 			DEBUG2(j);
 			xaverage += values[j];
 			x2average += values[j] * values[j];
@@ -75,7 +72,7 @@ std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 SimpleRandomWalk::SimpleRandomWalk(const Wrapper<RandomBase>& TheGenerator_,
 								   const Wrapper<RandomWalk>& TheRandomWalk_)
 : RandomWalkBase(TheRandomWalk_), 
- TheGenerator(TheGenerator_), 
+  TheGenerator(TheGenerator_), 
  variates(TheRandomWalk_->GetNumberOfSteps())
 {
 	TheGenerator->ResetNumbersToGenerate(TheRandomWalk_->GetNumberOfSteps());

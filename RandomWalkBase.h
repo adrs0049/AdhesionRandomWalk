@@ -22,7 +22,7 @@ class RandomWalkBase
 public:
 	RandomWalkBase() {}
 	
-	RandomWalkBase(const Wrapper<RandomWalk> theRandomWalk)
+	RandomWalkBase(const Wrapper<RandomWalk>& theRandomWalk)
 	: TheRandomWalk(theRandomWalk)
 	{}
 	
@@ -48,5 +48,24 @@ private:
 	Wrapper<RandomBase> TheGenerator;
 	fArray variates;
 };
+
+// C interface for use with python
+#ifdef USE_C_INTERFACE
+extern "C"
+{
+	SimpleRandomWalk * new_SimpleRandomWalk(RandomBase * g, 
+											RandomWalk * rw)
+	{
+		return new SimpleRandomWalk(g, rw);
+	}
+	
+	void RandomWalk_DoSimulation(RandomWalkBase * rw, StatisticsBase& stat, 
+								 unsigned long paths)
+	{
+		rw->DoSimulation(stat, paths);
+	}
+	
+}
+#endif
 
 #endif
