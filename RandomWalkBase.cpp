@@ -1,6 +1,7 @@
 // RandomWalkBase.cpp
 
 #include "RandomWalkBase.h"
+#include <make_unique.h>
 
 void RandomWalkBase::DoSimulation(StatisticsBase& TheGatherer, 
 								  unsigned long NumberOfPaths)
@@ -17,9 +18,9 @@ void RandomWalkBase::DoSimulation(StatisticsBase& TheGatherer,
 
 std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 {
-	result_type results; // (TheRandomWalk->GetLookAtTimes());
+	result_type results; // {TheRandomWalk->GetLookAtTimes()};
 	std::vector<unsigned long> LookAtTimes = TheRandomWalk->GetLookAtTimes();
-
+	
 	long xaverage {0L};
 	unsigned long x2average {0UL};
 		
@@ -33,8 +34,7 @@ std::unique_ptr<DataBase> RandomWalkBase::DoOnePath(const iArray& values) const
 		results.push_back(std::make_pair(xaverage, x2average));
 	}
 	
-	std::unique_ptr<DataBase> TheResultPtr {new RandomWalkData(std::move(results))};
-	return TheResultPtr;
+	return std::make_unique<RandomWalkData>(std::move(results));
 }
 
 SimpleRandomWalk::SimpleRandomWalk(const Wrapper<RandomBase>& TheGenerator_,
