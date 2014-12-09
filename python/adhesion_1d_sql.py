@@ -39,6 +39,12 @@ class Simulator(object):
         self.a = 0
         self.b = 0
         
+        # initial cell density 
+        self.initDensity=5
+        
+        # FlipIndex gives how many times we select "each" cell per time step
+        self.FlipIndex=1
+        
         self.OmegaConst = 0
         
         # create cells
@@ -120,22 +126,33 @@ class Simulator(object):
             except:
                 self.AdhesionEnvironment[cell.com] = 1
     
+    def randomInitCells(self, NumberOfCells):
+        for i in xrange(0, NumberOfCells):
+            self.Cells.append(Cell( self.getRandomLatticePos() ))
+    
+    # TODO remove NumberOfCells here!!
     def initCells(self, NumberOfCells):
-        # initial collection of cells
-        #for i in xrange(0, NumberOfCells):
-        #    self.Cells.append(Cell( self.getRandomLatticePos() ))
         for i in xrange(0, self.getLatticeSize() ):
-            for j in xrange(0, 5):
+            for j in xrange(0, self.initDensity):
                 self.Cells.append(Cell ( i ) )
+    
+    def createRandomNumberSeq(self, length):
+        return [ random.random() for i in xrange(length) ]        
     
     def step(self, StepNo):
         
-        for cell in self.Cells:
-            r = random.random()
+        Calls=self.FlipIndex*len(self.Cells)
+        RandomNumbers = self.createRandomNumberSeq(Calls)
+        for i in xrange(Calls):
+            cell=random.choice(self.Cells)
+            
+            r = RandomNumbers[i]
             lp, rp = self.getTransitionProb(cell.com)            
 
-            if not StepNo % 100:
-                print StepNo, lp, rp
+            # This is really helpful when playing with parameters!!!
+            # Can we maybe compute a useful statistics out of this?
+            #if not StepNo % 100:
+            #    print StepNo, lp, rp
 
             if r < lp: # move left
                 
@@ -198,7 +215,8 @@ class Simulator(object):
         self.cleanUp()
         self.initCells(NoPlayers)
         self.updateEnvironment()
-        currentRun = self.storeRun(NoSteps)        
+        currentRun = self.storeRun(NoSteps)     
+        print 'CurrentRun has id=',currentRun.runId
 
         for step in xrange(0, NoSteps):
             self.step(step)
