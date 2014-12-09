@@ -43,13 +43,28 @@ def getMostRecentRun():
     assert query.exists(), 'Query doesnt return anything!!!'
     return query[0]
 
+def getRun(runId):
+    query = (Runs
+             .select(Runs)
+             .where(Runs.runId==runId)
+             .order_by(Runs.runId.desc())
+             .limit(1))
+    
+    assert query.exists(), 'Query doesnt return anything!!!'
+    return query[0]
+
 def getCellLocations(run):
     p=run.parameterId
     x=[(y.pos * p.StepSize - p.DomainL) for y in run.FinalPos]
     return x      
         
-def doHistogram(bar_width=None):
-    r=getMostRecentRun()
+def doHistogram(bar_width=None, runId=None):
+    if runId is None:
+        r=getMostRecentRun()
+    else:
+        r=getRun(runId)
+    
+    print 'Most Recent Run has ID=',r.runId
     p=r.parameterId
     if bar_width is None: bar_width=p.StepSize
     x=getCellLocations(r)
