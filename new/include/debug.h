@@ -1,0 +1,37 @@
+#ifndef DEBUG_H
+#define DEBUG_H
+
+#ifdef DEBUG_BUILD
+
+#include <iostream>
+
+#define DEBUG(x) do { std::cerr << "File:"  <<  __FILE__ << ":" << __LINE__ << ": " << x; } while (0)
+#define DEBUG2(x) do { std::cerr << "File:" << __FILE__ << ":" << __LINE__ << ": " << #x << "=" << x << std::endl; } while (0)
+
+#define log_err(M, ...) fprintf(stderr, "[ERROR] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__, clean_errno(), ##__VA_ARGS__)
+
+#define DEBUG3(x, ...) fprintf(stderr, "[ERROR] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__ )
+
+#include <cassert>
+
+#define ASSERT(condition, message) \
+    do { \
+        if ( ! (condition) ) { \
+            std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
+                      << " line " << __LINE__ << ": " << message << std::endl; \
+            std::exit(EXIT_FAILURE); \
+        } \
+    } while (false)
+
+#define PRINT_FARGS std::printf("File:%s:%d: %s\n",__FILE__,__LINE__, __PRETTY_FUNCTION__);
+
+#else
+#define NDEBUG
+#define DEBUG(x)
+#define DEBUG2(x)
+#define ASSERT(condition, message) do {} while(false)
+#define TYPENAME(TYPE)
+#define PRINT_FARGS
+#endif
+
+#endif 
