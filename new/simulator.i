@@ -11,7 +11,7 @@
 %module simulator 
 %{
 #include "Parameters.h"
-#include "Cell.h"
+#include "CellDensity.h"
 #include "RandomWalk.h"
 #include "Simulator.h"
 %}
@@ -21,7 +21,7 @@
 %template (UIVector) std::vector<unsigned int>;
 
 %include "Parameters.h"
-%include "Cell.h"
+%include "CellDensity.h"
 %include "RandomWalk.h"
 %include "Simulator.h"
 

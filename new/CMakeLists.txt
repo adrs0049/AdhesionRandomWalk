@@ -12,7 +12,7 @@ set(CMAKE_BUILD_TYPE "DEBUG")
 # endif()
 
 set(CMAKE_CXX_FLAGS_C11 " -std=c++11 -march=native")
-set(CMAKE_CXX_COMMON_APPEND "${CMAKE_CXX_FLAGS_C11} -D__STRICT_ANSI__ -nopie")
+set(CMAKE_CXX_COMMON_APPEND "${CMAKE_CXX_FLAGS_C11} -D__STRICT_ANSI__")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_COMMON_APPEND} -O2 -DNDEBUG_BUILD")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_COMMON_APPEND} -DDEBUG_BUILD -O0 -Wall -g -ggdb")
@@ -76,12 +76,17 @@ include_directories("include/")
 set(BOUNDARY_SRC_FILES PeriodicBoundary.cpp)
 add_library(Boundary SHARED ${BOUNDARY_SRC_FILES})
 
-add_executable(RandomWalk_test main.cpp)
-set(RANDOMWALK_SRC_FILES Simulator.cpp)
+add_executable(RandomWalk_test main.cpp BasicException.cpp
+BasicFileLocation.cpp)
+target_link_libraries(RandomWalk_test Boundary  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+
+add_executable(CellDensity_test CellDensityTest.cpp BasicException.cpp
+BasicFileLocation.cpp)
+target_link_libraries(CellDensity_test Boundary  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+
+set(RANDOMWALK_SRC_FILES Simulator.cpp BasicException.cpp BasicFileLocation.cpp)
 add_library(RandomWalk SHARED ${RANDOMWALK_SRC_FILES})
 target_link_libraries(RandomWalk Boundary)
-
-target_link_libraries(RandomWalk_test Boundary  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 set_source_files_properties(simulator.i PROPERTIES CPLUSPLUS ON)
 #set_source_files_properties(simulator.i PROPERTIES SWIG_FLAGS "-includeall")

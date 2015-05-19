@@ -6,6 +6,9 @@
 const std::string BoundaryFactory::no_flux("NoFlux");
 const std::string BoundaryFactory::periodic("Periodic");
 
+const std::string CellDensity::delta("Delta");
+const std::string CellDensity::uniform("Uniform");
+
 int main() 
 {
 
