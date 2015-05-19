@@ -4,14 +4,16 @@
 #include <iostream>
 #include <cassert>
 
-struct Parameters 
+class Parameters
 {
-        Parameters() {}
-        Parameters(double Dsize_, double StepSize_, 
-                   double TimeStep_, double FinalTime_)
+public:
+    Parameters() {}
+        Parameters(double Dsize_, double StepSize_,
+                   double FinalTime_, unsigned long _NumberOfCells)
         : DomainSize(Dsize_), DomainSizeL(),
-        StepSize(StepSize_), TimeStep(TimeStep_), FinalTime(FinalTime_),
-        SensingRadius(1.0), SensingRadiusL(0)
+        StepSize(StepSize_), FinalTime(FinalTime_),
+        SensingRadius(1.0), SensingRadiusL(0),
+        NumberOfCells(_NumberOfCells)
         {
                 DomainSizeL = DomainSize / StepSize;
                 SensingRadiusL = SensingRadius / StepSize;
@@ -19,30 +21,34 @@ struct Parameters
                 std::cout << "Domain Size:" << DomainSizeL;
                 std::cout << " Sensing Radius:" << SensingRadiusL;
                 std::cout << " FinalTime:" << FinalTime << std::endl;
-                
+
                 Check();
         }
 
         void Check()
         {
                 assert(0.0<=InitCellDensity && InitCellDensity<=1.0);
-                
-                // HACK ADJUST time step to make it fit
-                while ( TimeStep > ( (StepSize * StepSize) / (2.0 * Diffusion) ))
-                        TimeStep /= 2.0;    
         }
 
+        double getFinalTime() { return FinalTime; }
+
+        double getDiffusion() { return Diffusion; }
+        double getDomainSize() { return DomainSize; }
+        unsigned long getDomainSizeL() { return DomainSizeL; }
+        double getDiscreteX() { return StepSize; }
+        unsigned long getNumberOfCells() { return NumberOfCells; }
+
+private:
         double DomainSize;
         unsigned long DomainSizeL;
-        
+
         double StepSize;
-        double TimeStep;
-        double FinalTime;       
+        double FinalTime;
 
         double SensingRadius = 1.0;
         unsigned long SensingRadiusL;
 
-        unsigned long NumberOfCells = 100; 
+        unsigned long NumberOfCells;
         double InitCellDensity = 0.5;
 
         double Diffusion = 0.5;

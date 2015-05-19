@@ -2,10 +2,11 @@
 #define RANDOM_WALK_H
 
 #include <iostream>
+#include <cmath>
 #include "ParkMiller.h"
-#include "Cell.h"
+#include "CellDensity.h"
 #include "Parameters.h"
-#include "Probability.h"
+//#include "Probability.h"
 #include "chronos.h"
 #include <memory>
 #include "make_unique.h"
@@ -17,115 +18,135 @@ class RandomWalk
 {
 public:
     RandomWalk() 
-    : c(), p()
+    : c(), param()
     {}
 
-    RandomWalk( std::shared_ptr<Parameters> param ) 
-    : c(std::make_shared<Cells>(param)), 
-    p(std::make_unique<Prob>(c)), 
+    RandomWalk( std::shared_ptr<Parameters> _param )
+    : c(std::make_shared<CellDensity>(_param)),
+    param(_param),
+    //p(std::make_unique<Prob>(c)),
     rand ( 0.0, 1.0 ), 
-    drand ( 0, param->NumberOfCells-1 ) 
+    drand ( 0, param->getNumberOfCells()-1 )
+    //propensity(param->getNumberOfCells(), 0.0)
     {}   
     
     ~RandomWalk() {}
 
-    void update(std::shared_ptr<Parameters> param)
+    void update(std::shared_ptr<Parameters> _param)
     {
-        c->update(param);
-        p->update(c);
+        //c->update(param);
+        //p->update(c);
     }
     
     std::vector<unsigned int> getPath()
     {
-        return c->getDensityVector();        
+        return c->getDensityVector();
     }
  
     void GeneratePath() {
 
         // call the timer
+        time = 0.0;
+        steps=0;
         chronos::Chronos timer;
-        std::cout << "Generating Path up to time " << c->getParameters()->FinalTime << "." << std::endl;
-        std::cout << "TimeStep=" << c->getParameters()->TimeStep << std::endl;
-        std::cout << "Courant Number=" << c->getParameters()->StepSize * c->getParameters()->StepSize / c->getParameters()->Diffusion << std::endl;
-        
-        unsigned long NumberOfSteps = c->getParameters()->FinalTime / c->getParameters()->TimeStep;
-        unsigned long CurrentStep = 0;
-      
+        std::cout << "Generating Path up to time "
+                  << param->getFinalTime() << "." << std::endl;
+        std::cout << "Courant Number=" << param->getDiscreteX() *
+            param->getDiscreteX() / param->getDiffusion() << std::endl;
+
         do {
             Step();
            
-            std::cout << "Step:" << CurrentStep;
-            std::cout << " Flips: " << (NumberOfAttemptFlips - NumberOfUnsuccessfulFlips) << "/" \
-                  << NumberOfAttemptFlips << " Right: " << right 
-                  << " Left:" << left << " Bias: " 
-                  << static_cast<long>(right) - static_cast<long>(left) << std::endl;
-                  
-        } while ( ++CurrentStep < NumberOfSteps ); 
+            std::cout << "Time:" << time << " step: " << steps << std::endl;
+            
+            c->print();
+
+        } while (time < param->getFinalTime() );
     }
 
     void Step() {
-        unsigned long CurrentStep = 0;
-        NumberOfAttemptFlips = Multiplier * c->getParameters()->NumberOfCells;
-        NumberOfUnsuccessfulFlips=0;
-        right = left = 0;
+        auto r1 = rand();
+        auto r2 = rand();
+
+        steps++;
+
+        std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
+
+        // compute propensity
+        double a0 = ComputePropensity();
+
+        std::cout << "a0: " << a0 << std::endl;
+
+        time += 1.0 / a0 * std::log(1.0 / r1);
         
-        do {
-            SingleStep();
-            
-        } while ( ++CurrentStep < NumberOfAttemptFlips);
-        
-    }
+        long k {0};
+        double ss {0.0};
+        auto r2a0 = r2 * a0;
+        auto d = DiffusionRateConstant();
+    
+        std::cout << "step: " << steps << " r2a0:" << r2a0
+                  << " d: " << d << std::endl;
 
-    void SingleStep() {
-        // choose random cell
-        auto id = drand();
-        auto& cell = c->getCell ( id );
-
-        //std::cout << "id = " << id << " cell.id="<<cell.id<<std::endl;
-        assert ( cell.id == id );
-
-        //std::cout << "CELL.id=" << id << " CELL.com=" << cell.com << std::endl;
-
-        auto com = cell.com;
-        //std::cout << "com=" << com << std::endl;
-
-        // get probabilities
-        auto prob = p->getProb( com );
-        
-	ASSERT ( CHECK_PROB ( prob[LEFT]  ), "a+b=" << prob[LEFT] );
-	ASSERT ( CHECK_PROB ( prob[RIGHT] ), "a-b=" << prob[RIGHT] );
-	
-	auto r = rand();
-
-        // update location
-        if ( r < prob[LEFT] ) {
-            //std::cout << "LEFT" << std::endl;
-            left++;
-            c->updatePosition ( cell, LEFT_INC );
-        } else if ( r < prob[LEFT] + prob[RIGHT] ) {
-            //std::cout << "RIGHT" << std::endl;
-            right++;
-            c->updatePosition ( cell, RIGHT_INC );
-        } else
+        while (ss <= r2a0 && (k < param->getDomainSizeL()-1))
         {
-            NumberOfUnsuccessfulFlips++;            
+            k++;
+            ss+=d * c->getDensity(k);
         }
 
-        //std::cout << "CELL.com=" << cell.com << std::endl;
-        //std::cout << "DONE" << std::endl;
-        // else nothing happens
+        std::cout << "sum: "<<ss << std::endl;
+        if (ss > r2a0)
+        {
+            // Move to the right
+            c->RightShift(k);
+            
+        } else {
+            // Hit the maximum number in counting 
+            k=1;
+            while (ss < r2a0 && k < param->getDomainSizeL())
+            {
+                k++;
+                ss+=d * c->getDensity(k);
+            }
+            std::cout<<"k: "<<k<<" ss: "<< ss<<std::endl;
+            c->LeftShift(k);
+        }
+
     }
 
-    std::shared_ptr<Cells> getCells()
+    std::shared_ptr<CellDensity> getCells()
     {
         return c;
     }
     
 private:
-    
-    std::shared_ptr<Cells> c;
-    std::unique_ptr<Prob> p;
+   
+    double DiffusionRateConstant()
+    {
+        return param->getDiffusion() / 
+            (param->getDiscreteX() * param->getDiscreteX());
+    }
+
+    double ComputePropensity()
+    {
+        return DiffusionRateConstant() * ( 2.0 * param->getNumberOfCells() +
+            c->front() + c->back());
+    }
+
+    void updatePropensity()
+    {
+
+    }
+
+    std::shared_ptr<CellDensity> c;
+    std::shared_ptr<Parameters> param;
+    //std::unique_ptr<Prob> p;
     //Prob p;
+
+    // Propensity vector
+    //std::vector<double> propensity;
+
+    unsigned long steps;
+    double time;
 
     unsigned long right;
     unsigned long left;

@@ -16,10 +16,12 @@
 #include "BoundaryFactory.h"
 
 #include "RandomWalk.h"
-#include "Cell.h"
+//#include "Cell.h"
 #include "Parameters.h"
 #include <memory>
 #include "make_unique.h"
+
+#include "Terminate.h"
 
 using namespace boundary;
 
@@ -43,6 +45,9 @@ public:
     
     void init(std::shared_ptr<Parameters> param) 
     {
+        // DEBUG stuff
+        Error::TerminalCatcher::init();
+
         TheRandomWalk = std::make_unique<RandomWalk>(param);
     }
 
@@ -53,7 +58,8 @@ public:
     }
     
     void print() {
-        //cells->print();
+        auto path = TheRandomWalk->getCells();
+        path->print();
     }
 
     void print ( int c ) {
@@ -68,12 +74,12 @@ public:
     {
         return TheRandomWalk->getPath();
     }
-    
+    /*
     std::vector<double> getCOM()
     {
         return TheRandomWalk->getCells()->getCellCOM();
     }
-    
+    */
     void run ( std::shared_ptr<Parameters> param_ ) {
         setParameters ( param_ );
         run();
