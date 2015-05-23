@@ -18,17 +18,18 @@ class RandomWalk
 {
 public:
     RandomWalk() 
-    : c(), param()
+    : state(nullptr), param(nullptr)
     {}
 
     RandomWalk( std::shared_ptr<Parameters> _param )
-    : c(std::make_shared<CellDensity>(_param)),
+    : state(std::make_shared<CellDensity>(_param)),
     param(_param),
     //p(std::make_unique<Prob>(c)),
     rand ( 0.0, 1.0 ), 
     drand ( 0, param->getNumberOfCells()-1 )
-    //propensity(param->getNumberOfCells(), 0.0)
-    {}   
+    //propensities(2*(param->getNumberOfCells()-1), 0.0)
+    {
+          }   
     
     ~RandomWalk() {}
 
@@ -40,10 +41,13 @@ public:
     
     std::vector<unsigned int> getPath()
     {
-        return c->getDensityVector();
+        return state->getDensityVector();
     }
  
-    void GeneratePath() {
+    void GeneratePath() 
+    {
+        // ensure all things are set and updated
+        update();
 
         // call the timer
         time = 0.0;
@@ -59,7 +63,7 @@ public:
            
             std::cout << "Time:" << time << " step: " << steps << std::endl;
             
-            c->print();
+            state->print();
 
         } while (time < param->getFinalTime() );
     }
@@ -73,7 +77,7 @@ public:
         std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
 
         // compute propensity
-        double a0 = ComputePropensity();
+        double a0 = getPropensitySum();
 
         std::cout << "a0: " << a0 << std::endl;
 
@@ -82,44 +86,102 @@ public:
         long k {0};
         double ss {0.0};
         auto r2a0 = r2 * a0;
-        auto d = DiffusionRateConstant();
     
         std::cout << "step: " << steps << " r2a0:" << r2a0
-                  << " d: " << d << std::endl;
+                  << std::endl;
 
         while (ss <= r2a0 && (k < param->getDomainSizeL()-1))
         {
             k++;
-            ss+=d * c->getDensity(k);
+            ss+=getPropensity(k, 0); // d * c->getDensity(k);
         }
 
-        std::cout << "sum: "<<ss << std::endl;
+        //std::cout << "sum: "<<ss << std::endl;
         if (ss > r2a0)
         {
             // Move to the right
-            c->RightShift(k);
+            state->RightShift(k);
             
         } else {
             // Hit the maximum number in counting 
+            // Now find a LeftShift reaction
             k=1;
             while (ss < r2a0 && k < param->getDomainSizeL())
             {
                 k++;
-                ss+=d * c->getDensity(k);
+                ss+=getPropensity(k, 1); // d * c->getDensity(k);
             }
-            std::cout<<"k: "<<k<<" ss: "<< ss<<std::endl;
-            c->LeftShift(k);
+            //std::cout<<"k: "<<k<<" ss: "<< ss<<std::endl;
+            
+            // The simulation has to find a Rxn
+            ASSERT(k<param->getDomainSizeL(), "Simulation failed did not find a Rxn to update!");
+
+            state->LeftShift(k);
         }
 
     }
 
+    void update() 
+    {
+      propensity_stride = param->getDomainSizeL() - 2;
+      NumberOfReactions = 2 * (param->getDomainSizeL() - 1);
+      computeAllPropensities();
+      state->print();
+    }
+
     std::shared_ptr<CellDensity> getCells()
     {
-        return c;
+        return state;
     }
     
 private:
-   
+  
+    void computeAllPropensities()
+    {
+        propensities.resize(NumberOfReactions, 0);
+        for (auto& propensity : propensities)
+          propensity = DiffusionRateConstant();
+    }
+
+    double getPropensity(int coordinate, int flag)
+    {
+        ASSERT(coordinate >= 0 && coordinate < param->getDomainSizeL(), \
+            "Lattice coordinate= " << coordinate << " is invalid. Valid \
+            lattice coordinate range is (" << 0 << ", " << \
+              param->getDomainSizeL() << ").");
+
+        ASSERT((flag * propensity_stride + coordinate) >=0 \
+            && (flag * propensity_stride + coordinate)<propensities.size(), \
+            "RxnIndex=" << flag * propensity_stride + coordinate 
+            << " is invalid. The valid range is (" << 0 << ", " 
+            << propensities.size() << "). Coordinate=" << coordinate
+            << " flag=" << flag << ".");
+      /*
+        std::cout << "propensity ( " << coordinate << " , " << flag << " ):" 
+          << propensities.at(flag * propensity_stride + coordinate) <<
+          " state ( " << coordinate << ")=" << 
+            state->get(coordinate) << std::endl;
+       */
+
+        // TODO save the complete propensity in a vector 
+        // so we dont have to recompute it each time
+        return propensities.at(flag * propensity_stride + coordinate) * 
+                state->get(coordinate);
+    }
+
+    double getPropensitySum()
+    {
+      double ret = getPropensity(0, 0);
+      for (long k = 0; k < param->getDomainSizeL() - 1; k++)
+      {
+        ret += getPropensity(k, 0);
+        ret += getPropensity(k, 1);
+      }
+      ret += getPropensity(param->getDomainSizeL()-1, 1);
+
+      return ret;
+    }
+
     double DiffusionRateConstant()
     {
         return param->getDiffusion() / 
@@ -129,7 +191,7 @@ private:
     double ComputePropensity()
     {
         return DiffusionRateConstant() * ( 2.0 * param->getNumberOfCells() +
-            c->front() + c->back());
+            state->front() + state->back());
     }
 
     void updatePropensity()
@@ -137,19 +199,26 @@ private:
 
     }
 
-    std::shared_ptr<CellDensity> c;
+    double getTransitionRate()
+    {}
+
+    
+
+    std::shared_ptr<CellDensity> state;
     std::shared_ptr<Parameters> param;
     //std::unique_ptr<Prob> p;
     //Prob p;
 
     // Propensity vector
-    //std::vector<double> propensity;
+    std::vector<double> propensities;
+    unsigned long propensity_stride;
 
     unsigned long steps;
     double time;
 
     unsigned long right;
     unsigned long left;
+    unsigned long NumberOfReactions;
     unsigned long NumberOfAttemptFlips;
     unsigned long NumberOfUnsuccessfulFlips;
     unsigned int Multiplier = 1;

@@ -2,7 +2,7 @@
 #define PARAMETERS_H
 
 #include <iostream>
-#include <cassert>
+#include "debug.h"
 
 class Parameters
 {
@@ -22,6 +22,8 @@ public:
                 std::cout << " Sensing Radius:" << SensingRadiusL;
                 std::cout << " FinalTime:" << FinalTime << std::endl;
 
+                ASSERT(NumberOfCells!=0, "Number of cells can't be zero!");
+
                 Check();
         }
 
@@ -30,13 +32,13 @@ public:
                 assert(0.0<=InitCellDensity && InitCellDensity<=1.0);
         }
 
-        double getFinalTime() { return FinalTime; }
+        const double getFinalTime() const { return FinalTime; }
 
-        double getDiffusion() { return Diffusion; }
-        double getDomainSize() { return DomainSize; }
-        unsigned long getDomainSizeL() { return DomainSizeL; }
-        double getDiscreteX() { return StepSize; }
-        unsigned long getNumberOfCells() { return NumberOfCells; }
+        const double getDiffusion() const { return Diffusion; }
+        const double getDomainSize() const { return DomainSize; }
+        const unsigned long getDomainSizeL() const { return DomainSizeL; }
+        const double getDiscreteX() const { return StepSize; }
+        const unsigned long getNumberOfCells() const { return NumberOfCells; }
 
 private:
         double DomainSize;

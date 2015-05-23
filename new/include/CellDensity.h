@@ -68,11 +68,17 @@ private:
 
     void init_delta()
     {
-        std::cout << "init delta" << std::endl;
+        std::cout << "init delta at location " << p->getDomainSizeL()/2 
+          << " with " << p->getNumberOfCells() << " number of cells" 
+          << std::endl;
 
         DensityVector.resize ( p->getDomainSizeL(), 0 );
 
         DensityVector[DensityVector.size()/2]=p->getNumberOfCells();
+    
+        std::cout << "DensityVector[ " << DensityVector.size()/2 
+                  << " ] =" << DensityVector[DensityVector.size()/2] 
+                  << std::endl;
     }
 
 public:
@@ -129,7 +135,7 @@ public:
 
     void LeftShift(int x)
     {
-        ASSERT(x<p->getDomainSizeL(), "");
+        ASSERT(x<p->getDomainSizeL(), "Coordinate=" << x << " is not valid!");
 
         //b->applyCondition ( x, p->getDomainSizeL() );
         std::cout << "LeftShift: " << x << std::endl;
@@ -161,6 +167,8 @@ public:
 
     void print ( int c ) {
     }
+
+    unsigned int get(int x) { return getDensity(x); }
 
     unsigned int getDensity ( int x ) {
         ASSERT(init_flag, "Cells has to be initialized first!");
