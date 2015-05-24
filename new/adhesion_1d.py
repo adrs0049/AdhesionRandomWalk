@@ -29,6 +29,9 @@ class Player(object):
         self.lattice = 0
         self.a = 0
         self.b = 0
+
+        # number of NumberOfCells
+        self.NoPlayers = 0
         
         self.OmegaConst = 0
       
@@ -115,7 +118,8 @@ class Player(object):
         # domain is [-L, L]
         xd=np.linspace(self.getDomainLeftBoundary(), self.getDomainRightBoundary(), N+1)
         u0=np.zeros(N+1)
-        u0[N/2]=1000.0
+        u0[N/2]=self.NoPlayers/2.0
+        u0[N/2+1]=self.NoPlayers/2.0
         # IC
         F = np.fft.fft(u0)
         k = np.append(np.arange(Nhalf+1), np.arange(-Nhalf,0,1))
@@ -129,10 +133,12 @@ class Player(object):
     def printSim(self):
         self.sim._print()
 
-    def runSimulation(self, NoPlayers=1000, NoSteps=1000):
+    def runSimulation(self, NoPlayers=10000, NoSteps=1000):
         assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (NoSteps>0), "Number of steps has to be larger 0"
         if NoSteps>1E6: print ('WARNING number of steps is very large!!')
+
+        self.NoPlayers = NoPlayers
 
         # make sure parameters are up to date
         self.updateValues(NoPlayers, NoSteps)

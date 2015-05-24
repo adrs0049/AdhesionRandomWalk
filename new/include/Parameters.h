@@ -49,7 +49,8 @@ public:
         const unsigned long getNumberOfCells() const { return NumberOfCells; }
         const double getLambda() const { return lambda; }
         const double getStepSizeSquare() const { return StepSize * StepSize; }
-        const double getDiffusionSim() const { return  getDiffusion() / ( getLambda() * getStepSizeSquare()); }
+        // TODO check why I don't need a lambda here?
+        const double getDiffusionSim() const { return  getDiffusion() / ( getStepSizeSquare()); }
         const double getDrift() const { return Drift; }
         const double getDriftSim() const { return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
 

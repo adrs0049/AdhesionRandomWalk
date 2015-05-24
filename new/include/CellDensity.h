@@ -74,8 +74,9 @@ private:
 
         DensityVector.resize ( p->getDomainSizeL(), 0 );
 
-        DensityVector[DensityVector.size()/2]=p->getNumberOfCells();
-    
+        DensityVector[DensityVector.size()/2]=p->getNumberOfCells()/2;
+        DensityVector[DensityVector.size()/2+1]=p->getNumberOfCells()/2;
+
         std::cout << "DensityVector[ " << DensityVector.size()/2 
                   << " ] =" << DensityVector[DensityVector.size()/2] 
                   << std::endl;
