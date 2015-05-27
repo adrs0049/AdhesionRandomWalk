@@ -123,7 +123,7 @@ public:
         ASSERT(x<p->getDomainSizeL(), "");
 
         //b->applyCondition ( x, p->getDomainSizeL() );
-        std::cout << "RightShift: " << x << std::endl;
+        //std::cout << "RightShift: " << x << std::endl;
 
         ASSERT ((unsigned)x<DensityVector.size()-1, "x "<< x << " invalid \
                 density vector index!");
@@ -139,7 +139,7 @@ public:
         ASSERT(x<p->getDomainSizeL(), "Coordinate=" << x << " is not valid!");
 
         //b->applyCondition ( x, p->getDomainSizeL() );
-        std::cout << "LeftShift: " << x << std::endl;
+        //std::cout << "LeftShift: " << x << std::endl;
 
         ASSERT ((unsigned)x<DensityVector.size(), "x "<< x << " invalid \
                 density vector index!");
