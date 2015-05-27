@@ -80,6 +80,10 @@ add_executable(RandomWalk_test main.cpp BasicException.cpp
 BasicFileLocation.cpp)
 target_link_libraries(RandomWalk_test Boundary  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
+add_executable(RandomWalkBenchmark benchmark.cpp BasicException.cpp
+BasicFileLocation.cpp)
+target_link_libraries(RandomWalkBenchmark Boundary)
+
 add_executable(CellDensity_test CellDensityTest.cpp BasicException.cpp
 BasicFileLocation.cpp)
 target_link_libraries(CellDensity_test Boundary  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
