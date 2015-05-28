@@ -94,13 +94,13 @@ public:
         auto r1 = rand();
         auto r2 = rand();
 
-        std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
+        //std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
 
         // compute propensity
         double a0 = getPropensitySum();
         ASSERT(a0!=0.0, "total propensity is zero. Error!");
 
-        std::cout << "a0: " << a0 << std::endl;
+        //std::cout << "a0: " << a0 << std::endl;
 
         time += 1.0 / a0 * std::log(1.0 / r1);
         
@@ -108,8 +108,8 @@ public:
         double ss {0.0};
         auto r2a0 = r2 * a0;
     
-        std::cout << "step: " << steps << " r2a0:" << r2a0
-                  << std::endl;
+        //std::cout << "step: " << steps << " r2a0:" << r2a0
+        //          << std::endl;
 
         while (ss <= r2a0 && (k < param->getDomainSizeL()-1))
         {
@@ -171,6 +171,7 @@ private:
                       << param->getFinalTime() << "." << std::endl;
 
         std::cout << "Courant Number=" << 1.0 / param->getDiffusionSim()
+                  << " StepSize=" << param->getDiscreteX()
                   << " Lambda=" << param->getLambda()
                   << " Diffusion=" << param->getDiffusion()
                   << " Drift=" << param->getDrift() << std::endl
