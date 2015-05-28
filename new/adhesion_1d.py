@@ -6,6 +6,8 @@ import numpy as np
 import simulator as s
 import time
 
+from diffusion import *
+
 def getValues(l, name):
   return [getattr(r, name) for r in l]    
 
