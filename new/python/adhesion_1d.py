@@ -4,60 +4,76 @@ import sys
 from collections import namedtuple
 import numpy as np
 import simulator as s
+from simulator import DVector
 import time
 
 from diffusion import *
+from randomWalk_db import *
 
 def getValues(l, name):
   return [getattr(r, name) for r in l]    
 
 class Player(object):
-    def __init__(self):
-        self.steps = 1000
-        self.D = 1
-        self.A = 0.0
+    def __init__(self, parameters):
+
+        #self.steps = 1000
+        #self.D = 1
+        #self.A = 0.0
         
         # domain size, domain is [-L, L]
-        self.L = 5 
+        #self.L = 5 
         # step size 
-        self.h = 0.05
-        self.Dt = 0.005
+        #self.h = 0.05
+        #self.Dt = 0.005
         # final time
-        self.Ft = 0.1
+        #self.Ft = 0.1
         # sensing radius
-        self.R = 1 
-        self.Rl = 0
+        #self.R = 1 
+        #self.Rl = 0
         # lattice size
-        self.lattice = 0
-        self.a = 0
-        self.b = 0
+        #self.lattice = 0
+        #self.a = 0
+        #self.b = 0
 
         # number of NumberOfCells
-        self.NoPlayers = 0
-        
-        self.OmegaConst = 0
-      
+        #self.NoPlayers = 0
+        #
+        #self.OmegaConst = 0
+        #
         # parameters object
-        self.param = 0 
+        self.param = parameters 
 
         # sim object
         self.sim = 0
 
-    def getDomainSize(self): return 2*self.L
-    def getDomainSizeL(self): return self.getDomainSize() / self.getStepSize()
-    def getDomainLeftBoundary(self): return -self.L
-    def getDomainRightBoundary(self): return self.L
-    def getDiffusionCoeff(self): return self.D
-    def getAdhesionCoeff(self): return self.A
-    def getStepSize(self): return self.h
-    def getSensingRadius(self): return self.R
-    def getSensingRadiusL(self): return self.Rl
-    def getLatticeSize(self): return int(self.lattice)
-    def getFinalTime(self): return self.Ft
-    def setDomainSize(self, L): self.L=L
-    def setDiffusionCoeff(self, D): self.D=D
-    def setStepSize(self, h): self.h=h
-    def setSensingRadius(self, R): self.R=R
+        # setup database connection
+        self.db = RandomWalkDB()
+
+        # runId -> database ref
+        self.runId = -1
+
+    def getDomainSize(self): return self.param.getDomainSize()
+    def getDomainSizeL(self): return self.param.getDomainSizeL()
+    def getDomainShape(self): return self.param.getDomainShape()
+    def getDomainLeftBoundary(self): return self.getDomainShape()[0]
+    def getDomainRightBoundary(self): return self.getDomainShape()[1]
+    def getDiffusionCoeff(self): return self.param.getDiffusion()
+    def getAdhesionCoeff(self): return self.param.getDrift()
+    def getStepSize(self): return self.param.getDiscreteX()
+    def getSensingRadius(self): return self.param.getSensingRadius()
+    def getSensingRadiusL(self): return self.param.getSensingRadiusL()
+    def getLatticeSize(self): return self.getDomainSizeL()
+    def getFinalTime(self): return self.param.getFinalTime()
+    def setDiffusionCoeff(self, D): self.param.setDiffusion(D)
+    def setDriftCoeff(self, c): self.param.setDrift(c)
+    def setStepSize(self, h): self.param.setDiscreteX(h)
+    def setSensingRadius(self, R): self.param.setSensingRadius(R)
+    # TODO do something that is actually python standard
+    def getVersion(self): return '0.1'
+    
+    # DEBUG STUFF
+    def getParameters(self): return self.param
+    def getDB(self): return self.db
 
     def getCellPath(self):
         return np.asarray(self.sim.getPath())
@@ -76,19 +92,21 @@ class Player(object):
     #    return (com - self.L)
 
     # call this somehow after var changes
-    def updateValues(self, NoPlayers, NoSteps):
-        self.Rl = int(self.R / self.h)
-        self.param = s.Parameters(2*self.L, self.h, self.Ft, NoPlayers)
-        self.param.SensingRadiusL = self.Rl
-        #self.param.NumberOfCells = NoPlayers
-        self.param.setDiffusion(self.D)
-        self.param.setDrift(self.A)
-        self.param.update()
+    #def updateValues(self, NoPlayers, NoSteps):
+    #    #self.Rl = int(self.R / self.h)
+    #    self.param = s.Parameters(2*self.L, self.h, self.Ft, NoPlayers)
+    #    self.param.SensingRadiusL = self.Rl
+    #    #self.param.NumberOfCells = NoPlayers
+    #    self.param.setDiffusion(self.D)
+    #    self.param.setDrift(self.A)
+    #    self.param.update()
 
     def doHistogram(self, bar_width=None):
-        if not bar_width: bar_width = self.h
+        if not bar_width: bar_width = self.getStepSize()
         x=self.getCellPath()
-        bins=np.arange(-self.L, self.L + self.h, bar_width)
+        bins=np.arange(-self.getDomainLeftBoundary(), 
+                        self.getDomainRightBoundary() + self.getStepSize(),
+                        bar_width)
 
         print('shape bins=', np.shape(bins))
         print('shape x=', np.shape(x))
@@ -193,12 +211,28 @@ class Player(object):
         self.NoPlayers = NoPlayers
 
         # make sure parameters are up to date
-        self.updateValues(NoPlayers, NoSteps)
+        # self.updateValues(NoPlayers, NoSteps)
+
+        # create new record in the database
+        self.runId = db.createRandomWalk(self.getVersion(), self.param)
 
         # create sim object
         self.sim = s.Simulator(self.param)
         self.sim._print()
         time.sleep(1)
+
+    """ Method to safe generated path to the database """
+    def finishSimulation(self):
+
+        # get stateVector
+        stateVector = self.getCellPath()
+
+        # send the stateVector to the database
+        # TODO actually save the current time!
+        db.storePath(stateVector, self.getFinalTime(), self.runId)
+
+        # Don't ever overwrite the database -> unset runId
+        self.runId = -1
 
     def runSimulation(self, NoPlayers=500, NoSteps=1000):
         assert (NoPlayers>0), "Number of players has to be larger 0"
@@ -210,6 +244,14 @@ class Player(object):
         # run the simulation
         self.sim.run()
 
+        # finish simulation
+        self.finishSimulation()
+
 if __name__ == '__main__':
-    player = Player()
+    domainShape = DVector([-5.0, 5.0])
+    parameters = s.Parameters(domainShape, 0.1, 0.1, 1000)
+    player = Player(parameters)
+    db=player.getDB()
+    p=player.getParameters()
+    q=dict(diffusion_coeff=0.5)
     #player.runSimulation()
