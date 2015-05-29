@@ -2,64 +2,102 @@
 #define PARAMETERS_H
 
 #include <iostream>
+#include <vector>
 #include "debug.h"
 
 class Parameters
 {
 public:
     Parameters() {}
-        Parameters(double Dsize_, double StepSize_,
-                   double FinalTime_, unsigned long _NumberOfCells)
-        : DomainSize(Dsize_), DomainSizeL(),
-        StepSize(StepSize_), FinalTime(FinalTime_),
-        SensingRadius(1.0), SensingRadiusL(0),
-        NumberOfCells(_NumberOfCells)
-        {
-            std::cout << "Domain Size:" << DomainSizeL;
-            std::cout << " Sensing Radius:" << SensingRadiusL;
-            std::cout << " FinalTime:" << FinalTime << std::endl;
+    Parameters(double Dsize_, double StepSize_,
+               double FinalTime_, unsigned long _NumberOfCells)
+    : DomainSize(Dsize_), DomainSizeL(0),
+    StepSize(StepSize_), FinalTime(FinalTime_),
+    NumberOfCells(_NumberOfCells)
+    {
+        // TODO check if this is correct
+        domainShape.resize(2, 0);
+        domainShape[0] = -DomainSize/2;
+        domainShape[1] = DomainSize/2;
 
-            update();
-        }
+        update();
+        print_info();
+    }
 
-        void update()
-        {
-            DomainSizeL = DomainSize / StepSize;
-            SensingRadiusL = SensingRadius / StepSize;
-            lambda = 2.0 * Diffusion;
+    Parameters(std::vector<double> _shape, double _stepSize,
+               double _finalTime,
+               unsigned long _NumberOfCells)
+    : domainShape(_shape), StepSize(_stepSize), FinalTime(_finalTime), 
+    NumberOfCells(_NumberOfCells)
+    {
+        ASSERT(_shape.size()==2, "shape size is invalid!");
 
-            Check();
-        }
+        DomainSize = domainShape[1] - domainShape[0];  
 
-        void Check()
-        {
-            ASSERT(NumberOfCells!=0, "Number of cells can't be zero!");
-            ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
-            ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
-        }
+        update();
+        print_info();
+    }
 
-        const double getFinalTime() const { return FinalTime; }
+    void print_info()
+    {
+       std::cout << "Domain Size:" << DomainSize;
+       std::cout << " Domain Size L:" << DomainSizeL;
+       std::cout << " Domain = (" << domainShape[0] << ", " 
+                 << domainShape[1] << ").";
+       std::cout << " StepSize:" << StepSize << std::endl;
+       std::cout << " Sensing Radius:" << SensingRadiusL;
+       std::cout << " FinalTime:" << FinalTime << std::endl;
+    }
 
-        const double getDiffusion() const { return Diffusion; }
-        const double getDomainSize() const { return DomainSize; }
-        const unsigned long getDomainSizeL() const { return DomainSizeL; }
-        const double getSensingRadius() const { return SensingRadius; }
-        const unsigned long getSensingRadiusL() const { return SensingRadiusL; }
-        const double getDiscreteX() const { return StepSize; }
-        const unsigned long getNumberOfCells() const { return NumberOfCells; }
-        const double getLambda() const { return lambda; }
-        const double getStepSizeSquare() const { return StepSize * StepSize; }
-        // TODO check why I don't need a lambda here?
-        const double getDiffusionSim() const { return  getDiffusion() / ( getStepSizeSquare()); }
-        const double getDrift() const { return Drift; }
-        const double getDriftSim() const { return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
+    void update()
+    {
+        DomainSizeL = DomainSize / StepSize;
+        SensingRadiusL = SensingRadius / StepSize;
+        lambda = 2.0 * Diffusion;
 
-        void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
-        void setDrift(double _Drift) { Drift = _Drift; }
+        Check();
+    }
+
+    void Check()
+    {
+        ASSERT(domainShape.size()==2, "Domain shape has invalid size!");
+
+        ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
+
+        ASSERT(NumberOfCells!=0, "Number of cells can't be zero!");
+        ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
+        ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
+    }
+
+    const double getFinalTime() const { return FinalTime; }
+
+    const double getDiffusion() const { return Diffusion; }
+    const double getDomainSize() const { return DomainSize; }
+    const unsigned long getDomainSizeL() const { return DomainSizeL; }
+    const double getSensingRadius() const { return SensingRadius; }
+    const unsigned long getSensingRadiusL() const { return SensingRadiusL; }
+    const double getDiscreteX() const { return StepSize; }
+    const unsigned long getNumberOfCells() const { return NumberOfCells; }
+    const double getLambda() const { return lambda; }
+    const double getStepSizeSquare() const { return StepSize * StepSize; }
+    // TODO check why I don't need a lambda here?
+    const double getDiffusionSim() const { return  getDiffusion() / ( getStepSizeSquare()); }
+    const double getDrift() const { return Drift; }
+    const double getDriftSim() const { return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
+
+    void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
+    void setDrift(double _Drift) { Drift = _Drift; }
+    void setSensingRadius(double _R) { SensingRadius = _R; }
+    void setDiscreteX(double _h) { StepSize = _h; }
+
+    // TODO add high dimensions if needed
+    std::vector<double> getDomainShape() { return domainShape; }
 
 private:
         double DomainSize;
         unsigned long DomainSizeL;
+
+        std::vector<double> domainShape;
 
         double StepSize;
         double FinalTime;
