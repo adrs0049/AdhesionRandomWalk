@@ -6,7 +6,7 @@ namespace boundary {
 class Boundary {
 
 public:
-	virtual bool applyCondition(int& coordinate, const unsigned int& max_value)=0;
+	virtual bool applyCondition(int& coordinate, const int& max_value)=0;
 };
 
 } // boundary

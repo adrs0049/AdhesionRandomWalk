@@ -3,13 +3,18 @@
 
 #include <cmath>
 
+#include <iostream>
+
 namespace boundary {
 
-bool PeriodicBoundary::applyCondition(int& coordinate, const unsigned int& max_value)
+bool PeriodicBoundary::applyCondition(int& coordinate, const int& max_value)
 {
+        short val;
+
 	if (coordinate < 0) 
 	{
-		auto val = std::abs((float)(coordinate % max_value));
+		val = std::abs((float)(coordinate % max_value));
+                std::cout << "coordinate="<<coordinate << " max=" << max_value << " val = "<<val<<std::endl;
 		coordinate = max_value - val;
 		return true;
 	}

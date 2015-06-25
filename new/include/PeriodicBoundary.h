@@ -8,7 +8,7 @@ namespace boundary {
 class PeriodicBoundary : public Boundary {
 
 public:
-	bool applyCondition(int& coordinate, const unsigned int& max_value);
+	bool applyCondition(int& coordinate, const int& max_value);
 
 };
 
