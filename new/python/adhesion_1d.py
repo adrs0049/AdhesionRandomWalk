@@ -20,7 +20,7 @@ class Player(object):
         self.db = RandomWalkDB()
 
         # parameters are a dict. First check if it exists in database
-        self.param = db.param_create_if_not_exist(parameters)
+        self.param = self.db.param_create_if_not_exist(parameters)
 
         # some variables used later
         self.FinalTime = 0
@@ -41,20 +41,20 @@ class Player(object):
     def getDomainShape(self): return self.param.getDomainShape()
     def getDomainLeftBoundary(self): return self.getDomainShape()[0]
     def getDomainRightBoundary(self): return self.getDomainShape()[1]
-    def getDiffusionCoeff(self): return self.param.getDiffusion()
-    def getAdhesionCoeff(self): return self.param.getDrift()
-    def getStepSize(self): return self.param.getDiscreteX()
-    def getSensingRadius(self): return self.param.getSensingRadius()
+    def getDiffusionCoeff(self): return float(self.param.diffusion_coeff)
+    def getDriftCoeff(self): return float(self.param.drift_coeff)
+    def getStepSize(self): return self.swig_param.getDiscreteX()
+    def getSensingRadius(self): return float(self.param.R)
     def getSensingRadiusL(self): return self.param.getSensingRadiusL()
     def getLatticeSize(self): return self.getDomainSizeL()
     def getFinalTime(self): return self.param.getFinalTime()
-    def setDiffusionCoeff(self, D): self.param.setDiffusion(D)
-    def setDriftCoeff(self, c): self.param.setDrift(c)
-    def setStepSize(self, h): self.param.setDiscreteX(h)
-    def setSensingRadius(self, R): self.param.setSensingRadius(R)
+    def setDiffusionCoeff(self, D): self.swig_param.setDiffusion(D)
+    def setDriftCoeff(self, c): self.swig_param.setDrift(c)
+    def setStepSize(self, h): self.swig_param.setDiscreteX(h)
+    def setSensingRadius(self, R): self.swig_param.setSensingRadius(R)
     # TODO do something that is actually python standard
     def getVersion(self): return '0.1'
-    
+
     # DEBUG STUFF
     def getParameters(self): return self.param
     def getDB(self): return self.db
@@ -126,10 +126,6 @@ class Player(object):
         plt.ylim(0,1000)
         plt.show()
 
-    def setupSim(self, NoPlayers=100, NoSteps=1000):
-        self.updateValues(NoPlayers, NoSteps)
-        self.sim = s.Simulator(self.param)
-
     def computeDiffusionSoln(self, FinalTime=None):
         N=self.getDomainSizeL()
         Nhalf = N/2
@@ -173,6 +169,10 @@ class Player(object):
         print('The L1 error=', self.norm1(x, y))
         print('The L2 error=', self.norm2(x, y))
 
+    def setupSim(self, NoPlayers=100, NoSteps=1000):
+        self.updateValues(NoPlayers, NoSteps)
+        self.sim = s.Simulator(self.param)
+
     def printSim(self):
         self.sim._print()
 
@@ -187,9 +187,9 @@ class Player(object):
         swig_param = s.Parameters(domainShape, stepSize, self.FinalTime,
                 self.NoPlayers)
 
-        swig_param.setDiffusion(self.param.diffusion_coeff)
-        swig_param.setDrift(self.param.drift_coeff)
-        swig_param.SensingRadius(self.param.R)
+        swig_param.setDiffusion(self.getDiffusionCoeff())
+        swig_param.setDrift(self.getDriftCoeff())
+        swig_param.setSensingRadius(self.getSensingRadius())
 
         return swig_param
 
@@ -204,7 +204,8 @@ class Player(object):
         self.swig_param = self.getSwigParameters()
 
         # create new record in the database
-        self.runId = db.createRandomWalk(self.getVersion(), self.param)
+        self.runId = db.createRandomWalk(self.getVersion(), self.param.id,
+                FinalTime)
 
         # create sim object
         self.sim = s.Simulator(self.swig_param)

@@ -134,6 +134,8 @@ class RandomWalkDB(object):
         # TODO solve this more elegantly
         #assert len(p)<2, "Error"
 
+        assert p, 'p is undefined'
+
         #if not(p):
         #    p = self.createNewParameters(parameters)
         #    p.random_walk = [rw]
