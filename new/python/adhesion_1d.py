@@ -11,37 +11,21 @@ from diffusion import *
 from randomWalk_db import *
 
 def getValues(l, name):
-  return [getattr(r, name) for r in l]    
+  return [getattr(r, name) for r in l]
 
 class Player(object):
     def __init__(self, parameters):
 
-        #self.steps = 1000
-        #self.D = 1
-        #self.A = 0.0
-        
-        # domain size, domain is [-L, L]
-        #self.L = 5 
-        # step size 
-        #self.h = 0.05
-        #self.Dt = 0.005
-        # final time
-        #self.Ft = 0.1
-        # sensing radius
-        #self.R = 1 
-        #self.Rl = 0
-        # lattice size
-        #self.lattice = 0
-        #self.a = 0
-        #self.b = 0
+        # open database connection
+        self.db = RandomWalkDB()
 
-        # number of NumberOfCells
-        #self.NoPlayers = 0
-        #
-        #self.OmegaConst = 0
-        #
-        # parameters object
-        self.param = parameters 
+        # parameters are a dict. First check if it exists in database
+        self.param = db.param_create_if_not_exist(parameters)
+
+        # some variables used later
+        self.FinalTime = 0
+        self.NoPlayers = 0
+        self.swig_param = 0
 
         # sim object
         self.sim = 0
@@ -86,20 +70,6 @@ class Player(object):
         #print( weight )
         #print( domain )        
         return np.multiply(weight, domain)
-
-    #def getCellCOM(self):
-    #    com = np.asarray(self.sim.getCOM())
-    #    return (com - self.L)
-
-    # call this somehow after var changes
-    #def updateValues(self, NoPlayers, NoSteps):
-    #    #self.Rl = int(self.R / self.h)
-    #    self.param = s.Parameters(2*self.L, self.h, self.Ft, NoPlayers)
-    #    self.param.SensingRadiusL = self.Rl
-    #    #self.param.NumberOfCells = NoPlayers
-    #    self.param.setDiffusion(self.D)
-    #    self.param.setDrift(self.A)
-    #    self.param.update()
 
     def doHistogram(self, bar_width=None):
         if not bar_width: bar_width = self.getStepSize()
@@ -206,18 +176,38 @@ class Player(object):
     def printSim(self):
         self.sim._print()
 
-    def prepareSimulation(self, NoPlayers, NoSteps):
- 
-        self.NoPlayers = NoPlayers
+    def getSwigParameters(self):
+        swig_param = s.Parameters
 
-        # make sure parameters are up to date
-        # self.updateValues(NoPlayers, NoSteps)
+        stepSize = 1.0 / self.param.DomainN
+
+        # FIXME
+        domainShape = DVector([-5.0, 5.0])
+
+        swig_param = s.Parameters(domainShape, stepSize, self.FinalTime,
+                self.NoPlayers)
+
+        swig_param.setDiffusion(self.param.diffusion_coeff)
+        swig_param.setDrift(self.param.drift_coeff)
+        swig_param.SensingRadius(self.param.R)
+
+        return swig_param
+
+    def checkParametersInDB(self):
+        db.param_create_if_not_exist(self.param)
+
+    def prepareSimulation(self, NoPlayers, FinalTime):
+
+        self.NoPlayers = NoPlayers
+        self.FinalTime = FinalTime
+
+        self.swig_param = self.getSwigParameters()
 
         # create new record in the database
         self.runId = db.createRandomWalk(self.getVersion(), self.param)
 
         # create sim object
-        self.sim = s.Simulator(self.param)
+        self.sim = s.Simulator(self.swig_param)
         self.sim._print()
         time.sleep(1)
 
@@ -248,10 +238,14 @@ class Player(object):
         self.finishSimulation()
 
 if __name__ == '__main__':
-    domainShape = DVector([-5.0, 5.0])
-    parameters = s.Parameters(domainShape, 0.1, 0.1, 1000)
-    player = Player(parameters)
+
+    # TODO read this from an XML file
+    param = dict(DomainSize=10, DomainN=100, 
+                 diffusion_coeff=0.5, drift_coeff=0.0,
+                 R=1.0, omega_type=1, omega_p=0.42, g_type=1,
+                 u0=0.8, bcs='pp', ic_type=1, ic_p=0.1)
+
+    player = Player(param)
     db=player.getDB()
-    p=player.getParameters()
-    q=dict(diffusion_coeff=0.5)
+
     #player.runSimulation()
