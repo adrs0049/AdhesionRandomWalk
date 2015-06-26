@@ -14,7 +14,7 @@ bool PeriodicBoundary::applyCondition(int& coordinate, const int& max_value)
 	if (coordinate < 0) 
 	{
 		val = std::abs((float)(coordinate % max_value));
-                std::cout << "coordinate="<<coordinate << " max=" << max_value << " val = "<<val<<std::endl;
+                //std::cout << "coordinate="<<coordinate << " max=" << max_value << " val = "<<val<< " coord=" << max_value - val << std::endl;
 		coordinate = max_value - val;
 		return true;
 	}
