@@ -53,7 +53,8 @@ private:
         }
     }
 
-    void tearDown() {
+    void tearDown()
+    {
         b = 0;
         p = 0;
         DensityVector.clear();
@@ -64,6 +65,7 @@ private:
     {
         std::cout << "init uniform" << std::endl;
         DensityVector.resize( p->getDomainSizeL(), 1);
+        p->setNumberOfCells(1*p->getDomainSizeL());
     }
 
     void init_delta()
@@ -123,15 +125,36 @@ public:
         ASSERT(x<p->getDomainSizeL(), "");
 
         //b->applyCondition ( x, p->getDomainSizeL() );
-        //std::cout << "RightShift: " << x << std::endl;
+        //std::cout << " RightShift: " << x << std::endl;
 
-        ASSERT ((unsigned)x<DensityVector.size()-1, "x "<< x << " invalid \
-                density vector index!");
+        ASSERT ((unsigned)x<DensityVector.size() && x>=0, "index="<< x << " invalid density vector index!");
 
         ASSERT(x>=0, "");
 
+        auto nidx = x+1;
+        //std::cout << " nidx="<<nidx << " domainSize="<< p->getDomainSizeL();
+        b->applyCondition(nidx, p->getDomainSizeL());
+        //std::cout << " nidx_post="<< nidx << std::endl;
+
+        ASSERT((unsigned)nidx<DensityVector.size() && nidx>=0, "");
+
+        // DEBUG
+        long before1 = DensityVector[x];
+        long before2 = DensityVector[nidx];
+
+        //std::cout << " before[" << x << "]=" << DensityVector[x];
+        //std::cout << " before[" << nidx << "]=" << DensityVector[nidx];
+
         DensityVector[x]-= (DensityVector[x]>0) ? 1 : 0;
-        DensityVector[x+1]+=1;
+        DensityVector[nidx]+=1;
+
+        ASSERT(before1-1==DensityVector[x], "");
+        ASSERT(before2+1==DensityVector[nidx], "");
+
+        //std::cout << " after[" << x << "]=" << DensityVector[x];
+        //std::cout << " after[" << nidx << "]=" << DensityVector[nidx] << std::endl;
+
+        checkTotal();
     }
 
     void LeftShift(int x)
@@ -139,15 +162,49 @@ public:
         ASSERT(x<p->getDomainSizeL(), "Coordinate=" << x << " is not valid!");
 
         //b->applyCondition ( x, p->getDomainSizeL() );
-        //std::cout << "LeftShift: " << x << std::endl;
+        //std::cout << " LeftShift: " << x;
 
         ASSERT ((unsigned)x<DensityVector.size(), "x "<< x << " invalid \
                 density vector index!");
 
-        ASSERT(x>0, "invalid argument for LeftShift");
+        ASSERT(x>=0 && x<DensityVector.size(), "invalid argument for LeftShift");
+
+        auto nidx = x-1;
+        //std::cout << " nidx="<<nidx << " domainSize="<< p->getDomainSizeL();
+        b->applyCondition(nidx, p->getDomainSizeL());
+
+        //std::cout << " nidx_post="<< nidx << std::endl;
+
+        ASSERT((unsigned)nidx<DensityVector.size() && nidx>=0, "");
+
+        // DEBUG
+        long before1 = DensityVector[x];
+        long before2 = DensityVector[nidx];
+
+        //std::cout << " before[" << x << "]=" << DensityVector[x];
+        //std::cout << " before[" << nidx << "]=" << DensityVector[nidx];
 
         DensityVector[x]-= (DensityVector[x]>0) ? 1 : 0;
-        DensityVector[x-1]+=1;
+        DensityVector[nidx]+=1;
+
+        ASSERT(before1-1==DensityVector[x], "");
+        ASSERT(before2+1==DensityVector[nidx], "");
+
+        //std::cout << " after[" << x << "]=" << DensityVector[x];
+        //std::cout << " after[" << nidx << "]=" << DensityVector[nidx] << std::endl;
+
+        checkTotal();
+    }
+
+    bool checkTotal(void)
+    {
+        unsigned long total {0};
+        for (const auto& state : DensityVector)
+            total+=state;
+
+        ASSERT(total==p->getNumberOfCells(), "Total is wrong: " << total << " Number of cells=" << p->getNumberOfCells());
+
+        return total==p->getNumberOfCells();
     }
 
     std::size_t size() { return DensityVector.size(); }
