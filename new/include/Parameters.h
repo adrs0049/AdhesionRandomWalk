@@ -86,6 +86,7 @@ public:
     const double getDriftSim() const { return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
 
     void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
+    void setNumberOfCells(long number) { NumberOfCells = number; }
     void setDrift(double _Drift) { Drift = _Drift; }
     void setSensingRadius(double _R) { SensingRadius = _R; }
     void setDiscreteX(double _h) { StepSize = _h; }
