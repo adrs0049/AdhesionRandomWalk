@@ -4,6 +4,7 @@ from db import *
 from models import *
 
 from sqlalchemy import exists
+from sqlalchemy.sql.expression import func
 import socket
 
 class RandomWalkDB(object):
@@ -149,6 +150,18 @@ class RandomWalkDB(object):
 
         # return the randomWalk id back to the main program
         return rw.id
+
+    """ Query for path with id """
+    def getPathFromId(self, pathId):
+        return self.session.query(PathData).get(pathId)
+
+    """ get most recent randomwalk """
+    def getMostRecentRandomWalk(self):
+        return self.session.query(func.max(RandomWalk.id)).scalar()
+
+    """ get path from the randomWalk """
+    def getRandomWalkFromId(self, rwId):
+        return self.session.query(RandomWalk).get(rwId)
 
     """ Create new machine info record """
     def createMachineRecord(self):
