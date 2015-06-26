@@ -24,7 +24,8 @@ class Player(object):
 
         # some variables used later
         self.FinalTime = 0
-        self.NoPlayers = 0
+        # FIXME required for plotting read this value also from db
+        self.NoPlayers = 500
         self.swig_param = 0
 
         # sim object
@@ -33,21 +34,21 @@ class Player(object):
         # setup database connection
         self.db = RandomWalkDB()
 
-        # runId -> database ref
+        # store id to the most recent randomwalk
         self.runId = -1
 
-    def getDomainSize(self): return self.param.getDomainSize()
-    def getDomainSizeL(self): return self.param.getDomainSizeL()
-    def getDomainShape(self): return self.param.getDomainShape()
-    def getDomainLeftBoundary(self): return self.getDomainShape()[0]
-    def getDomainRightBoundary(self): return self.getDomainShape()[1]
+    def getDomainSize(self): return float(self.param.DomainSize)
+    def getDomainSizeL(self): return float(self.param.DomainSize) * float(self.param.DomainN)
+    def getDomainShape(self): return (0.0, self.getDomainSize)
+    def getDomainLeftBoundary(self): return 0.0
+    def getDomainRightBoundary(self): return self.getDomainSize()
     def getDiffusionCoeff(self): return float(self.param.diffusion_coeff)
     def getDriftCoeff(self): return float(self.param.drift_coeff)
-    def getStepSize(self): return self.swig_param.getDiscreteX()
+    def getStepSize(self): return float(1.0 / self.param.DomainN)
     def getSensingRadius(self): return float(self.param.R)
     def getSensingRadiusL(self): return self.param.getSensingRadiusL()
     def getLatticeSize(self): return self.getDomainSizeL()
-    def getFinalTime(self): return self.param.getFinalTime()
+    def getFinalTime(self): return self.FinalTime
     def setDiffusionCoeff(self, D): self.swig_param.setDiffusion(D)
     def setDriftCoeff(self, c): self.swig_param.setDrift(c)
     def setStepSize(self, h): self.swig_param.setDiscreteX(h)
@@ -62,6 +63,21 @@ class Player(object):
     def getCellPath(self):
         return np.asarray(self.sim.getPath())
 
+    def getCellPathFromDB(self):
+        if self.runId==-1:
+            self.runId = db.getMostRecentRandomWalk()
+            print self.runId
+
+        rw = db.getRandomWalkFromId(self.runId)
+        path = rw.path
+
+        # set final time otherwise continuum soln is wrong
+        self.FinalTime = float(rw.final_time)
+        # get parameters belonging to rw
+        self.param = rw.parameter
+
+        return [float(x.population) for x in path]
+
     def getCellLocations(self):
         weight = np.asarray(self.sim.getPath())
         domain = np.arange(-self.L, self.L, self.h)
@@ -71,9 +87,14 @@ class Player(object):
         #print( domain )        
         return np.multiply(weight, domain)
 
-    def doHistogram(self, bar_width=None):
+    def doHistogram(self, bar_width=None, fromDb=True):
         if not bar_width: bar_width = self.getStepSize()
-        x=self.getCellPath()
+
+        if fromDb:
+            x = self.getCellPathFromDB()
+        else:
+            x=self.getCellPath()
+
         bins=np.arange(-self.getDomainLeftBoundary(), 
                         self.getDomainRightBoundary() + self.getStepSize(),
                         bar_width)
@@ -134,9 +155,11 @@ class Player(object):
             T = FinalTime
         else:
             T=self.getFinalTime()
-        
+
         print('Solving heat equation using the FFT')
-        print('N=',N,' T=',T)
+        print('N=',N,' T=',T,' D=', self.getDiffusionCoeff())
+        print('The domain is [', self.getDomainLeftBoundary(), ', ', \
+                self.getDomainRightBoundary(),']')
 
         # domain is [-L, L]
         xd=np.linspace(self.getDomainLeftBoundary(), self.getDomainRightBoundary(), N)
@@ -213,35 +236,35 @@ class Player(object):
         time.sleep(1)
 
     """ Method to safe generated path to the database """
-    def finishSimulation(self):
+    def finishSimulation(self, FinalTime):
 
         # get stateVector
         stateVector = self.getCellPath()
 
         # send the stateVector to the database
         # TODO actually save the current time!
-        db.storePath(stateVector, self.getFinalTime(), self.runId)
+        db.storePath(stateVector, FinalTime, self.runId)
 
         # Don't ever overwrite the database -> unset runId
-        self.runId = -1
+        # self.runId = -1
 
-    def runSimulation(self, NoPlayers=500, NoSteps=1000):
+    def runSimulation(self, NoPlayers=500, FinalTime=0.15):
         assert (NoPlayers>0), "Number of players has to be larger 0"
-        assert (NoSteps>0), "Number of steps has to be larger 0"
-        if NoSteps>1E6: print ('WARNING number of steps is very large!!')
+        assert (FinalTime>0), "Number of steps has to be larger 0"
+        if FinalTime>1E3: print ('WARNING number of steps is very large!!')
 
-        self.prepareSimulation(NoPlayers, NoSteps)
+        self.prepareSimulation(NoPlayers, FinalTime)
 
         # run the simulation
         self.sim.run()
 
         # finish simulation
-        self.finishSimulation()
+        self.finishSimulation(FinalTime)
 
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=100, 
+    param = dict(DomainSize=10, DomainN=10,
                  diffusion_coeff=0.5, drift_coeff=0.0,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
                  u0=0.8, bcs='pp', ic_type=1, ic_p=0.1)
