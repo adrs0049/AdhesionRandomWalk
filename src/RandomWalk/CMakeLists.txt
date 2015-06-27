@@ -10,7 +10,7 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}/src/Random
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
-set(RANDOMWALK_SOURCES Simulator.cpp)
+set(RANDOMWALK_SOURCES Simulator.cpp RandomWalk.cpp)
 add_library(RandomWalk SHARED ${RANDOMWALK_SOURCES})
 
 # now build the python interface

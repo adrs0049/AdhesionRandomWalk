@@ -24,12 +24,14 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary
     ${RANDOMWALK_SOURCE_DIR}/src/RandomWalk)
 
+set(RANDOMWALK_LIBS Boundary RandomWalk Utils)
+
 add_executable(RandomWalk_test main.cpp)
-target_link_libraries(RandomWalk_test Boundary ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} Utils)
+target_link_libraries(RandomWalk_test ${RANDOMWALK_LIBS} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 add_executable(RandomWalkBenchmark benchmark.cpp)
-target_link_libraries(RandomWalkBenchmark Boundary Utils)
+target_link_libraries(RandomWalkBenchmark ${RANDOMWALK_LIBS})
 
 add_executable(CellDensity_test CellDensityTest.cpp)
-target_link_libraries(CellDensity_test Boundary ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} Utils)
+target_link_libraries(CellDensity_test ${RANDOMWALK_LIBS} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
