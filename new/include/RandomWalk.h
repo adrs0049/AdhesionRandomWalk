@@ -7,7 +7,6 @@
 #include "ParkMiller.h"
 #include "CellDensity.h"
 #include "Parameters.h"
-//#include "Probability.h"
 #include "chronos.h"
 #include <memory>
 #include "make_unique.h"
@@ -19,356 +18,331 @@
 
 class RandomWalk
 {
+	using state_vector = stateVector<unsigned int>;
+	using state_vector_type = typename state_vector::storage_type;
+	using state_vector_ptr = std::shared_ptr<state_vector>;
+
 public:
-    RandomWalk() 
-    : state(nullptr), param(nullptr)
-    {}
+	RandomWalk()
+		: state(nullptr), param(nullptr)
+	{}
 
-    RandomWalk( std::shared_ptr<Parameters> _param )
-    : state(std::make_shared<CellDensity>(_param)),
-    param(_param),
-    rand ( 0.0, 1.0 ), 
-    drand ( 0, param->getNumberOfCells()-1 )
-    {
-          }   
-    
-    ~RandomWalk() {}
+	RandomWalk( std::shared_ptr<Parameters> _param )
+		: state(std::make_shared<state_vector>(_param)),
+		param(_param),
+		rand ( 0.0, 1.0 )
+	{}
 
-    void update(std::shared_ptr<Parameters> _param)
-    {
-        update();
-    }
-    
-    std::vector<unsigned int> getPath()
-    {
-        return state->getDensityVector();
-    }
- 
-    void GeneratePath() 
-    {
-        try {
+	~RandomWalk() {}
 
-            // state variables of simulation
-            time = 0.0;
-            steps=0;
+	void update(std::shared_ptr<Parameters> _param)
+	{
+		setup();
+	}
 
-            print_info();
+	state_vector_type getPath() const
+	{
+		return state->getStateVector();
+	}
 
-            std::cout << "Setup simulation..." << std::endl;
+	void GeneratePath()
+	{
+		try {
 
-            // ensure all things are set and updated
-            update();
+			// state variables of simulation
+			time = 0.0;
+			steps=0;
 
-            std::cout << "Starting timer..." << std::endl;
-            chronos::Chronos timer;
+			print_info();
 
-            std::cout << "Starting simulation..." << std::endl;
+			std::cout << "Setup simulation..." << std::endl;
 
-            // initialise everything
-            computeAllPropensities();
+			// ensure all things are set and updated
+			setup();
 
-            do {
-                // before each step update the propensities
-                //updatePropensity();
+			std::cout << "Starting timer..." << std::endl;
+			chronos::Chronos timer;
 
-                steps++;
+			std::cout << "Starting simulation..." << std::endl;
 
-                Step();
+			// initialize all propensities
+			computeAllPropensities();
 
-                std::cout << "\rTime:" << std::setw(15) << time 
-                          << " Step: " << std::setw(10) << steps;
-            
-                //state->print();
+			do {
+				steps++;
 
-            } while (time < param->getFinalTime() );
+				Step();
 
-            std::cout << std::endl;
-            std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
+				std::cout << "\rTime:" << std::setw(15) << time
+					<< " Step: " << std::setw(10) << steps;
 
-            print_info();
+			} while (time < param->getFinalTime() );
 
-        } catch (const std::exception& exception) {
-            std::cerr << "ERROR: " << exception.what() << std::endl;
-        }
-    }
+			std::cout << std::endl;
+			std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
 
-    void Step()
-    {
-        auto r1 = rand();
-        auto r2 = rand();
+			print_info();
 
-        //std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
+		} catch (const std::exception& exception) {
+			std::cerr << "ERROR: " << exception.what() << std::endl;
+		}
+	}
 
-        // compute propensity
-        double a0 = getPropensitySum();
-        ASSERT(a0!=0.0, "total propensity is zero. Error!");
+	void Step()
+	{
+		auto r1 = rand();
+		auto r2 = rand();
 
-        //std::cout << "a0: " << a0 << std::endl;
+		//std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
 
-        time += 1.0 / a0 * std::log(1.0 / r1);
-        
-        // start at -1
-        long k {-1};
-        double ss {0.0};
-        auto r2a0 = r2 * a0;
-    
-        //std::cout << "step: " << steps << " r2a0:" << r2a0
-        //          << std::endl;
+		// compute propensity
+		double a0 = getPropensitySum();
+		ASSERT(a0!=0.0, "total propensity is zero. Error!");
 
-        // propensity stride is all the reactions to the right
-        while (ss <= r2a0 && k < propensity_stride - 1)
-        {
-            k++;
-            ss+=getPropensity(k, 0); // d * c->getDensity(k);
-        }
+		//std::cout << "a0: " << a0 << std::endl;
 
-        //std::cout << "sum: "<<ss << std::endl;
-        if (ss > r2a0)
-        {
-            // Move to the right
-            state->RightShift(k);
-            
-        } else {
-            // Hit the maximum number in counting 
-            // Now find a LeftShift reaction
-            k=-1; // we also have propensity_stride left rxns now
-            while (ss < r2a0 && k < propensity_stride - 1)
-            {
-                k++;
-                ss+=getPropensity(k, 1); // d * c->getDensity(k);
-            }
-            
-            // The simulation has to find a Rxn
-            ASSERT(k<param->getDomainSizeL(), "Simulation failed did not find a Rxn to update!");
+		time += 1.0 / a0 * std::log(1.0 / r1);
 
-            state->LeftShift(k);
-        }
+		// start at -1
+		long k {-1};
+		double ss {0.0};
+		auto r2a0 = r2 * a0;
 
-        //std::cout<<" k: "<<k<<" ss: "<< ss<< " a0="<< a0 <<std::endl;
-        // shift is done now update the propensity vector
-        updatePropensity(k);
-        //computeAllPropensities();
+		//std::cout << "step: " << steps << " r2a0:" << r2a0
+		//          << std::endl;
 
-        // Tolerance to account for slight rounding errors
-        ASSERT(ss<=a0+1E-3, "Propensity sum (" << ss << ") can't be larger than the propensity sum a0 (" << a0 << ") !");
+		// propensity stride is all the reactions to the right
+		while (ss <= r2a0 && k < propensity_stride - 1)
+		{
+			k++;
+			ss+=getPropensity(k, 0); // d * c->get(k);
+		}
 
-    }
+		//std::cout << "sum: "<<ss << std::endl;
+		if (ss > r2a0)
+		{
+			// Move to the right
+			state->RightShift(k);
 
-    void update() 
-    { 
-      // propensity_stride = -2 for no flux bc
-      propensity_stride = param->getDomainSizeL();
-      // FIXME to the selection for different boundary conditions better
-      // for no flux boundary conditions
-      // NumberOfReactions = 2 * (param->getDomainSizeL() - 1);
-      // for periodic boundary conditions
-      NumberOfReactions = 2 * param->getDomainSizeL();
-      sensing_offset = param->getSensingRadiusL();
+		} else {
+			// Hit the maximum number in counting
+			// Now find a LeftShift reaction
+			k=-1; // we also have propensity_stride left rxns now
+			while (ss < r2a0 && k < propensity_stride - 1)
+			{
+				k++;
+				ss+=getPropensity(k, 1); // d * c->get(k);
+			}
 
-      std::cout << "NumberOfReactions= " << NumberOfReactions 
-                << " propensity_stride=" << propensity_stride << std::endl;
+			// The simulation has to find a Rxn
+			ASSERT((unsigned)k<param->getDomainSizeL(), "Simulation failed did not find a Rxn to update!");
 
-      state->print();
-    }
+			state->LeftShift(k);
+		}
 
-    std::shared_ptr<CellDensity> getCells()
-    {
-        return state;
-    }
-    
+		//std::cout<<" k: "<<k<<" ss: "<< ss<< " a0="<< a0 <<std::endl;
+		// shift is done now update the propensity vector
+		updatePropensity(k);
+		//computeAllPropensities();
+
+		// Tolerance to account for slight rounding errors
+		ASSERT(ss<=a0+1E-3, "Propensity sum (" << ss << ") can't be larger than the propensity sum a0 (" << a0 << ") !");
+
+	}
+
+	void setup()
+	{
+		// propensity_stride = -2 for no flux bc
+		propensity_stride = param->getDomainSizeL();
+		// FIXME to the selection for different boundary conditions better
+		// for no flux boundary conditions
+		// NumberOfReactions = 2 * (param->getDomainSizeL() - 1);
+		// for periodic boundary conditions
+		NumberOfReactions = 2 * param->getDomainSizeL();
+		sensing_offset = param->getSensingRadiusL();
+
+		propensities.resize(NumberOfReactions);
+
+		std::cout << "NumberOfReactions= " << NumberOfReactions
+			<< " propensity_stride=" << propensity_stride << std::endl;
+
+		state->print();
+	}
+
+	state_vector_ptr getCells()
+	{
+		return state;
+	}
+
 private:
-  
-    void print_info()
-    {
-        std::cout << "Starting Gillespie's SSA for a simulation a space-jump "
-                      << "process. The space-jump process includes diffusion and "
-                      << "drift." << std::endl;
 
-        std::cout << "This simulation is run with " << param->getNumberOfCells()
-                      << " cells. The final time of the simulation is "
-                      << param->getFinalTime() << "." << std::endl;
+	void print_info()
+	{
+		std::cout << "Starting Gillespie's SSA for a simulation a space-jump "
+			<< "process. The space-jump process includes diffusion and "
+			<< "drift." << std::endl;
 
-        std::cout << "Courant Number=" << 1.0 / param->getDiffusionSim()
-                  << " StepSize=" << param->getDiscreteX()
-                  << " Lambda=" << param->getLambda()
-                  << " Diffusion=" << param->getDiffusion()
-                  << " Drift=" << param->getDrift() << std::endl
-                  << " Drift_Sim=" << param->getDriftSim()
-                  << " DiffusionRate=" << param->getDiffusionSim()
-                  << " DriftRate=" << param->getDriftSim() << std::endl
-                  << " SensingRadius=" << param->getSensingRadius()
-                  << " SensingRadiusL=" << param->getSensingRadiusL()
-                  << std::endl;
-    }
+		std::cout << "This simulation is run with " << param->getNumberOfCells()
+			<< " cells. The final time of the simulation is "
+			<< param->getFinalTime() << "." << std::endl;
 
-    void computeAllPropensities()
-    {
-        // implement this better don't recompute the adhesion each time again
-        propensities.resize(NumberOfReactions, 0);
+		std::cout << "Courant Number=" << 1.0 / param->getDiffusionSim()
+			<< " StepSize=" << param->getDiscreteX()
+			<< " Lambda=" << param->getLambda()
+			<< " Diffusion=" << param->getDiffusion()
+			<< " Drift=" << param->getDrift() << std::endl
+			<< " Drift_Sim=" << param->getDriftSim()
+			<< " DiffusionRate=" << param->getDiffusionSim()
+			<< " DriftRate=" << param->getDriftSim() << std::endl
+			<< " SensingRadius=" << param->getSensingRadius()
+			<< " SensingRadiusL=" << param->getSensingRadiusL()
+			<< std::endl;
+	}
 
-        for (long k = 0; k < propensity_stride; k++)
-        {
-            computePropensity(k);
+	void computeAllPropensities()
+	{
+		for (long k = 0; k < propensity_stride; k++)
+			computePropensity(k);
+	}
 
-            //propensities.at(k) = getTransitionRate(k, 0);
-            //propensities.at(propensity_stride + k) = getTransitionRate(k, 1);
-            //std::cout << "Filling " << k << " and " << propensity_stride + k << std::endl;
-        }
+	// function to wrap around propensity index
+	// when using periodic boundary conditions
+	bool propensityApplyCondition(long& idx, const long& max_value)
+	{
+		if (idx < 0)
+		{
+			auto val = std::abs((float)(idx % max_value));
+			idx = max_value - val;
+			return true;
+		}
+		else if (idx >= max_value)
+		{
+			idx = idx % max_value;
+			return true;
+		}
+		return false;
+	}
 
-        /*
-        for (auto& propensity : propensities)
-          propensity = param->getDiffusionSim();
-        */
-    }
+	// TODO write a test to test if this really works
+	void updatePropensity(long coordinate)
+	{
+		// add 1 to the offset
+		long offset = sensing_offset + 1;
 
-    // function to wrap around propensity index
-    // when using periodic boundary conditions
-    bool propensityApplyCondition(long& idx, const long& max_value)
-    {
-        if (idx < 0)
-        {
-            auto val = std::abs((float)(idx % max_value));
-            idx = max_value - val;
-            return true;
-        }
-        else if (idx >= max_value)
-        {
-            idx = idx % max_value;
-            return true;
-        }
-        return false;
-    }
+		for (long k = coordinate - offset; k < coordinate + offset; k++)
+		{
+			//std::cout << "prop update k="<< k<<std::endl;
+			// cant pass k to it otherwise it will be changed!!
+			long i {k};
+			propensityApplyCondition(i, param->getDomainSizeL());
+			computePropensity(i);
+		}
+	}
 
-    // TODO write a test to test if this really works
-    void updatePropensity(long coordinate)
-    {
-        // add 1 to the offset
-        long offset = sensing_offset + 1;
-        // very simple, improve this!
+	double getPropensity(int coordinate, int flag)
+	{
+		ASSERT(coordinate >= 0 && (unsigned)coordinate < param->getDomainSizeL(), \
+				"Lattice coordinate= " << coordinate << " is invalid. Valid \
+				lattice coordinate range is [" << 0 << ", " << \
+				param->getDomainSizeL() << ").");
 
-        //std::cout << "updatePropensity, offset="<<offset << " coordinate="<<coordinate << " k="<<coordinate-offset<<std::endl;
+		ASSERT((flag * propensity_stride + coordinate) >=0 \
+				&& (unsigned)(flag * propensity_stride + coordinate)<propensities.size(), \
+				"RxnIndex=" << flag * propensity_stride + coordinate
+				<< " is invalid. The valid range is [" << 0 << ", "
+				<< propensities.size() << "). Coordinate=" << coordinate
+				<< " flag=" << flag << ".");
+		/*
+		   std::cout << "propensity ( " << coordinate << " , " << flag << " ):"
+		   << propensities.at(flag * propensity_stride + coordinate) <<
+		   " state ( " << coordinate << ")=" <<
+		   state->get(coordinate) << std::endl;
+		   */
 
-        for (long k = coordinate - offset; k < coordinate + offset; k++)
-        {
-            //std::cout << "prop update k="<< k<<std::endl;
-            // cant pass k to it otherwise it will be changed!!
-            // TODO invoke bcs here somehow
-            long i {k};
-            propensityApplyCondition(i, param->getDomainSizeL());
-            computePropensity(i);
-        }
-    }
+		// TODO save the complete propensity in a vector
+		// so we dont have to recompute it each
+		ASSERT(propensities.at(flag * propensity_stride + coordinate)>=0.0,
+				"Propensity at index " << flag * propensity_stride + coordinate <<
+				" is negative. Propensities have to be non-negative");
 
-    double getPropensity(int coordinate, int flag)
-    {
-        ASSERT(coordinate >= 0 && coordinate < param->getDomainSizeL(), \
-            "Lattice coordinate= " << coordinate << " is invalid. Valid \
-            lattice coordinate range is [" << 0 << ", " << \
-              param->getDomainSizeL() << ").");
+		// TODO check that this offset is correct
+		return propensities.at(flag * ( propensity_stride - 1 ) + coordinate);
+	}
 
-        ASSERT((flag * propensity_stride + coordinate) >=0 \
-            && (flag * propensity_stride + coordinate)<propensities.size(), \
-            "RxnIndex=" << flag * propensity_stride + coordinate 
-            << " is invalid. The valid range is [" << 0 << ", "
-            << propensities.size() << "). Coordinate=" << coordinate
-            << " flag=" << flag << ".");
-      /*
-        std::cout << "propensity ( " << coordinate << " , " << flag << " ):" 
-          << propensities.at(flag * propensity_stride + coordinate) <<
-          " state ( " << coordinate << ")=" << 
-            state->get(coordinate) << std::endl;
-       */
+	double getPropensitySum()
+	{
+		double ret {0.0};
+		for (const auto& propensity : propensities)
+			ret+=propensity;
 
-        // TODO save the complete propensity in a vector 
-        // so we dont have to recompute it each
-        ASSERT(propensities.at(flag * propensity_stride + coordinate)>=0.0,
-               "Propensity at index " << flag * propensity_stride + coordinate <<
-               " is negative. Propensities have to be non-negative");
+		return ret;
+	}
 
-        // TODO check that this offset is correct
-        return propensities.at(flag * ( propensity_stride - 1 ) + coordinate);
-    }
+	void computePropensity( long coordinate )
+	{
+		// compute polarization at the location only once
+		auto polarization = PolarizationVector(coordinate);
 
-    double getPropensitySum()
-    {
-        double ret {0.0};
-        for (const auto& propensity : propensities)
-            ret+=propensity;
+		// compute components for transition rates
+		double symmetric = param->getDiffusionSim();
+		double asymmetric = param->getDriftSim() * param->getDiscreteX() * polarization;
 
-        return ret;
-    }
-    
-    void computePropensity( long coordinate )
-    {
-        //std::cout << "compute propensity at " << coordinate << " ";
+		//std::cout << "right=" << (symmetric + asymmetric);
+		//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
 
-        //propensities.at(k) = getTransitionRate(k, 0);
-        //propensities.at(propensity_stride + k) = getTransitionRate(k, 1);
+		ASSERT((symmetric-asymmetric)>=0.0, "");
 
-        // compute polarization at the location only once
-        auto polarization = PolarizationVector(coordinate);
+		propensities.at(coordinate) = state->getDensity(coordinate) * param->getLambda() * (symmetric + asymmetric);
+		// check that this offset is correct here??
+		propensities.at(propensity_stride + coordinate - 1) = state->getDensity(coordinate) * param->getLambda() * (symmetric - asymmetric);
+	}
 
-        // compute components for transition rates
-        double symmetric = param->getDiffusionSim();
-        double asymmetric = param->getDriftSim() * param->getDiscreteX() * polarization;
+	double omega ( long coordinate )
+	{
+		return 1.0;
+	}
 
-        //std::cout << "right=" << (symmetric + asymmetric);
-        //std::cout << "left=" << (symmetric - asymmetric) << std::endl;
+	double adhesivity ( long coordinate )
+	{
+		return state->getDensity ( coordinate );
+	}
 
-        ASSERT((symmetric-asymmetric)>=0.0, "");
+	double space ( long coordinate )
+	{
+		return 1.0; //std::max(0.0, 1.0 - (state->get(r) / CarryingCapacity) );
+	}
 
-        propensities.at(coordinate) = state->get(coordinate) * param->getLambda() * (symmetric + asymmetric);
-        // check that this offset is correct here??
-        propensities.at(propensity_stride + coordinate - 1) = state->get(coordinate) * param->getLambda() * (symmetric - asymmetric);
-    }
+	double PolarizationVector ( long coordinate )
+	{
+		// FIXME compute this without jumping around in memory constantly
+		double total {0.0};
+		for ( auto offset : range<unsigned> ( 0, sensing_offset ) )
+			total+= ( space ( coordinate + offset ) * omega ( +offset ) * adhesivity ( coordinate + offset ) -
+					space ( coordinate - offset ) * omega ( -offset ) * adhesivity ( coordinate - offset ) );
 
-    double omega ( long coordinate )
-    {
-        return 1.0;
-    }
+		return total;
+	}
 
-    double adhesivity ( long coordinate )
-    {
-        return state->getDensity ( coordinate );
-    }
+	// Variables
+	std::shared_ptr<state_vector> state;
+	std::shared_ptr<Parameters> param;
 
-    double space ( long coordinate )
-    {
-        return 1.0; //std::max(0.0, 1.0 - (state->getDensity(r) / CarryingCapacity) );
-    }
+	// Propensity vector
+	std::vector<double> propensities;
+	long propensity_stride;
+	unsigned long sensing_offset;
 
-    double PolarizationVector ( long coordinate )
-    {
-        double total {0.0};
-        for ( auto offset : range<unsigned> ( 0, param->getSensingRadiusL() ) )
-            total+= ( space ( coordinate + offset ) * omega ( +offset ) * adhesivity ( coordinate + offset ) -
-                      space ( coordinate - offset ) * omega ( -offset ) * adhesivity ( coordinate - offset ) );
+	unsigned long steps;
+	double time;
 
-        return total;
-    }
-
-    // Variables
-    std::shared_ptr<CellDensity> state;
-    std::shared_ptr<Parameters> param;
-    //std::unique_ptr<Prob> p;
-    //Prob p;
-
-    // Propensity vector
-    std::vector<double> propensities;
-    long propensity_stride;
-    unsigned long sensing_offset;
-
-    unsigned long steps;
-    double time;
-
-    unsigned long right;
-    unsigned long left;
-    unsigned long NumberOfReactions;
-    unsigned long NumberOfAttemptFlips;
-    unsigned long NumberOfUnsuccessfulFlips;
-    unsigned int Multiplier = 1;
-    UniformRandomNumberGenerator rand;
-    UniformDiscreteRandomNumberGenerator drand;
+	unsigned long right;
+	unsigned long left;
+	unsigned long NumberOfReactions;
+	unsigned long NumberOfAttemptFlips;
+	unsigned long NumberOfUnsuccessfulFlips;
+	unsigned int Multiplier = 1;
+	UniformRandomNumberGenerator rand;
+	UniformDiscreteRandomNumberGenerator drand;
 };
 
 #endif
