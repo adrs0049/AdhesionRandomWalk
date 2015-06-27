@@ -99,10 +99,6 @@ class TerminalCatcher
                 std::fprintf(stderr, "Terminated due to exception: %s\n", e.what());
 				printStackTrace();
             }
-            catch ( BasicException &e )
-			{
-				std::fprintf(stderr, "Terminated due to BasicException: %s\n", e.what());
-			}
             catch(...)
             {
                 std::fprintf(stderr, "Terminated due to unknown reason:(\n");
