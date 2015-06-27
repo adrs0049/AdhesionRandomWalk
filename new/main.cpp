@@ -6,8 +6,10 @@
 const std::string BoundaryFactory::no_flux("NoFlux");
 const std::string BoundaryFactory::periodic("Periodic");
 
-const std::string CellDensity::delta("Delta");
-const std::string CellDensity::uniform("Uniform");
+template<typename T>
+const std::string stateVector_impl<T>::delta("Delta");
+template<typename T>
+const std::string stateVector_impl<T>::uniform("Uniform");
 
 int main() 
 {
