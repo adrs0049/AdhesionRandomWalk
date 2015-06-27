@@ -1,5 +1,7 @@
 # Simulator cmake
 
+set(Python_ADDITIONAL_VERSIONS 2.7)
+
 find_package(SWIG REQUIRED)
 find_package(PythonLibs REQUIRED)
 
@@ -29,5 +31,7 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
 set_source_files_properties(${SIMULATOR_SWIG_SOURCES} PROPERTIES CPLUSPLUS ON)
+set(CMAKE_SWIG_OUTDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
 SWIG_ADD_MODULE(simulator python ${SIMULATOR_SWIG_SOURCES})
 swig_link_libraries(simulator RandomWalk Boundary ${PYTHON_LIBRARIES})
