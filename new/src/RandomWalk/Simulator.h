@@ -5,18 +5,16 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
-#include <algorithm> 
-#include <array>
-#include "Loop.h"
+#include <algorithm>
+#include <Loop.h>
 
-#include "ParkMiller.h"
+#include <ParkMiller.h>
 
-#include "PeriodicBoundary.h"
-#include "Boundary.h"
-#include "BoundaryFactory.h"
+#include <PeriodicBoundary.h>
+#include <Boundary.h>
+#include <BoundaryFactory.h>
 
 #include "RandomWalk.h"
-//#include "Cell.h"
 #include "Parameters.h"
 #include <memory>
 #include "make_unique.h"
@@ -35,15 +33,15 @@ public:
     {}
 
     Simulator ( std::shared_ptr<Parameters> p )
-    : param(p), TheRandomWalk () 
+    : param(p), TheRandomWalk ()
     {
         init(p);
         //std::cout << "DL(sim)=" << p.DomainSizeL << std::endl;
     }
 
     ~Simulator() = default;
-    
-    void init(std::shared_ptr<Parameters> param) 
+
+    void init(std::shared_ptr<Parameters> param)
     {
         // DEBUG stuff
         Error::TerminalCatcher::init();
@@ -51,12 +49,12 @@ public:
         TheRandomWalk = std::make_unique<RandomWalk>(param);
     }
 
-    void update(std::shared_ptr<Parameters> param_) 
+    void update(std::shared_ptr<Parameters> param_)
     {
         param = param_;
         TheRandomWalk->update(param);
     }
-    
+
     void print() {
         auto path = TheRandomWalk->getCells();
         path->print();
@@ -66,9 +64,9 @@ public:
         //cells->print ( c );
     }
 
-    void run() 
+    void run()
     {
-        try { 
+        try {
             TheRandomWalk->GeneratePath();
         }
         catch(const std::exception& e)
@@ -95,7 +93,7 @@ public:
     void setParameters( std::shared_ptr<Parameters> param_) {
         update(param_);
     }
-    
+
 private:
     //std::unique_ptr<Cells> cells;
     std::shared_ptr<Parameters> param;
