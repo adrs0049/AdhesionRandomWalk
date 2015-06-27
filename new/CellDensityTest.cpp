@@ -4,126 +4,133 @@
 #include <memory>
 #include "debug.h"
 
+#include "Terminate.h"
+
 const std::string BoundaryFactory::no_flux("NoFlux");
 const std::string BoundaryFactory::periodic("Periodic");
 
-const std::string CellDensity::delta("Delta");
-const std::string CellDensity::uniform("Uniform");
+template<typename T>
+const std::string stateVector_impl<T>::delta("Delta");
 
-int main() 
+template<typename T>
+const std::string stateVector_impl<T>::uniform("Uniform");
+
+int main()
 {
-  auto p = std::make_shared<Parameters>(5, 0.1, 0.1, 10.0);
-  auto c = std::make_shared<CellDensity>(p, "Uniform");
+    Error::TerminalCatcher::init();
 
-  c->print();
+    auto p = std::make_shared<Parameters>(5, 0.1, 0.1, 10.0);
+    auto c = std::make_shared<stateVector<unsigned int>>(p, "Uniform");
 
-  c->LeftShift(10);
+    c->print();
 
-  c->print();
+    c->LeftShift(10);
 
-  for (int i = 0; i < 9; i++)
-    ASSERT(c->getDensity(i)==1, "");
-  for (int i = 11; i < c->size(); i++)
-    ASSERT(c->getDensity(i)==1, "");
+    c->print();
 
-  ASSERT(c->getDensity(9)==2, "");
-  ASSERT(c->getDensity(10)==0, "");
+    for (std::size_t i = 0; i < 9; i++)
+        ASSERT(c->getDensity(i)==1, "");
+    for (std::size_t i = 11; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  c->print();
+    ASSERT(c->getDensity(9)==2, "");
+    ASSERT(c->getDensity(10)==0, "");
 
-  c->RightShift(9);
+    c->print();
 
-  c->print();
+    c->RightShift(9);
 
-  for (int i = 0; i < c->size(); i++)
-    ASSERT(c->getDensity(i)==1, "");
+    c->print();
 
-  c->print();
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  c->RightShift(22);
+    c->print();
 
-  for (int i = 0; i < 22; i++)
-    ASSERT(c->getDensity(i)==1, "");
-  for (int i = 24; i < c->size(); i++)
-    ASSERT(c->getDensity(i)==1, "");
+    c->RightShift(22);
 
-  ASSERT(c->getDensity(22)==0, "");
-  ASSERT(c->getDensity(23)==2, "");
+    for (std::size_t i = 0; i < 22; i++)
+        ASSERT(c->getDensity(i)==1, "");
+    for (std::size_t i = 24; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  c->print();
+    ASSERT(c->getDensity(22)==0, "");
+    ASSERT(c->getDensity(23)==2, "");
 
-  c->LeftShift(23);
-  c->print();
+    c->print();
 
-  for (int i = 0; i < c->size(); i++)
-    ASSERT(c->getDensity(i)==1, "");
+    c->LeftShift(23);
+    c->print();
 
-  std::cout << "Testing shifts close and on the boundary" << std::endl;
-  // try to see how shifts on the boundary go
-  std::cout << "Right shift at 0" << std::endl;
-  c->RightShift(0);
-  c->print();
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  ASSERT(c->getDensity(0)==0, "");
-  ASSERT(c->getDensity(1)==2, "");
-  for (int i = 2; i < c->size(); i++)
-      ASSERT(c->getDensity(i)==1, "");
+    std::cout << "Testing shifts close and on the boundary" << std::endl;
+    // try to see how shifts on the boundary go
+    std::cout << "Right shift at 0" << std::endl;
+    c->RightShift(0);
+    c->print();
 
-  std::cout << "Restore" << std::endl;
-  c->LeftShift(1);
-  c->print();
+    ASSERT(c->getDensity(0)==0, "");
+    ASSERT(c->getDensity(1)==2, "");
+    for (std::size_t i = 2; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  for (int i = 0; i < c->size(); i++)
-      ASSERT(c->getDensity(i)==1, "");
+    std::cout << "Restore" << std::endl;
+    c->LeftShift(1);
+    c->print();
 
-  std::cout << "Left shift at 0" << std::endl;
-  c->LeftShift(0);
-  c->print();
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  ASSERT(c->getDensity(0)==0, "");
-  ASSERT(c->getDensity(c->size()-1)==2, "");
-  for (int i = 1; i < c->size()-1; i++)
-      ASSERT(c->getDensity(i)==1, "");
+    std::cout << "Left shift at 0" << std::endl;
+    c->LeftShift(0);
+    c->print();
 
-  std::cout << "Restore" << std::endl;
-  c->RightShift(p->getDomainSizeL()-1);
-  c->print();
+    ASSERT(c->getDensity(0)==0, "");
+    ASSERT(c->getDensity(c->size()-1)==2, "");
+    for (std::size_t i = 1; i < c->size()-1; i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  for (int i = 0; i < c->size(); i++)
-      ASSERT(c->getDensity(i)==1, "");
+    std::cout << "Restore" << std::endl;
+    c->RightShift(p->getDomainSizeL()-1);
+    c->print();
 
-  std::cout << "Shift Left on last" << std::endl;
-  c->LeftShift(c->size()-1);
-  c->print();
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  for (int i = 0; i < c->size()-2; i++)
-      ASSERT(c->getDensity(i)==1, "");
+    std::cout << "Shift Left on last" << std::endl;
+    c->LeftShift(c->size()-1);
+    c->print();
 
-  ASSERT(c->getDensity(c->size()-2)==2, "");
-  ASSERT(c->getDensity(c->size()-1)==0, "");
+    for (std::size_t i = 0; i < c->size()-2; i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  c->RightShift(c->size()-2);
-  c->print();
+    ASSERT(c->getDensity(c->size()-2)==2, "");
+    ASSERT(c->getDensity(c->size()-1)==0, "");
 
-  for (int i = 0; i < c->size(); i++)
-      ASSERT(c->getDensity(i)==1, "");
+    c->RightShift(c->size()-2);
+    c->print();
 
-  std::cout << "Right shift on last" << std::endl;
-  c->RightShift(c->size()-1);
-  c->print();
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  ASSERT(c->getDensity(0)==2, "");
-  ASSERT(c->getDensity(c->size()-1)==0, "");
+    std::cout << "Right shift on last" << std::endl;
+    c->RightShift(c->size()-1);
+    c->print();
 
-  for (int i = 1; i < c->size()-1; i++)
-      ASSERT(c->getDensity(i)==1, "");
+    ASSERT(c->getDensity(0)==2, "");
+    ASSERT(c->getDensity(c->size()-1)==0, "");
 
-  c->LeftShift(0);
-  c->print();
+    for (std::size_t i = 1; i < c->size()-1; i++)
+        ASSERT(c->getDensity(i)==1, "");
 
-  for (int i = 0; i < c->size(); i++)
-      ASSERT(c->getDensity(i)==1, "");
+    c->LeftShift(0);
+    c->print();
 
-  return 0;
+    for (std::size_t i = 0; i < c->size(); i++)
+        ASSERT(c->getDensity(i)==1, "");
+
+    return 0;
 }
 
