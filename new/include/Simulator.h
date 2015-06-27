@@ -66,8 +66,15 @@ public:
         //cells->print ( c );
     }
 
-    void run() {
-        TheRandomWalk->GeneratePath();
+    void run() 
+    {
+        try { 
+            TheRandomWalk->GeneratePath();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "ERROR: " << e.what() << std::endl;
+        }
     }
 
     std::vector<unsigned int> getPath()
