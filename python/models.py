@@ -17,6 +17,9 @@ class MachineInfo(Base):
     last_updated_date = Column(DateTime, nullable=False,
         onupdate=datetime.datetime.now)
 
+    # relationships
+    simulations = relationship("Simulation", backref="MachineInfo")
+
     def __init__(self, name):
         self.name = name
         self.created_date = datetime.datetime.utcnow()
@@ -59,6 +62,9 @@ class Parameters(Base):
     last_updated_date = Column(DateTime, nullable=False,
         onupdate=datetime.datetime.now)
 
+    # relationships
+    simulations = relationship("Simulation", backref="Parameters")
+
     """ debug function to check if all values are set """
     def is_valid(self):
         for k in self.__mapper__.all_orm_descriptors.keys():
@@ -78,7 +84,7 @@ class Parameters(Base):
         print 'args=', args
 
         keys_ok = set(Parameters.__dict__)
-        for k in kwargs:  
+        for k in kwargs:
             if k in keys_ok:
                 print 'k=', k, ' ', kwargs[k]
                 setattr(self, k, kwargs[k])
@@ -92,79 +98,81 @@ class Parameters(Base):
         DomainSize='%s'>" % (self.diffusion_coeff, self.drift_coeff, \
                 self.DomainN, self.R, self.DomainSize)
 
-class RandomWalk(Base):
-    __tablename__ = 'random_walk'
+class Simulation(Base):
+    __tablename__ = 'simulation'
 
-    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id = Column(Integer, primary_key=True)
 
     parameter_id = Column(Integer, ForeignKey('parameters.id'))
     machine_id = Column(Integer, ForeignKey('machine_info.id'))
 
     description = Column(String(255))
 
-    program_version = Column(String(64), nullable=False)
-
-    simulation_date = Column(DateTime, nullable=False)
     created_date = Column(DateTime, nullable=False)
     last_updated_date = Column(DateTime, nullable=False,
         onupdate=datetime.datetime.now)
 
-    final_time = Column(Numeric(19, 4, asdecimal=True))
-
-    # boolean value to distinguish between stochastic and cont sims
-    # check whether this works as expected
-    stochastic = Column(Boolean, unique=False)
-
     # define relationship
-    parameter = relationship("Parameters", backref=backref('random_walk',
-        order_by=id))
-
-    machine_info = relationship("MachineInfo", backref=backref('random_walk',
-        order_by=id))
+    paths = relationship("PathData")
 
     def __repr__(self):
-        return "<RandomWalk(description='%s', date='%s', version='%s', \
-        final_time='%s')>" \
-        % (self.description, self.created_date, self.program_version, self.final_time)
+        return "<PDESimulation(description='%s', date='%s')>" \
+        % (self.description, self.created_date)
 
-    def __init__(self, desc, version, final_time, boolType=False):
+    def __init__(self, desc):
         self.description = desc
-        self.stochastic = boolType
-        self.simulation_date = datetime.datetime.utcnow()
         self.created_date = datetime.datetime.utcnow()
         self.last_updated_date = datetime.datetime.utcnow()
-        self.program_version = version
-        self.time_point = final_time
-        self.final_time = final_time
 
 class PathMetaData(Base):
     __tablename__ = 'path_meta_data'
 
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
 
-    time = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    time = Column(Numeric(20, 9, asdecimal=True), nullable=False)
     stochastic = Column(Boolean, nullable=False)
+    simulation_date = Column(DateTime, nullable=False)
+    program_version = Column(String(64), nullable=False)
 
+# data is stored from left to right in the domain
 class PathData(Base):
     __tablename__ = 'path_data'
 
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-    randomwalk_id = Column(Integer, ForeignKey('random_walk.id'))
+    type = Column(String(50))
+
+    simulation_id = Column(Integer, ForeignKey('simulation.id'))
     metadata_id = Column(Integer, ForeignKey('path_meta_data.id'))
 
-    coord_x = Column(BigInteger)
-    coord_y = Column(BigInteger)
-    coord_z = Column(BigInteger)
-
-    population = Column(Numeric(10, 8, asdecimal=True), nullable=False)
-
     # relationships
-    random_walk = relationship("RandomWalk", backref=backref('path', 
-        order_by=id))
+    #simulation = relationship("Simulation", backref=backref('path',
+    #    order_by=id))
 
     pathMetaData = relationship("PathMetaData", order_by=id)
 
-    #def __repr__(self):
-    #    return "<DailyPrice(symbol_id='%s', price_date='%s')" %\
-    #            (self.symbol_id, self.price_date)
+    __mapper_args__ = {
+        'polymorphic_identity':'path_data',
+        'polymorphic_on':type
+    }
 
+# store data from a PDE simulation which is a decimal value
+class DensityData(PathData):
+    __tablename__ = 'density_data'
+
+    id = Column(Integer, ForeignKey('path_data.id'), primary_key=True)
+    density = Column(Numeric(10, 8, asdecimal=True), nullable=False)
+
+    __mapper_args__ = {
+        'polymorphic_identity':'density_data',
+    }
+
+# store the statevector of a stochastic simulation which are integers
+class StateData(PathData):
+    __tablename__ = 'state_data'
+
+    id = Column(Integer, ForeignKey('path_data.id'), primary_key=True)
+    population = Column(BigInteger, nullable=False)
+
+    __mapper_args__ = {
+        'polymorphic_identity':'state_data',
+    }

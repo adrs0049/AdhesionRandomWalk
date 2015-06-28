@@ -84,7 +84,7 @@ class Player(object):
         #print( np.shape(weight) )
         #print( np.shape(domain))
         #print( weight )
-        #print( domain )        
+        #print( domain )
         return np.multiply(weight, domain)
 
     def doHistogram(self, bar_width=None, fromDb=True):
@@ -95,7 +95,7 @@ class Player(object):
         else:
             x=self.getCellPath()
 
-        bins=np.arange(-self.getDomainLeftBoundary(), 
+        bins=np.arange(-self.getDomainLeftBoundary(),
                         self.getDomainRightBoundary() + self.getStepSize(),
                         bar_width)
 
@@ -104,7 +104,7 @@ class Player(object):
 
         # get diffusion soln
         xd, u = self.computeDiffusionSoln()
-        
+
         # plotting
         plt.bar(bins[:-1], x, width=bar_width)
         plt.plot(xd, u, color='k')
@@ -116,7 +116,7 @@ class Player(object):
         print('shape u=', np.shape(u))
         print('shape x=', np.shape(x))
         self.print_error(u, x)
-    
+
         #plt.bar(x)
         #ax.xlim(min(bins), max(bins))
         plt.show()
@@ -131,7 +131,7 @@ class Player(object):
 
         # get diffusion soln
         xd, u = self.computeDiffusionSoln(FinalTime=0.0)
-        
+
         # plotting
         plt.bar(bins[:-1], x, width=bar_width)
         plt.plot(xd, u, color='k')
