@@ -1,6 +1,6 @@
 # Simulator cmake
 
-set(Python_ADDITIONAL_VERSIONS 2.7)
+set(Python_ADDITIONAL_VERSIONS 3.3)
 
 find_package(SWIG REQUIRED)
 find_package(PythonLibs REQUIRED)

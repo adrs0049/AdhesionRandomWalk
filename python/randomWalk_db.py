@@ -89,7 +89,7 @@ class RandomWalkDB(object):
 
     def queryParamBuilder(self, query, **kwargs):
 
-        for attr, value in kwargs.iteritems():
+        for attr, value in kwargs.items():
             query = query.filter(getattr(Parameters, attr).__eq__(value))
 
         return query
@@ -170,8 +170,7 @@ class RandomWalkDB(object):
 
     """ Query database table by id """
     def getFromId(self, cls, id):
-        # FIXME move to python 3
-        assert isinstance(id, (int, long)), "id has to be an integer"
+        assert isinstance(id, int), "id has to be an integer"
         assert isinstance(cls, cls_type), "cls has to be sqlalchemy type"
         return self.session.query(cls).get(id)
 

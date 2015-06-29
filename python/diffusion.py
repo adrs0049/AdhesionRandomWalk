@@ -21,7 +21,7 @@ class AD(object):
         # origin
         self.x0 = 0.0
 
-        self.shape = (N,) 
+        self.shape = (N,)
 
         # diffusion coefficient
         self.D = D
@@ -32,7 +32,7 @@ class AD(object):
         # initial time
         self.t0 = 0.0
 
-        # frequencies 
+        # frequencies
         K = math.pi / L * fft.fftfreq(N) * N
 
         # operators
@@ -48,8 +48,8 @@ class AD(object):
         t0 = self.t0
 
         xd = np.linspace(-self.L, self.L, self.N)
-        soln = ((4.0 * np.pi * D * (t + t0))**(-0.5) 
-                    * np.exp(-(xd - ( self.x0 + c * t))**2 
+        soln = ((4.0 * np.pi * D * (t + t0))**(-0.5)
+                    * np.exp(-(xd - ( self.x0 + c * t))**2
                             /(4.0 * D * (t + t0))) )
 
         return xd, soln
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     soln2 = ad.eval(1.0)
     error = soln - soln2
-    print 'Error=', np.linalg.norm(error, ord=2)
+    print('Error=', np.linalg.norm(error, ord=2))
 
     plt.plot(x, soln, label='Exact')
     plt.plot(x, soln2, label='FFT')

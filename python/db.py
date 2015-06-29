@@ -1,6 +1,6 @@
 import sqlalchemy
 
-print "Using sqlalchemy version '%s'" % (sqlalchemy.__version__)
+print("Using sqlalchemy version '%s'" % (sqlalchemy.__version__))
 
 # declare a mapping
 from sqlalchemy.ext.declarative import declarative_base

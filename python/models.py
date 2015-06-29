@@ -72,7 +72,7 @@ class Parameters(Base):
             if k == '__mapper__' or k == 'id':
                 continue
             if getattr(self, k) is None:
-                print k, ' is None'
+                print(k, ' is None')
                 return False
 
         return True
@@ -80,13 +80,13 @@ class Parameters(Base):
     """ Method to create a new Parameter object """
     def __init__(self, *args, **kwargs):
 
-        print 'kwargs=', kwargs
-        print 'args=', args
+        print('kwargs=', kwargs)
+        print('args=', args)
 
         keys_ok = set(Parameters.__dict__)
         for k in kwargs:
             if k in keys_ok:
-                print 'k=', k, ' ', kwargs[k]
+                print('k=', k, ' ', kwargs[k])
                 setattr(self, k, kwargs[k])
 
         # move all the time things to a different base class

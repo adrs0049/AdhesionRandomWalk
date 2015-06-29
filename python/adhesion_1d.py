@@ -66,7 +66,7 @@ class Player(object):
     def getCellPathFromDB(self):
         if self.runId==-1:
             self.runId = db.getMostRecentSimulation()
-            print self.runId
+            print(self.runId)
 
         sim = db.getSimulationFromId(self.runId)
         paths = sim.paths
