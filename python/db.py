@@ -25,7 +25,7 @@ def setup(url="sqlite:///:memory:", databaseName=None):
     if databaseName is None:
         print('Error database name has to be set')
         exit
-    
+
     database = databaseName
 
     # let my models register them selfs
@@ -48,5 +48,5 @@ def setup(url="sqlite:///:memory:", databaseName=None):
     session = Session()
     query = session.query
 
-    return session
+    return engine, session
 

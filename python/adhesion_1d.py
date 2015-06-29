@@ -1,11 +1,11 @@
 import math
 import matplotlib.pyplot as plt
-import sys
+import sys, os, time
 from collections import namedtuple
 import numpy as np
+import pandas as pd
 import simulator as s
 from simulator import DVector
-import time
 
 from diffusion import *
 from randomWalk_db import *
@@ -65,16 +65,16 @@ class Player(object):
 
     def getCellPathFromDB(self):
         if self.runId==-1:
-            self.runId = db.getMostRecentRandomWalk()
+            self.runId = db.getMostRecentSimulation()
             print self.runId
 
-        rw = db.getRandomWalkFromId(self.runId)
-        path = rw.path
+        sim = db.getSimulationFromId(self.runId)
+        paths = sim.paths
 
         # set final time otherwise continuum soln is wrong
         self.FinalTime = float(rw.final_time)
         # get parameters belonging to rw
-        self.param = rw.parameter
+        self.param = sim.parameter
 
         return [float(x.population) for x in path]
 
@@ -219,16 +219,13 @@ class Player(object):
     def checkParametersInDB(self):
         db.param_create_if_not_exist(self.param)
 
-    def prepareSimulation(self, NoPlayers, FinalTime):
+    def setupSimulation(self, NoPlayers, FinalTime):
 
         self.NoPlayers = NoPlayers
         self.FinalTime = FinalTime
 
+        # create an instance of c++ parameters
         self.swig_param = self.getSwigParameters()
-
-        # create new record in the database
-        self.runId = db.createRandomWalk(self.getVersion(), self.param.id,
-                FinalTime)
 
         # create sim object
         self.sim = s.Simulator(self.swig_param)
@@ -243,17 +240,36 @@ class Player(object):
 
         # send the stateVector to the database
         # TODO actually save the current time!
-        db.storePath(stateVector, FinalTime, self.runId)
+        db.storePath(stateVector, FinalTime, self.runId, self.getVersion())
 
         # Don't ever overwrite the database -> unset runId
         # self.runId = -1
 
-    def runSimulation(self, NoPlayers=500, FinalTime=0.15):
+    """ create simulation object in database """
+    def prepareSimulation(self):
+        # create new record in the database
+        if self.runId == -1:
+            self.runId = db.createSimulation('space-jump simulation', self.param.id)
+
+    """ run several simulations """
+    def runSimulations(self, FinalTimes, NoPlayers=500):
+
+        # create sim object in database
+        self.prepareSimulation()
+        print('Simulation id is ' + str(self.runId))
+
+        print('Starting simulating...')
+
+        for finalTime in FinalTimes:
+            self.runSimulation(NoPlayers, finalTime)
+
+    def runSimulation(self, NoPlayers, FinalTime):
         assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (FinalTime>0), "Number of steps has to be larger 0"
         if FinalTime>1E3: print ('WARNING number of steps is very large!!')
 
-        self.prepareSimulation(NoPlayers, FinalTime)
+        # create all the required objects for the sim
+        self.setupSimulation(NoPlayers, FinalTime)
 
         # run the simulation
         self.sim.run()

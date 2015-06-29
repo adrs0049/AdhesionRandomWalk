@@ -113,10 +113,10 @@ class Simulation(Base):
         onupdate=datetime.datetime.now)
 
     # define relationship
-    paths = relationship("PathData")
+    paths = relationship("PathMetaData")
 
     def __repr__(self):
-        return "<PDESimulation(description='%s', date='%s')>" \
+        return "<Simulation(description='%s', date='%s')>" \
         % (self.description, self.created_date)
 
     def __init__(self, desc):
@@ -128,11 +128,21 @@ class PathMetaData(Base):
     __tablename__ = 'path_meta_data'
 
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    simulation_id = Column(Integer, ForeignKey('simulation.id'))
+
+    # path
+    path = relationship("PathData")
 
     time = Column(Numeric(20, 9, asdecimal=True), nullable=False)
     stochastic = Column(Boolean, nullable=False)
     simulation_date = Column(DateTime, nullable=False)
     program_version = Column(String(64), nullable=False)
+
+    def __repr__(self):
+        return "<PathMetaData(id='%s', simId='%s', time='%s', stochastic='%s',\
+                simulation_date='%s', program_version='%s')>" \
+                % (self.id, self.simulation_id, self.time, self.stochastic, \
+                   self.simulation_date, self.program_version)
 
 # data is stored from left to right in the domain
 class PathData(Base):
@@ -141,19 +151,22 @@ class PathData(Base):
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
     type = Column(String(50))
 
-    simulation_id = Column(Integer, ForeignKey('simulation.id'))
     metadata_id = Column(Integer, ForeignKey('path_meta_data.id'))
 
     # relationships
     #simulation = relationship("Simulation", backref=backref('path',
     #    order_by=id))
 
-    pathMetaData = relationship("PathMetaData", order_by=id)
+    #pathMetaData = relationship("PathMetaData", order_by=id)
 
     __mapper_args__ = {
         'polymorphic_identity':'path_data',
         'polymorphic_on':type
     }
+
+    def __repr__(self):
+        return "<PathData(metadataId='%s', type='%s')>" % (self.metadata_id,\
+                                                           self.type)
 
 # store data from a PDE simulation which is a decimal value
 class DensityData(PathData):
@@ -166,6 +179,9 @@ class DensityData(PathData):
         'polymorphic_identity':'density_data',
     }
 
+    def __repr__(self):
+        return "<DensityData(density='%s')>" % (self.density)
+
 # store the statevector of a stochastic simulation which are integers
 class StateData(PathData):
     __tablename__ = 'state_data'
@@ -176,3 +192,7 @@ class StateData(PathData):
     __mapper_args__ = {
         'polymorphic_identity':'state_data',
     }
+
+    def __repr__(self):
+        return "<StateData(state='%s')>" % (self.population)
+

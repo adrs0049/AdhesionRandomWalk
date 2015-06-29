@@ -8,6 +8,7 @@ from sqlalchemy.sql.expression import func
 import socket
 import datetime
 import numpy as np
+import pandas as pd
 
 # can we solve this better?
 cls_type = sqlalchemy.ext.declarative.api.DeclarativeMeta
@@ -19,7 +20,7 @@ class RandomWalkDB(object):
         self.dbName = 'RandomWalk'
 
         # setup database
-        self.session = setup(url='mysql+mysqldb://adrs0061:it4fOmen@localhost',
+        self.engine, self.session = setup(url='mysql+mysqldb://adrs0061:it4fOmen@localhost',
             databaseName=self.dbName)
 
     def getSession(self): return self.session
@@ -121,6 +122,8 @@ class RandomWalkDB(object):
                                 simulation_date = datetime.datetime.utcnow(),
                                 program_version = version)
 
+        sim.paths.append(metadata)
+
         if not cls:
             if issubclass(stateVector.dtype.type, np.integer):
                 cls = StateData
@@ -133,10 +136,10 @@ class RandomWalkDB(object):
         # coordinates for all the points!! very expensive
         try:
             for state in stateVector:
-                path = cls(pathMetaData = metadata)
-                setattr(path, self.getDataType(cls), state)
+                path_point = cls()
+                setattr(path_point, self.getDataType(cls), state)
 
-                sim.paths.append(path)
+                metadata.path.append(path_point)
         except:
             self.session.rollback()
             raise
@@ -167,7 +170,8 @@ class RandomWalkDB(object):
 
     """ Query database table by id """
     def getFromId(self, cls, id):
-        assert isinstance(id, int), "id has to be an integer"
+        # FIXME move to python 3
+        assert isinstance(id, (int, long)), "id has to be an integer"
         assert isinstance(cls, cls_type), "cls has to be sqlalchemy type"
         return self.session.query(cls).get(id)
 
@@ -209,6 +213,56 @@ class RandomWalkDB(object):
         # Now that the machine record exists, return its id
         return  self.session.query(MachineInfo.id).filter(MachineInfo.name ==
                 hostname).first()
+
+    def returnPath(self, metadataId):
+        q = self.session.query(PathData).\
+                filter(PathData.metadata_id==metadataId)
+
+        ret = []
+        for state in q.all():
+            ret.append(float(state.population))
+
+        # check what type the array should be
+        if q.first().type == 'state_data':
+            return np.array(ret, dtype=np.integer)
+
+        # else it has to be float anyways
+        return np.array(ret)
+
+    def returnPathsForSim(self, simId=None):
+
+        if not simId:
+            simId = self.getMostRecentSimulation()
+
+        q = self.session.query(PathMetaData.time).\
+                filter(PathMetaData.simulation_id==simId)
+
+        time_pts = [float(x[0]) for x in q.all()]
+
+        q = self.session.query(PathMetaData).\
+                filter(PathMetaData.simulation_id==simId)
+
+        # list of dataframes
+        ddf = dict()
+
+        for time in time_pts:
+
+            # dataframe for return
+            rdf = pd.DataFrame()
+
+            q = self.session.query(PathMetaData).\
+                filter(PathMetaData.simulation_id==simId).\
+                filter(PathMetaData.time==time)
+
+            idx=0
+            for metadata in q.all():
+                rdf[idx]=self.returnPath(metadata.id)
+                idx+=1
+
+            rdf['avg']=rdf.mean(axis=1)
+            ddf[time] = rdf
+
+        return ddf
 
 # debugging
 if __name__ == '__main__':
