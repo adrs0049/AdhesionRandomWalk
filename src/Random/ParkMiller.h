@@ -9,7 +9,7 @@
 
 // class using the c++11 rand linear_congruential random number gen
 template <typename distribution>
-class ParkMiller 
+class ParkMiller
 {
 public:
 	using random_engine = std::mt19937_64;
@@ -40,7 +40,7 @@ public:
 	{
 		init();
 	}
-	
+
 	result_type GetOneRandomInteger()
 	{
 		return dist(generator);
@@ -61,14 +61,14 @@ public:
 	}
 
 	void Reset()
-	{	
+	{
 		dist.reset();
 	}
 
 
 	static constexpr result_type Min() { return distribution::min(); }
 	static constexpr result_type Max() { return distribution::max(); }
-	
+
 private:
 	void init()
 	{
