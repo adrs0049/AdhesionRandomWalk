@@ -59,10 +59,9 @@ namespace Error {
 
         void printStackTrace()
         {
-            //crit_err_hdlr();
             void *array[array_sz];
             std::size_t size = backtrace(array, array_sz);
-            backtrace_symbols_fd(array, size, STDERR_FILENO);
+            unmangle(array, size);
         }
 
         friend void Error::terminate_handler_impl(void);
@@ -122,6 +121,11 @@ namespace Error {
 
             array[1] = caller_address;
 
+            unmangle(array, size);
+        }
+
+        void unmangle(void ** array, std::size_t size)
+        {
             char ** messages = backtrace_symbols(array,  size);
 
             //  skip first stack frame it points here
