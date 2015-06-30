@@ -34,7 +34,7 @@ private:
 
 	BoundaryPtr b;
     ParameterPtr p;
-   
+
 	// buffer the domain size locally it's used a lot
 	// shared ptr access seems expensive is this true??
 	size_type domainSize;
@@ -86,18 +86,18 @@ private:
 
     void init_delta()
     {
-        std::cout << "init delta at location " << p->getDomainSizeL()/2 
-          << " with " << p->getNumberOfCells() << " number of cells" 
-          << std::endl;
+        //std::cout << "init delta at location " << p->getDomainSizeL()/2
+        //  << " with " << p->getNumberOfCells() << " number of cells"
+        //  << std::endl;
 
         //m_stateVector.resize ( p->getDomainSizeL(), 0 );
 
         m_stateVector[m_stateVector.size()/2]=p->getNumberOfCells()/2;
         m_stateVector[m_stateVector.size()/2+1]=p->getNumberOfCells()/2;
 
-        std::cout << "m_stateVector[ " << m_stateVector.size()/2 
-                  << " ] =" << m_stateVector[m_stateVector.size()/2] 
-                  << std::endl;
+        //std::cout << "m_stateVector[ " << m_stateVector.size()/2
+        //          << " ] =" << m_stateVector[m_stateVector.size()/2]
+        //          << std::endl;
     }
 
 	void update()
@@ -107,8 +107,8 @@ private:
 
 public:
 
-	stateVector_impl() 
-		: m_stateVector(0), p(nullptr), b(nullptr) 
+	stateVector_impl()
+		: m_stateVector(0), p(nullptr), b(nullptr)
 	{}
 
     stateVector_impl(std::shared_ptr<Parameters> p_)
@@ -141,8 +141,8 @@ public:
 	void print() const
 	{
 		std::cout << "stateVector=(";
-		std::copy(m_stateVector.begin(), 
-				  m_stateVector.end(), 
+		std::copy(m_stateVector.begin(),
+				  m_stateVector.end(),
 				  std::ostream_iterator<T>(std::cout, ", "));
 		std::cout << ")" << std::endl;
 	}
@@ -161,11 +161,11 @@ public:
 		applyCondition(idx);
 		return m_stateVector[idx];
 	}
-		
+
 	const T& getDensity(int idx) const
 	{
 		applyCondition(idx);
-		return m_stateVector.at(idx);	
+		return m_stateVector.at(idx);
 	}
 
 	// this has to be signed it could be negative which we then wrap
@@ -175,7 +175,7 @@ public:
 		return m_stateVector.at(idx);
 	}
 
-	void set(size_type idx, const T val) 
+	void set(size_type idx, const T val)
 		{ m_stateVector.at(idx) = val; }
 
 	// wrap the boundary apply condition, called from shift op
@@ -199,10 +199,10 @@ struct ShiftOperator
 		ASSERT ((unsigned)x<dst.size() && x>=0, "index="<< x << " invalid density vector index!");
 		auto nidx = x + N;
 
-		std::cout << " nidx="<<nidx << " N=" << N;
+		//std::cout << " nidx="<<nidx << " N=" << N;
 
 		dst.applyCondition(nidx);
-		std::cout << " nidx_post="<< nidx << std::endl;
+		//std::cout << " nidx_post="<< nidx << std::endl;
 
 		ASSERT((unsigned)nidx<dst.size() && nidx>=0, "");
 
@@ -210,17 +210,17 @@ struct ShiftOperator
 		long before1 = dst[x];
 		long before2 = dst[nidx];
 
-		std::cout << " before[" << x << "]=" << dst[x];
-		std::cout << " before[" << nidx << "]=" << dst[nidx];
+		//std::cout << " before[" << x << "]=" << dst[x];
+		//std::cout << " before[" << nidx << "]=" << dst[nidx];
 
 		dst[x]-= (dst[x]>0) ? 1 : 0;
 		dst[nidx]+=1;
 
-		ASSERT(before1-1==dst[x], "");
+		ASSERT((before1>0) ? before1-1==dst[x] : before1==0, "");
 		ASSERT(before2+1==dst[nidx], "");
 
-		std::cout << " after[" << x << "]=" << dst[x];
-		std::cout << " after[" << nidx << "]=" << dst[nidx] << std::endl;
+		//std::cout << " after[" << x << "]=" << dst[x];
+		//std::cout << " after[" << nidx << "]=" << dst[nidx] << std::endl;
 
 		dst.checkTotal();
 	}
@@ -238,7 +238,7 @@ class stateVector : public stateVector_impl<T>
 
 public:
 
-	stateVector() 
+	stateVector()
 		: RightShift(*this), LeftShift(*this)
 	{}
 
@@ -247,16 +247,16 @@ public:
 	{}
 
 	stateVector(std::shared_ptr<Parameters> p, std::string initial_condition)
-		: stateVector_impl<T>(p, initial_condition), 
+		: stateVector_impl<T>(p, initial_condition),
 		RightShift(*this), LeftShift(*this)
-	{}
+	{ std::cout << "statevector init" <<std::endl;}
 
 	/*
 	void print() const { m_state.print(); }
-	size_type size() const { return m_state.size(); }	
+	size_type size() const { return m_state.size(); }
 
 	unsigned int& get(int idx) { return m_state.getDensity(idx); }
-	const unsigned int& get(int idx) const 
+	const unsigned int& get(int idx) const
 		{ return m_state.getDensity(idx); }
 */
 // the last two members are public to allow other classes to shift
