@@ -55,7 +55,7 @@ class Parameters
 		{
 			DomainSizeL = DomainSize / StepSize;
 			SensingRadiusL = SensingRadius / StepSize;
-			lambda = 2.0 * Diffusion;
+			lambda = 1E2;
 			set = true;
 
 			Check();
@@ -85,15 +85,18 @@ class Parameters
 		const double getLambda() const { return lambda; }
 		const double getStepSizeSquare() const { return StepSize * StepSize; }
 		// TODO check why I don't need a lambda here?
-		const double getDiffusionSim() const { return  getDiffusion() / ( getStepSizeSquare()); }
+		const double getDiffusionSim() const
+		{ return getDiffusion() / (2.0 * getLambda() * getStepSizeSquare()); }
 		const double getDrift() const { return Drift; }
-		const double getDriftSim() const { return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
+		const double getDriftSim() const
+		{ return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
 		void setDrift(double _Drift) { Drift = _Drift; }
 		void setSensingRadius(double _R) { SensingRadius = _R; }
 		void setDiscreteX(double _h) { StepSize = _h; }
+		void setLambda(double _l) { lambda = _l; }
 
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() { return domainShape; }
