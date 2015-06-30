@@ -112,9 +112,18 @@ class Player(object):
             # get diffusion soln
             xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
 
+            # get yet another exact soln to double check
+            ad = AD(shape=(self.getDomainSizeL(), ), L = self.getDomainSize()/2,
+                    D=self.getDiffusionCoeff(), c=0.0)
+
+            u2 = ad.eval(key)
+            #x2+=5
+
             # plotting
             plt.bar(bins[:-1], x, width=bar_width)
             plt.plot(xd, u, color='k')
+
+            plt.plot(xd, u2, color='g')
 
             # plot error
             error = u - x
