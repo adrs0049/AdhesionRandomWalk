@@ -14,7 +14,7 @@ metadata = Base.metadata
 database_url = None
 database = None
 
-def setup(url="sqlite:///:memory:", databaseName=None):
+def setup(url="sqlite:///:memory:", databaseName=None, verbose=False):
     global engine
     global session
     global query
@@ -33,7 +33,8 @@ def setup(url="sqlite:///:memory:", databaseName=None):
     import models
 
     database_url = url
-    engine = sqlalchemy.create_engine(database_url, echo=True)
+    engine = sqlalchemy.create_engine(database_url, echo=(True if verbose else
+                                                          False))
 
     engine.execute('CREATE DATABASE IF NOT EXISTS ' + database)
     engine.execute('USE ' + database)

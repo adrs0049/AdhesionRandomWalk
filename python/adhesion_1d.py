@@ -1,17 +1,17 @@
-import math
-import matplotlib.pyplot as plt
 import sys, os, time
-from collections import namedtuple
 import numpy as np
 import pandas as pd
+import pickle
+import multiprocessing as mp
+
+import math
+import matplotlib.pyplot as plt
+
 import simulator as s
 from simulator import DVector
 
 from diffusion import *
 from randomWalk_db import *
-
-def getValues(l, name):
-  return [getattr(r, name) for r in l]
 
 class Player(object):
     def __init__(self, parameters):
@@ -22,21 +22,22 @@ class Player(object):
         # parameters are a dict. First check if it exists in database
         self.param = self.db.param_create_if_not_exist(parameters)
 
-        # some variables used later
-        self.FinalTime = 0
-        # FIXME required for plotting read this value also from db
-        self.NoPlayers = 500
-        self.swig_param = 0
-
-        # sim object
-        self.sim = 0
-
         # setup database connection
         self.db = RandomWalkDB()
 
         # store id to the most recent randomwalk
         self.runId = -1
 
+        # use multiprocessors
+        self.multiprocessing = True
+
+        # some temp vars
+        self.Diffusion = 0
+        self.Drift = 0
+        self.R = 0
+        self.DomainN = 0
+
+    # TODO REVIEW ALL THOSE getter and setters!!
     def getDomainSize(self): return float(self.param.DomainSize)
     def getDomainSizeL(self): return float(self.param.DomainSize) * float(self.param.DomainN)
     def getDomainShape(self): return (0.0, self.getDomainSize)
@@ -55,71 +56,76 @@ class Player(object):
     def setSensingRadius(self, R): self.swig_param.setSensingRadius(R)
     # TODO do something that is actually python standard
     def getVersion(self): return '0.1'
+    def setSimId(self, simId):
+        try:
+            db.getSimulationFromId(simId)
+        except InvalidEntry as e:
+            print('Simulation id %d does not exist in database!' % simId)
+        except:
+            raise
+
+        self.runId = simId
 
     # DEBUG STUFF
     def getParameters(self): return self.param
     def getDB(self): return self.db
 
-    def getCellPath(self):
-        return np.asarray(self.sim.getPath())
+    def getCellPathFromDB(self, simId=None):
+        return db.returnPathsForSim(simId)
 
-    def getCellPathFromDB(self):
-        if self.runId==-1:
-            self.runId = db.getMostRecentSimulation()
-            print(self.runId)
-
-        sim = db.getSimulationFromId(self.runId)
-        paths = sim.paths
-
-        # set final time otherwise continuum soln is wrong
-        self.FinalTime = float(rw.final_time)
-        # get parameters belonging to rw
-        self.param = sim.parameter
-
-        return [float(x.population) for x in path]
-
-    def getCellLocations(self):
-        weight = np.asarray(self.sim.getPath())
-        domain = np.arange(-self.L, self.L, self.h)
-        #print( np.shape(weight) )
-        #print( np.shape(domain))
-        #print( weight )
-        #print( domain )
-        return np.multiply(weight, domain)
-
-    def doHistogram(self, bar_width=None, fromDb=True):
+    def doHistogram(self, simId=None, bar_width=None):
         if not bar_width: bar_width = self.getStepSize()
 
-        if fromDb:
-            x = self.getCellPathFromDB()
-        else:
-            x=self.getCellPath()
+        sim = db.getSimulationFromId(simId)
+        ddf = self.getCellPathFromDB(simId)
+        param = sim.Parameters
 
-        bins=np.arange(-self.getDomainLeftBoundary(),
-                        self.getDomainRightBoundary() + self.getStepSize(),
-                        bar_width)
+        assert isinstance(ddf, dict), "df is expected to be a dict"
 
-        print('shape bins=', np.shape(bins))
-        print('shape x=', np.shape(x))
+        if not len(ddf) > 0:
+            print('Data returned from simulation %d is empty!' % self.runId)
+            return
 
-        # get diffusion soln
-        xd, u = self.computeDiffusionSoln()
+        print('Plotting for times ', end='')
+        print(" ".join(str(x) for x in ddf.keys()))
+        print('.')
 
-        # plotting
-        plt.bar(bins[:-1], x, width=bar_width)
-        plt.plot(xd, u, color='k')
+        for key, df in ddf.items():
+            try:
+                x = df['avg']
+            except KeyError:
+                print('Data returned from simulation %d is empty!' % self.runId)
+                return df
+            except:
+                raise
 
-        # plot error
-        error = u - x
-        plt.plot(xd, error, color='r')
+            bins=np.arange(-self.getDomainLeftBoundary(),
+                       self.getDomainRightBoundary() + self.getStepSize(),
+                       bar_width)
 
-        print('shape u=', np.shape(u))
-        print('shape x=', np.shape(x))
-        self.print_error(u, x)
+            print('shape bins=', np.shape(bins))
+            print('shape x=', np.shape(x))
 
-        #plt.bar(x)
-        #ax.xlim(min(bins), max(bins))
-        plt.show()
+            # get diffusion soln
+            xd, u = self.computeDiffusionSoln(key, float(param.diffusion_coeff),
+                                              500)
+
+            # plotting
+            plt.bar(bins[:-1], x, width=bar_width)
+            plt.plot(xd, u, color='k')
+
+            # plot error
+            error = u - x
+            plt.plot(xd, error, color='r')
+
+            print('shape u=', np.shape(u))
+            print('shape x=', np.shape(x))
+            self.print_error(u, x)
+
+            plt.title('Results of space-jump process at %f' % key)
+
+            #ax.xlim(min(bins), max(bins))
+            plt.show()
 
     def plotIC(self):
         bar_width = self.h
@@ -147,27 +153,22 @@ class Player(object):
         plt.ylim(0,1000)
         plt.show()
 
-    def computeDiffusionSoln(self, FinalTime=None):
+    def computeDiffusionSoln(self, T, D, NoPlayers):
         N=self.getDomainSizeL()
         Nhalf = N/2
-
-        if not FinalTime==None:
-            T = FinalTime
-        else:
-            T=self.getFinalTime()
 
         print('Solving heat equation using the FFT')
         print('N=',N,' T=',T,' D=', self.getDiffusionCoeff())
         print('The domain is [', self.getDomainLeftBoundary(), ', ', \
-                self.getDomainRightBoundary(),']')
+              self.getDomainRightBoundary(),']')
 
         # domain is [-L, L]
         xd=np.linspace(self.getDomainLeftBoundary(), self.getDomainRightBoundary(), N)
         u0=np.zeros(N)
-        u0[N/2]=self.NoPlayers/2.0
-        u0[N/2+1]=self.NoPlayers/2.0
+        u0[N/2]=NoPlayers/2.0
+        u0[N/2+1]=NoPlayers/2.0
 
-        if FinalTime==0.0:
+        if T==0.0:
             return xd, u0
 
         # IC
@@ -192,58 +193,61 @@ class Player(object):
         print('The L1 error=', self.norm1(x, y))
         print('The L2 error=', self.norm2(x, y))
 
-    def setupSim(self, NoPlayers=100, NoSteps=1000):
-        self.updateValues(NoPlayers, NoSteps)
-        self.sim = s.Simulator(self.param)
-
-    def printSim(self):
-        self.sim._print()
-
-    def getSwigParameters(self):
-        swig_param = s.Parameters
-
-        stepSize = 1.0 / self.param.DomainN
-
-        # FIXME
-        domainShape = DVector([-5.0, 5.0])
-
-        swig_param = s.Parameters(domainShape, stepSize, self.FinalTime,
-                self.NoPlayers)
-
-        swig_param.setDiffusion(self.getDiffusionCoeff())
-        swig_param.setDrift(self.getDriftCoeff())
-        swig_param.setSensingRadius(self.getSensingRadius())
-
-        return swig_param
-
     def checkParametersInDB(self):
         db.param_create_if_not_exist(self.param)
 
-    def setupSimulation(self, NoPlayers, FinalTime):
+    """ run several simulations """
+    def runSimulations(self, FinalTimes, NoPlayers=500):
 
-        self.NoPlayers = NoPlayers
-        self.FinalTime = FinalTime
+        print('Preparing simulation...')
+        # NoPaths, number of paths to generate for each config
+        NoPaths = 10
+        ftimes = [t for t in FinalTimes for _ in range(NoPaths) ]
 
-        # create an instance of c++ parameters
-        self.swig_param = self.getSwigParameters()
+        # create sim object in database
+        self.prepareSimulation()
 
-        # create sim object
-        self.sim = s.Simulator(self.swig_param)
-        self.sim._print()
-        time.sleep(1)
+        # starts consumers
+        num = 1
+        if self.multiprocessing:
+            num = mp.cpu_count() + 1
 
-    """ Method to safe generated path to the database """
-    def finishSimulation(self, FinalTime):
+        print('Simulation id is %d. Running %d paths for each time. The '\
+              'total number of simulations is %d. The final times are ' \
+              % (self.runId, NoPaths, len(FinalTimes) * NoPaths), end='')
+        print(" ".join(str(x) for x in FinalTimes), end='')
+        print('. Executing %d simulations in parallel, on %d CPUs.' \
+              % (num, mp.cpu_count()))
 
-        # get stateVector
-        stateVector = self.getCellPath()
+        print('Starting simulating...')
 
-        # send the stateVector to the database
-        # TODO actually save the current time!
-        db.storePath(stateVector, FinalTime, self.runId, self.getVersion())
+        tasks = mp.JoinableQueue()
+        results = mp.Queue()
 
-        # Don't ever overwrite the database -> unset runId
-        # self.runId = -1
+        print('Creating %d consumers' % num)
+        consumers = [Consumer(tasks, results) for i in range(num) ]
+
+        for w in consumers:
+            w.start()
+
+        # enqueue jobs
+        for t in ftimes:
+            tasks.put(Simulation(NoPlayers, t, self.DomainN, \
+                                 self.Diffusion, self.Drift, self.R))
+
+        print('Killing all consumers')
+        for i in range(num):
+            tasks.put(None)
+
+        print('Waiting for simulations to finish...')
+        tasks.join()
+
+        print('Storing results in database...')
+        while results.qsize() > 0:
+            result = results.get()
+            db.storePath(result[1], result[0], self.runId, self.getVersion())
+
+        print('Finished Simulation %d' %(self.runId))
 
     """ create simulation object in database """
     def prepareSimulation(self):
@@ -251,31 +255,102 @@ class Player(object):
         if self.runId == -1:
             self.runId = db.createSimulation('space-jump simulation', self.param.id)
 
-    """ run several simulations """
-    def runSimulations(self, FinalTimes, NoPlayers=500):
+        self.DomainN = self.param.DomainN
+        self.Diffusion = self.getDiffusionCoeff()
+        self.Drift = self.getDriftCoeff()
+        self.R = self.getSensingRadius()
 
-        # create sim object in database
-        self.prepareSimulation()
-        print('Simulation id is ' + str(self.runId))
+class Consumer(mp.Process):
 
-        print('Starting simulating...')
+    def __init__(self, task_queue, result_queue):
+        mp.Process.__init__(self)
+        self.task_queue = task_queue
+        self.result_queue = result_queue
 
-        for finalTime in FinalTimes:
-            self.runSimulation(NoPlayers, finalTime)
+    def run(self):
+        proc_name = self.name
+        while True:
+            next_task = self.task_queue.get()
+            if next_task is None:
+                print('%s: Exiting' % proc_name)
+                self.task_queue.task_done()
+                break
+            print('%s: %s' % (proc_name, next_task))
+            answer = next_task()
+            self.task_queue.task_done()
+            self.result_queue.put(answer)
+        return
 
-    def runSimulation(self, NoPlayers, FinalTime):
+# move somewhere else
+class PickalableSWIG:
+    def __setstate__(self, state):
+        self.__init__(*state['args'])
+
+    def __getstate__(self):
+        return {'args' : self.args}
+
+class PickalableParameters(s.Parameters, PickalableSWIG):
+
+    def __init__(self, *args):
+        self.args = args
+        s.Parameters.__init__(self, *args)
+
+class PickalableSimulator(s.Simulator, PickalableSWIG):
+
+    def __init__(self, *args):
+        self.args = args
+        s.Simulator.__init__(self, *args)
+
+class Simulation(object):
+
+    def __init__(self, NoPlayers, FinalTime, DomainN, Diffusion, Drift, R):
+
         assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (FinalTime>0), "Number of steps has to be larger 0"
         if FinalTime>1E3: print ('WARNING number of steps is very large!!')
 
-        # create all the required objects for the sim
-        self.setupSimulation(NoPlayers, FinalTime)
+        self.NoPlayers = NoPlayers
+        self.FinalTime = FinalTime
+        self.DomainN = DomainN
+        self.Diffusion = Diffusion
+        self.Drift = Drift
+        self.R = R
+
+    def __str__(self):
+        return "Executing Simulation up to '%f' with '%d' players." \
+                % (self.FinalTime, self.NoPlayers)
+
+    def __call__(self):
+
+        # domainN stores points per unit length
+        stepSize = 1.0 / self.DomainN
+
+        # FIXME
+        domainShape = DVector([-5.0, 5.0])
+
+        # get workable swig parameters
+        swig_param = PickalableParameters(domainShape, stepSize, self.FinalTime,
+                                          self.NoPlayers)
+
+        swig_param.setDiffusion(self.Diffusion)
+        swig_param.setDrift(self.Drift)
+        swig_param.setSensingRadius(self.R)
+
+        #print(swig_param)
+        #print('setup sim')
+
+        # create sim object
+        sim = PickalableSimulator(swig_param)
+        #self.sim = s.Simulator(self.swig_param)
+        #print('print info')
+        #sim._print()
+        #time.sleep(1)
 
         # run the simulation
-        self.sim.run()
+        sim.run()
 
-        # finish simulation
-        self.finishSimulation(FinalTime)
+        # return only the cell path with finaltime
+        return self.FinalTime, np.asarray(sim.getPath())
 
 if __name__ == '__main__':
 

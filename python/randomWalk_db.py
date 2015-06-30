@@ -13,17 +13,34 @@ import pandas as pd
 # can we solve this better?
 cls_type = sqlalchemy.ext.declarative.api.DeclarativeMeta
 
+class Error(Exception):
+    """ Base class for exceptions in randomWalk_db module """
+    pass
+
+class InvalidEntry(Error):
+    def __init__(self, cls, expression):
+        self.cls = cls
+        self.expression = expression
+        self.tablename = self.cls.__tablename__
+
+class CommitError(Error):
+    def __init__(self, table):
+        self.table = table
+
 class RandomWalkDB(object):
 
-    def __init__(self):
+    def __init__(self, databaseName='RandomWalk'):
 
-        self.dbName = 'RandomWalk'
+        self.dbName = databaseName
+
+        databaseURL = 'mysql+mysqldb://adrs0061:it4fOmen@localhost'
 
         # setup database
-        self.engine, self.session = setup(url='mysql+mysqldb://adrs0061:it4fOmen@localhost',
-            databaseName=self.dbName)
+        self.engine, self.session = setup(url=databaseURL,\
+                                          databaseName=self.dbName)
 
     def getSession(self): return self.session
+    def getEngine(self): return self.engine
 
     def commit(self):
         self.session.commit()
@@ -39,7 +56,7 @@ class RandomWalkDB(object):
 
     # TODO reimplement me better!!!
     def ParametersToDict(self, p):
-        pass
+        raise NotImplementedError()
 
     """ create new Parameter from dictionary """
     def createNewParameters(self, p):
@@ -172,7 +189,12 @@ class RandomWalkDB(object):
     def getFromId(self, cls, id):
         assert isinstance(id, int), "id has to be an integer"
         assert isinstance(cls, cls_type), "cls has to be sqlalchemy type"
-        return self.session.query(cls).get(id)
+        ret = self.session.query(cls).get(id)
+
+        if ret is None:
+            raise InvalidEntry(cls, id)
+        else:
+            return ret
 
     """ Query for paramters with id """
     def getParamFromId(self, paramId):
@@ -183,7 +205,10 @@ class RandomWalkDB(object):
         return self.getFromId(PathData, pathId)
 
     """ Query simulation by id """
-    def getSimulationFromId(self, simId):
+    def getSimulationFromId(self, simId=None):
+        if simId is None:
+            simId = self.getMostRecentSimulation()
+
         return self.getFromId(Simulation, simId)
 
     """ Query for highest id in cls """
@@ -230,8 +255,19 @@ class RandomWalkDB(object):
 
     def returnPathsForSim(self, simId=None):
 
-        if not simId:
+        if simId is None or simId == -1:
             simId = self.getMostRecentSimulation()
+            print('Simulation id is not set, using most recent with id %d' \
+                  % (simId))
+
+        # check that sim exists in the database
+        try:
+            sim = self.getSimulationFromId(simId)
+        except InvalidEntry as e:
+            print('Simulation id %d does not exist in database!' % self.runId)
+            return
+        except:
+            raise
 
         q = self.session.query(PathMetaData.time).\
                 filter(PathMetaData.simulation_id==simId)
