@@ -13,7 +13,7 @@ class AD(object):
 
     def __init__(self, shape=None, L=5, D=1.0, c=1.0, refinement = 1):
 
-        N = shape[0] / refinement
+        N = int(shape[0] / refinement)
 
         self.N = N
         self.L = L
@@ -23,6 +23,7 @@ class AD(object):
 
         self.shape = (N,)
 
+        print('N ', type(N), ' =', N)
         # diffusion coefficient
         self.D = D
 
@@ -39,7 +40,7 @@ class AD(object):
         self.sgradient = K*1j
         self.laplacian = -K**2
 
-    def exact(self, t):
+    def exact(self, t, shift=0.0):
         """ Exact solution to Advection Diffusion Equations """
 
         L = self.L
@@ -49,10 +50,24 @@ class AD(object):
 
         xd = np.linspace(-self.L, self.L, self.N)
         soln = ((4.0 * np.pi * D * (t + t0))**(-0.5)
-                    * np.exp(-(xd - ( self.x0 + c * t))**2
+                    * np.exp(-(xd + shift - ( self.x0 + c * t))**2
                             /(4.0 * D * (t + t0))) )
 
         return xd, soln
+
+    def convolute(self, t, ic=0.5):
+
+        h = 1.0/self.N
+        print('h=',h)
+
+        x1, u1 = self.exact(t)
+        x2, u2 = self.exact(t, shift=1.0/self.N)
+        x3, u3 = self.exact(t, shift=-1.0/self.N)
+
+        u = 2.0 * h * ic * (u1+u2+u3)
+
+        return x1, u
+
 
     def f1_eval(self, u, t, f1):
 
@@ -74,9 +89,12 @@ class AD(object):
     def eval(self, t):
 
         N = self.N
+        print('N=', N)
 
         u = np.zeros(N)
-        u[N/2] = 0.1 * N
+        print(np.shape(u))
+
+        u[N/2] = 0.5
 
         #print 'u=', u
 
