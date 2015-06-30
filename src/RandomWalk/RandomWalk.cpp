@@ -17,17 +17,17 @@ void RandomWalk::GeneratePath()
 		time = 0.0;
 		steps=0;
 
-		print_info();
+		//print_info();
 
-		std::cout << "Setup simulation..." << std::endl;
+		//std::cout << "Setup simulation..." << std::endl;
 
 		// ensure all things are set and updated
 		setup();
 
-		std::cout << "Starting timer..." << std::endl;
+		//std::cout << "Starting timer..." << std::endl;
 		chronos::Chronos timer;
 
-		std::cout << "Starting simulation..." << std::endl;
+		//std::cout << "Starting simulation..." << std::endl;
 
 		// initialize all propensities
 		computeAllPropensities();
@@ -37,15 +37,15 @@ void RandomWalk::GeneratePath()
 
 			Step();
 
-			std::cout << "\rTime:" << std::setw(15) << time
-				<< " Step: " << std::setw(10) << steps;
+			//std::cout << "\rTime:" << std::setw(15) << time
+			//	<< " Step: " << std::setw(10) << steps;
 
 		} while (time < param->getFinalTime() );
 
-		std::cout << std::endl;
-		std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
+		//std::cout << std::endl;
+		//std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
 
-		print_info();
+		//print_info();
 
 	} catch (const std::exception& exception) {
 		std::cerr << "ERROR: " << exception.what() << std::endl;
@@ -127,10 +127,10 @@ void RandomWalk::setup()
 
 	propensities.resize(NumberOfReactions);
 
-	std::cout << "NumberOfReactions= " << NumberOfReactions
-		<< " propensity_stride=" << propensity_stride << std::endl;
+	//std::cout << "NumberOfReactions= " << NumberOfReactions
+	//	<< " propensity_stride=" << propensity_stride << std::endl;
 
-	state->print();
+	//state->print();
 }
 
 void RandomWalk::print_info()
@@ -226,11 +226,7 @@ double  RandomWalk::getPropensity(int coordinate, int flag)
 
 double  RandomWalk::getPropensitySum()
 {
-	double ret {0.0};
-	for (const auto& propensity : propensities)
-		ret+=propensity;
-
-	return ret;
+	return std::accumulate(propensities.begin(), propensities.end(), 0.0);
 }
 
 void RandomWalk::computePropensity( long coordinate )
@@ -245,7 +241,10 @@ void RandomWalk::computePropensity( long coordinate )
 	//std::cout << "right=" << (symmetric + asymmetric);
 	//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
 
-	ASSERT((symmetric-asymmetric)>=0.0, "");
+	ASSERT((symmetric-asymmetric)>=0.0, "tmp =" << symmetric-asymmetric << " "\
+			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
+			<< asymmetric << " drift=" << param->getDriftSim() << \
+			" step=" << param->getDiscreteX());
 
 	propensities.at(coordinate) = state->getDensity(coordinate) * param->getLambda() * (symmetric + asymmetric);
 	// check that this offset is correct here??
