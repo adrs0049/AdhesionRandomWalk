@@ -5,6 +5,7 @@ from models import *
 
 from sqlalchemy import exists
 from sqlalchemy.sql.expression import func
+from sqlalchemy.orm import with_polymorphic
 import socket
 import datetime
 import numpy as np
@@ -38,6 +39,9 @@ class RandomWalkDB(object):
         # setup database
         self.engine, self.session = setup(url=databaseURL,\
                                           databaseName=self.dbName)
+
+        # join the path tables
+        self.data_entity = with_polymorphic(PathData, [DensityData, StateData])
 
     def getSession(self): return self.session
     def getEngine(self): return self.engine
@@ -238,16 +242,24 @@ class RandomWalkDB(object):
         return  self.session.query(MachineInfo.id).filter(MachineInfo.name ==
                 hostname).first()
 
-    def returnPath(self, metadataId):
-        q = self.session.query(PathData).\
-                filter(PathData.metadata_id==metadataId)
+    def get_attr(self, l):
+        for attr in ['population', 'density']:
+            if hasattr(l, attr): return attr
 
-        ret = []
-        for state in q.all():
-            ret.append(float(state.population))
+        return None
+
+    def returnPath(self, metadataId):
+        q = self.session.query(self.data_entity).\
+                filter(PathData.metadata_id==metadataId) #.\
+
+        q.add_columns(DensityData.density, StateData.population)
+
+        res = q.all()
+        attr = self.get_attr(res[0])
+        ret = [getattr(x, attr) for x in res]
 
         # check what type the array should be
-        if q.first().type == 'state_data':
+        if attr == 'population':
             return np.array(ret, dtype=np.integer)
 
         # else it has to be float anyways
