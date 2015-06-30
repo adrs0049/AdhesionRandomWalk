@@ -78,7 +78,7 @@ class Player(object):
 
         sim = db.getSimulationFromId(simId)
         ddf = self.getCellPathFromDB(simId)
-        param = sim.Parameters
+        self.param = sim.Parameters
 
         assert isinstance(ddf, dict), "df is expected to be a dict"
 
@@ -99,6 +99,9 @@ class Player(object):
             except:
                 raise
 
+            total = np.sum(x)
+            x = x / total
+
             bins=np.arange(-self.getDomainLeftBoundary(),
                        self.getDomainRightBoundary() + self.getStepSize(),
                        bar_width)
@@ -107,8 +110,7 @@ class Player(object):
             print('shape x=', np.shape(x))
 
             # get diffusion soln
-            xd, u = self.computeDiffusionSoln(key, float(param.diffusion_coeff),
-                                              500)
+            xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
 
             # plotting
             plt.bar(bins[:-1], x, width=bar_width)
@@ -122,7 +124,8 @@ class Player(object):
             print('shape x=', np.shape(x))
             self.print_error(u, x)
 
-            plt.title('Results of space-jump process at %f' % key)
+            plt.title('Results of space-jump process with %d players at %f'\
+                      % (total, key))
 
             #ax.xlim(min(bins), max(bins))
             plt.show()
@@ -153,7 +156,7 @@ class Player(object):
         plt.ylim(0,1000)
         plt.show()
 
-    def computeDiffusionSoln(self, T, D, NoPlayers):
+    def computeDiffusionSoln(self, T, D):
         N=self.getDomainSizeL()
         Nhalf = N/2
 
@@ -165,8 +168,8 @@ class Player(object):
         # domain is [-L, L]
         xd=np.linspace(self.getDomainLeftBoundary(), self.getDomainRightBoundary(), N)
         u0=np.zeros(N)
-        u0[N/2]=NoPlayers/2.0
-        u0[N/2+1]=NoPlayers/2.0
+        u0[N/2]=1.0/2.0
+        u0[N/2+1]=1.0/2.0
 
         if T==0.0:
             return xd, u0
