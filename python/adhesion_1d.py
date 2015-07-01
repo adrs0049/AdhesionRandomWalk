@@ -11,6 +11,7 @@ import simulator as s
 from simulator import DVector
 
 from diffusion import *
+from heat import *
 from randomWalk_db import *
 
 class Player(object):
@@ -113,17 +114,44 @@ class Player(object):
             xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
 
             # get yet another exact soln to double check
-            ad = AD(shape=(self.getDomainSizeL(), ), L = self.getDomainSize()/2,
-                    D=self.getDiffusionCoeff(), c=0.0)
+            #ad = AD(shape=(self.getDomainSizeL(), ), L = self.getDomainSize()/2,
+            #        D=self.getDiffusionCoeff(), c=0.0)
 
-            u2 = ad.eval(key)
+            #u2 = ad.eval(key)
             #x2+=5
+
+            # try yet another diffusion solver
+            N = 100
+            x2 = np.arange(-self.getDomainLeftBoundary(),
+                           self.getDomainRightBoundary(),
+                           self.getDomainSize()/N)
+            assert len(x2)==N, ""
+            u_ic = np.zeros(N)
+
+            print(len(bins))
+
+            start=int( (N / self.getDomainSize()) * (5.0))
+            finish= int((N / self.getDomainSize()) * (5.0 + bar_width))
+
+            print('start=', start, ' end=', finish, ' N=',N)
+
+            u_ic[start:finish]=0.5
+
+            assert len(u_ic)==N, ""
+
+            time_step = key * self.getDomainSize()* self.getDiffusionCoeff()
+            solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSizeL())
+            solver.time_step()
+            u2 = solver.get_x()
+
+            #return x2, u2
 
             # plotting
             plt.bar(bins[:-1], x, width=bar_width)
             plt.plot(xd, u, color='k')
 
-            plt.plot(xd, u2, color='g')
+            print('x2=', np.shape(x2), ' u2=', np.shape(u2))
+            plt.plot(x2, u2, color='g')
 
             # plot error
             error = u - x
