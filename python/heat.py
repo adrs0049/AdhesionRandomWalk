@@ -37,7 +37,7 @@ class FFTHeat1D_test(object):
 def map(a, b, x):
     return (x + a)/(a + b)
 
-if __name__ == '__main__':
+def test():
 
     D = 10.0
     t = 0.1
@@ -64,6 +64,32 @@ if __name__ == '__main__':
     plt.plot(x, u_exact, color='g')
 
     print('ERROR=', np.linalg.norm(u-u_exact))
+
+    plt.show()
+
+def delta():
+
+    D = 10.0
+    t = 0.1
+    N = 2**10
+    domainSize = 10.0
+
+    # actual domain
+    x = np.arange(0, domainSize, domainSize/N)
+
+    # map everything to [0, 1]
+    x_solver = np.arange(0.0, 1.0, 1.0/N)
+
+    mid = N/2
+    u = np.zeros(N)
+    u[mid-1:mid+1] = 0.5
+
+    solver = FFTHeat1D_test(u, D * t, domainSize)
+    solver.time_step()
+
+    u = solver.get_x()
+
+    plt.plot(x, u, color='k')
 
     plt.show()
 
