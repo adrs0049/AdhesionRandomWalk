@@ -43,9 +43,12 @@ public:
 
     void init(std::shared_ptr<Parameters> param)
     {
-        // DEBUG stuff
+		// DEBUG stuff
         Error::TerminalCatcher::init();
 
+		//std::cout << "Simulator init" << std::endl;
+		//std::cout << "Parameters are: ";
+		//param->print_info();
         TheRandomWalk = std::make_unique<RandomWalk>(param);
     }
 
