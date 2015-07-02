@@ -10,15 +10,17 @@ class Parameters
 	public:
 		Parameters() {}
 		Parameters(double Dsize_, double StepSize_,
-				double FinalTime_, unsigned long _NumberOfCells)
+				double FinalTime_, unsigned long _ic_p)
 			: DomainSize(Dsize_), DomainSizeL(0),
 			StepSize(StepSize_), FinalTime(FinalTime_),
-			NumberOfCells(_NumberOfCells)
+			ic_p(_ic_p)
 	{
 		// TODO check if this is correct
 		domainShape.resize(2, 0);
 		domainShape[0] = -DomainSize/2;
 		domainShape[1] = DomainSize/2;
+
+		NumberOfCells = 0;
 
 		update();
 		print_info();
@@ -26,9 +28,9 @@ class Parameters
 
 		Parameters(std::vector<double> _shape, double _stepSize,
 				double _finalTime,
-				unsigned long _NumberOfCells)
+				unsigned long _ic_p)
 			: domainShape(_shape), StepSize(_stepSize), FinalTime(_finalTime),
-			NumberOfCells(_NumberOfCells)
+			ic_p(_ic_p)
 	{
 		ASSERT(_shape.size()==2, "shape size is invalid!");
 
@@ -68,7 +70,7 @@ class Parameters
 
 			ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
 
-			ASSERT(NumberOfCells!=0, "Number of cells can't be zero!");
+			ASSERT(ic_p!=0, "Initial number of cells can't be zero!");
 			ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
 			ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
 		}
@@ -86,10 +88,11 @@ class Parameters
 		const double getStepSizeSquare() const { return StepSize * StepSize; }
 		// TODO check why I don't need a lambda here?
 		const double getDiffusionSim() const
-		{ return getDiffusion() / (2.0 * getLambda() * getStepSizeSquare()); }
+		{ return getDiffusion() / (getLambda() * getStepSizeSquare()); }
 		const double getDrift() const { return Drift; }
 		const double getDriftSim() const
-		{ return getDrift() / ( 2 * getLambda() * getStepSizeSquare()); }
+		{ return getDrift() / ( 2.0 * getLambda() * getStepSizeSquare()); }
+		const unsigned long getICp() { return ic_p; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -123,6 +126,8 @@ class Parameters
 
 		double Diffusion = 0.5;
 		double Drift = 0.0;
+
+		unsigned long ic_p = 0;
 };
 
 
