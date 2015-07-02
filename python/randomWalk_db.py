@@ -37,8 +37,16 @@ class RandomWalkDB(object):
         databaseURL = 'mysql+mysqldb://adrs0061:it4fOmen@localhost'
 
         # setup database
-        self.engine, self.session = setup(url=databaseURL,\
+        try:
+            self.engine, self.session = setup(url=databaseURL,\
                                           databaseName=self.dbName)
+        except ImportError as e:
+            # use mysql connector
+            databaseURL = 'mysql+mysqlconnector://adrs0061:it4fOmen@localhost'
+            self.engine, self.session = set(url=databaseURL,\
+                                            databaseName=self.dbName)
+        except:
+            raise
 
         # join the path tables
         self.data_entity = with_polymorphic(PathData, [DensityData, StateData])
