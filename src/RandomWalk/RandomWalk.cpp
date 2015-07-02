@@ -122,10 +122,12 @@ void RandomWalk::setup()
 	// for no flux boundary conditions
 	// NumberOfReactions = 2 * (param->getDomainSizeL() - 1);
 	// for periodic boundary conditions
+	TotalNumberOfCells = param->getNumberOfCells();
 	NumberOfReactions = 2 * param->getDomainSizeL();
 	sensing_offset = param->getSensingRadiusL();
 
-	propensities.resize(NumberOfReactions);
+	propensities.clear();
+	propensities.resize(NumberOfReactions, 0.0);
 
 	//std::cout << "NumberOfReactions= " << NumberOfReactions
 	//	<< " propensity_stride=" << propensity_stride << std::endl;
@@ -218,10 +220,11 @@ double  RandomWalk::getPropensity(int coordinate, int flag)
 	// so we dont have to recompute it each
 	ASSERT(propensities.at(flag * propensity_stride + coordinate)>=0.0,
 			"Propensity at index " << flag * propensity_stride + coordinate <<
-			" is negative. Propensities have to be non-negative");
+			" is negative. (" << propensities.at(flag * propensity_stride + coordinate) \
+			<< ") Propensities have to be non-negative");
 
 	// TODO check that this offset is correct
-	return propensities.at(flag * ( propensity_stride - 1 ) + coordinate);
+	return propensities.at(flag * propensity_stride + coordinate);
 }
 
 double  RandomWalk::getPropensitySum()
@@ -241,14 +244,29 @@ void RandomWalk::computePropensity( long coordinate )
 	//std::cout << "right=" << (symmetric + asymmetric);
 	//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
 
-	ASSERT((symmetric-asymmetric)>=0.0, "tmp =" << symmetric-asymmetric << " "\
+	ASSERT((symmetric+asymmetric)>=0.0, "tmp =" << symmetric+asymmetric << " "\
 			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
-			<< asymmetric << " drift=" << param->getDriftSim() << \
+			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
+			" drift=" << param->getDriftSim() << \
 			" step=" << param->getDiscreteX());
 
-	propensities.at(coordinate) = state->getDensity(coordinate) * param->getLambda() * (symmetric + asymmetric);
-	// check that this offset is correct here??
-	propensities.at(propensity_stride + coordinate - 1) = state->getDensity(coordinate) * param->getLambda() * (symmetric - asymmetric);
+	ASSERT((symmetric-asymmetric)>=0.0, "tmp =" << symmetric-asymmetric << " "\
+			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
+			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
+			" drift=" << param->getDriftSim() << \
+			" step=" << param->getDiscreteX());
+
+	propensities.at(coordinate) = param->getLambda() *
+		state->getDensity(coordinate) * (symmetric + asymmetric);
+
+	propensities.at(propensity_stride + coordinate) = param->getLambda() *
+		state->getDensity(coordinate) * (symmetric - asymmetric);
+}
+
+std::array<double, 2> RandomWalk::getPropensity( long coordinate )
+{
+	return { propensities.at(coordinate),
+				propensities.at(propensity_stride + coordinate)};
 }
 
 double RandomWalk::omega ( long coordinate )
@@ -274,5 +292,5 @@ double RandomWalk::PolarizationVector ( long coordinate )
 		total+= ( space ( coordinate + offset ) * omega ( +offset ) * adhesivity ( coordinate + offset ) -
 				space ( coordinate - offset ) * omega ( -offset ) * adhesivity ( coordinate - offset ) );
 
-	return total;
+	return total / TotalNumberOfCells;
 }

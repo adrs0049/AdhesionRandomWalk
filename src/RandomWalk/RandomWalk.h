@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <array>
 #include "ParkMiller.h"
 #include "StateVector.h"
 #include "Parameters.h"
@@ -27,7 +28,7 @@ public:
 	{}
 
 	RandomWalk( std::shared_ptr<Parameters> _param )
-		: state(std::make_shared<state_vector>(_param)),
+		: state(std::make_shared<state_vector>(_param, "Uniform")),
 		param(_param),
 		rand ( 0.0, 1.0 )
 	{}
@@ -47,16 +48,21 @@ public:
 	void GeneratePath();
 	void Step();
 
-
 	state_vector_ptr getCells()
 	{
 		return state;
 	}
 
-private:
+	std::vector<double>& getProp() { return propensities; }
+
+	std::size_t getStride() { return propensity_stride; }
+
+public:
 	void setup();
 	void print_info();
 	void computeAllPropensities();
+
+	std::array<double, 2> getPropensity(long coordinate);
 
 	// function to wrap around propensity index
 	// when using periodic boundary conditions
@@ -73,6 +79,8 @@ private:
 	double adhesivity(long coordinate);
 	double space(long coordinate);
 	double PolarizationVector(long coordinate);
+
+	unsigned long TotalNumberOfCells;
 
 	// Variables
 	std::shared_ptr<state_vector> state;
