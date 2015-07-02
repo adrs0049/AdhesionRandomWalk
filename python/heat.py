@@ -11,7 +11,7 @@ class FFTHeat1D_test(object):
             self.dt = dt
             self.e = self.get_derivConst()
 
-            print('dt=', dt, ' n=', self.n)
+            print('dt=', dt, ' n=', self.n, ' L=', self.L)
 
         def get_derivConst(self):
             kVec = np.arange(-self.n/2, self.n/2)
@@ -67,11 +67,22 @@ def test():
 
     plt.show()
 
+def g(x):
+    h = 0.1
+    value = 1.0 / 3.0
+    mid = 5.0
+    if np.abs(x - mid) < h:
+        return value
+    else:
+        return 0.0
+
+vg = np.vectorize(g)
+
 def delta():
 
-    D = 10.0
+    D = 0.5
     t = 0.1
-    N = 2**10
+    N = 2**11
     domainSize = 10.0
 
     # actual domain
@@ -81,13 +92,15 @@ def delta():
     x_solver = np.arange(0.0, 1.0, 1.0/N)
 
     mid = N/2
-    u = np.zeros(N)
-    u[mid-1:mid+1] = 0.5
+    #u = np.zeros(N)
+    #u[mid-2:mid] = 0.5
+    u = vg(x)
 
     solver = FFTHeat1D_test(u, D * t, domainSize)
     solver.time_step()
 
     u = solver.get_x()
+    print('max=', np.max(u))
 
     plt.plot(x, u, color='k')
 

@@ -104,7 +104,7 @@ class Player(object):
             x = x / total
 
             bins=np.arange(-self.getDomainLeftBoundary(),
-                       self.getDomainRightBoundary() + self.getStepSize(),
+                       self.getDomainRightBoundary(),
                        bar_width)
 
             print('shape bins=', np.shape(bins))
@@ -113,15 +113,13 @@ class Player(object):
             # get diffusion soln
             xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
 
-            # get yet another exact soln to double check
-            #ad = AD(shape=(self.getDomainSizeL(), ), L = self.getDomainSize()/2,
-            #        D=self.getDiffusionCoeff(), c=0.0)
-
-            #u2 = ad.eval(key)
-            #x2+=5
-
             # try yet another diffusion solver
-            N = 100
+            N = self.getDomainSize() * self.param.DomainN
+
+            if N<1000:
+                print('Using a larger N')
+                N = 2**10
+
             x2 = np.arange(-self.getDomainLeftBoundary(),
                            self.getDomainRightBoundary(),
                            self.getDomainSize()/N)
@@ -130,36 +128,38 @@ class Player(object):
 
             print(len(bins))
 
-            start=int( (N / self.getDomainSize()) * (5.0))
-            finish= int((N / self.getDomainSize()) * (5.0 + bar_width))
+            # index is zero based -> midpoint one lower
+            mid = int(N/2)-1
 
-            print('start=', start, ' end=', finish, ' N=',N)
+            print('start=', mid-1, ' end=', mid+2, ' N=',N)
 
-            u_ic[start:finish]=0.5
+            #u_ic[mid-1:mid+2]=0.33
+            u_ic = vg(x2)
 
             assert len(u_ic)==N, ""
 
-            time_step = key * self.getDomainSize()* self.getDiffusionCoeff()
-            solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSizeL())
+            time_step = key * self.getDiffusionCoeff()
+            solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSize())
             solver.time_step()
             u2 = solver.get_x()
 
             #return x2, u2
 
             # plotting
-            plt.bar(bins[:-1], x, width=bar_width)
-            plt.plot(xd, u, color='k')
+            #plt.bar(bins, x, width=bar_width)
+            plt.plot(xd, x, color='r')
+            #plt.plot(xd, u, color='k')
 
             print('x2=', np.shape(x2), ' u2=', np.shape(u2))
             plt.plot(x2, u2, color='g')
 
             # plot error
-            error = u - x
-            plt.plot(xd, error, color='r')
+            #error = u - x
+            #plt.plot(xd, error, color='r')
 
             print('shape u=', np.shape(u))
             print('shape x=', np.shape(x))
-            self.print_error(u, x)
+            #self.print_error(u, x)
 
             plt.title('Results of space-jump process with %d players at %f'\
                       % (total, key))
@@ -167,9 +167,9 @@ class Player(object):
             #ax.xlim(min(bins), max(bins))
             plt.show()
 
-    def plotIC(self):
+    def plotIC(self, sim):
         bar_width = self.h
-        x=self.getCellPath()
+        x=sim.getCellPath()
         bins=np.arange(-self.L, self.L + self.h, bar_width)
 
         print('shape bins=', np.shape(bins))
@@ -177,6 +177,29 @@ class Player(object):
 
         # get diffusion soln
         xd, u = self.computeDiffusionSoln(FinalTime=0.0)
+
+        N = 100
+        x2 = np.arange(-self.getDomainLeftBoundary(),
+                       self.getDomainRightBoundary(),
+                       self.getDomainSize()/N)
+        assert len(x2)==N, ""
+        u_ic = np.zeros(N)
+
+        print(len(bins))
+
+        # index is zero based -> midpoint one lower
+        mid = int(N/2)-1
+
+        print('start=', mid-1, ' end=', mid+2, ' N=',N)
+
+        u_ic[mid-1:mid+2]=0.33
+
+        assert len(u_ic)==N, ""
+
+        time_step = key * self.getDomainSize()* self.getDiffusionCoeff()
+        solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSizeL())
+        solver.time_step()
+        u2 = solver.get_x()
 
         # plotting
         plt.bar(bins[:-1], x, width=bar_width)
@@ -381,6 +404,10 @@ class Simulation(object):
 
         # create sim object
         sim = PickalableSimulator(swig_param)
+        x = sim.getPath()
+
+        print(x[47], x[48], x[49], x[50], x[51])
+
         #self.sim = s.Simulator(self.swig_param)
         #print('print info')
         #sim._print()
@@ -395,8 +422,8 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=10,
-                 diffusion_coeff=0.5, drift_coeff=0.0,
+    param = dict(DomainSize=10, DomainN=20,
+                 diffusion_coeff=1.0, drift_coeff=20,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
                  u0=0.8, bcs='pp', ic_type=1, ic_p=0.1)
 
