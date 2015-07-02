@@ -31,6 +31,7 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
 set_source_files_properties(${SIMULATOR_SWIG_SOURCES} PROPERTIES CPLUSPLUS ON)
+set_source_files_properties(${SIMULATOR_SWIG_SOURCES} PROPERTIES SWIG_FLAGS "-py3")
 set(CMAKE_SWIG_OUTDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 SWIG_ADD_MODULE(simulator python ${SIMULATOR_SWIG_SOURCES})
