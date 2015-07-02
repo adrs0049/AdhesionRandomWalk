@@ -36,7 +36,13 @@ def setup(url="sqlite:///:memory:", databaseName=None, verbose=False):
     engine = sqlalchemy.create_engine(database_url, echo=(True if verbose else
                                                           False))
 
-    engine.execute('CREATE DATABASE IF NOT EXISTS ' + database)
+    try:
+        engine.execute('CREATE DATABASE IF NOT EXISTS ' + database)
+    except DatabaseError as e:
+        print("Database %s already exists" % database)
+    except:
+        raise
+
     engine.execute('USE ' + database)
 
     # create tables

@@ -43,7 +43,7 @@ class RandomWalkDB(object):
         except ImportError as e:
             # use mysql connector
             databaseURL = 'mysql+mysqlconnector://adrs0061:it4fOmen@localhost'
-            self.engine, self.session = set(url=databaseURL,\
+            self.engine, self.session = setup(url=databaseURL,\
                                             databaseName=self.dbName)
         except:
             raise
