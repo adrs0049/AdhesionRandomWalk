@@ -52,8 +52,9 @@ private:
 
     void init(std::string initial_condition)
     {
+		// FIXME allow setting of this
         b = BoundaryFactory::createBoundary ( BoundaryFactory::periodic );
-        init_flag = true;
+        init_flag = true; // FIXME am i still useful?
 
         if (initial_condition == uniform)
             init_uniform();
@@ -63,7 +64,8 @@ private:
             std::cerr << "Unknown initial condition: "
                         << initial_condition << std::endl;
             std::cerr << "Aborting!" << std::endl;
-            exit(1);
+			// FIXME EXCEPTION
+			exit(1);
         }
 
 		update();
@@ -80,9 +82,15 @@ private:
     void init_uniform()
     {
         std::cout << "init uniform. vector size is " << m_stateVector.size() << std::endl;
-		m_stateVector.assign(m_stateVector.size(), 1);
-        p->setNumberOfCells(1*p->getDomainSizeL());
+		m_stateVector.assign(m_stateVector.size(), p->getICp());
+		std::cout << "number of cells = " << getTotalNumberOfCells() << std::endl;
+        p->setNumberOfCells(getTotalNumberOfCells());
     }
+
+	unsigned long getTotalNumberOfCells()
+	{
+		return std::accumulate(m_stateVector.begin(), m_stateVector.end(), 0);
+	}
 
     void init_delta()
     {
@@ -92,8 +100,14 @@ private:
 
         //m_stateVector.resize ( p->getDomainSizeL(), 0 );
 
-        m_stateVector[m_stateVector.size()/2]=p->getNumberOfCells()/2;
-        m_stateVector[m_stateVector.size()/2+1]=p->getNumberOfCells()/2;
+		auto mid = m_stateVector.size()/2;
+
+		// index is zero based
+		m_stateVector[mid-2] = p->getICp();
+        m_stateVector[mid-1]= p->getICp();
+        m_stateVector[mid]= p->getICp();
+
+		p->setNumberOfCells(getTotalNumberOfCells());
 
         //std::cout << "m_stateVector[ " << m_stateVector.size()/2
         //          << " ] =" << m_stateVector[m_stateVector.size()/2]
@@ -128,8 +142,7 @@ public:
 
  	bool checkTotal(void)
 	{
-		unsigned long total = std::accumulate(m_stateVector.begin(), m_stateVector.end(), 0);
-        return total==p->getNumberOfCells();
+		return getTotalNumberOfCells() == p->getNumberOfCells();
     }
 
     void SetParameters(std::shared_ptr<Parameters> _p)
