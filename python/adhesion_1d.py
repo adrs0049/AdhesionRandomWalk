@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import multiprocessing as mp
+import datetime
 
 import math
 import matplotlib.pyplot as plt
@@ -14,6 +15,41 @@ from diffusion import *
 from heat import *
 from randomWalk_db import *
 
+def log_error(dest_q, message, name):
+    dest_q.put(dict(type='error',
+                    name=name,
+                    timestamp=datetime.datetime.now(),
+                    process=os.getpid(),
+                    message=message))
+
+def log_info(dest_q, message, name):
+    dest_q.put(dict(type='info',
+                    name=name,
+                    timestamp=datetime.datetime.now(),
+                    process=os.getpid(),
+                    message=message))
+
+def log_debug(dest_q, message, name):
+    dest_q.put(dict(type='debug',
+                    name=name,
+                    timestamp=datetime.datetime.now(),
+                    process=os.getpid(),
+                    message=message))
+
+def timeit(method):
+
+    def timed(*args, **kwargs):
+        ts = time.time()
+        result = method(*args, **kwargs)
+        te = time.time()
+
+        print ('%r (%r, %r) %2.2f sec' % \
+               (method.__name__, args, kwargs, te-ts))
+
+        return result
+
+    return timed
+
 class Player(object):
     def __init__(self, parameters):
 
@@ -22,9 +58,6 @@ class Player(object):
 
         # parameters are a dict. First check if it exists in database
         self.param = self.db.param_create_if_not_exist(parameters)
-
-        # setup database connection
-        self.db = RandomWalkDB()
 
         # store id to the most recent randomwalk
         self.runId = -1
@@ -151,7 +184,7 @@ class Player(object):
             #plt.plot(xd, u, color='k')
 
             print('x2=', np.shape(x2), ' u2=', np.shape(u2))
-            plt.plot(x2, u2, color='g')
+            #plt.plot(x2, u2, color='g')
 
             # plot error
             #error = u - x
@@ -164,6 +197,8 @@ class Player(object):
             plt.title('Results of space-jump process with %d players at %f'\
                       % (total, key))
 
+            plt.ylim(0, 0.05)
+            plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
             plt.show()
 
@@ -259,8 +294,47 @@ class Player(object):
     def checkParametersInDB(self):
         db.param_create_if_not_exist(self.param)
 
-    """ run several simulations """
+    @timeit
     def runSimulations(self, FinalTimes, NoPlayers=500):
+
+        feedback_q = mp.Queue()
+        p = mp.Process(target=self.__runSimulations__,
+                       args=(feedback_q, FinalTimes, NoPlayers,))
+        try:
+            p.start()
+
+            while p.is_alive():
+                fb = feedback_q.get()
+
+                # Poison pill!
+                if fb == 'DONE':
+                    break
+
+                if fb["type"] == "error":
+                    print("ERROR in " + fb["process"] + ": "\
+                       + fb["message"] + "\n" )
+                    p.terminate()
+                    for child in mp.active_children():
+                        child.terminate()
+                else:
+                    print(datetime.datetime.fromtimestamp(fb["timestamp"]).\
+                          strftime('%Y-%m-%d %H:%M:%S') + " " + \
+                          fb["process"] + ": " + fb["message"])
+
+        except KeyboardInterrupt:
+            print('keyboard interrupt')
+            p.terminate()
+            for child in mp.active_children():
+                child.terminate()
+
+        except:
+            raise
+
+        finally:
+            p.join()
+
+    """ run several simulations """
+    def __runSimulations__(self, feedback_q, FinalTimes, NoPlayers=500):
 
         print('Preparing simulation...')
         # NoPaths, number of paths to generate for each config
@@ -287,50 +361,117 @@ class Player(object):
         tasks = mp.JoinableQueue()
         results = mp.Queue()
 
-        print('Creating %d consumers' % num)
-        consumers = [Consumer(tasks, results) for i in range(num) ]
+        print('Creating %d simulations' % num)
+        simulations = [Consumer(tasks, results, feedback_q)
+                       for i in range(num) ]
+        writers = [storePath(results, feedback_q, self.runId, self.getVersion())
+                    for i in range(1)]
 
-        for w in consumers:
-            w.start()
+        print('Starting processes...')
+        for sim in simulations:
+            sim.start()
+
+        for writer in writers:
+            writer.start()
 
         # enqueue jobs
         for t in ftimes:
             tasks.put(Simulation(NoPlayers, t, self.DomainN, \
                                  self.Diffusion, self.Drift, self.R))
 
-        print('Killing all consumers')
-        for i in range(num):
+        # send poison pill to all simulations
+        for sim in simulations:
             tasks.put(None)
 
         print('Waiting for simulations to finish...')
         tasks.join()
 
-        print('Storing results in database...')
-        while results.qsize() > 0:
-            result = results.get()
-            db.storePath(result[1], result[0], self.runId, self.getVersion())
+        print('Killing mysql thread...')
+        for writer in writers:
+            results.put(None)
+            writer.join()
 
         print('Finished Simulation %d' %(self.runId))
+        feedback_q.put('DONE')
+
+        return
 
     """ create simulation object in database """
     def prepareSimulation(self):
         # create new record in the database
         if self.runId == -1:
-            self.runId = db.createSimulation('space-jump simulation', self.param.id)
+            self.runId = self.db.createSimulation('space-jump simulation', self.param.id)
 
         self.DomainN = self.param.DomainN
         self.Diffusion = self.getDiffusionCoeff()
         self.Drift = self.getDriftCoeff()
         self.R = self.getSensingRadius()
 
-class Consumer(mp.Process):
+class SafeProcess(mp.Process):
 
-    def __init__(self, task_queue, result_queue):
+    def __init__(self, feedback_queue):
+        mp.Process.__init__(self)
+        self.feedback_queue = feedback_queue
+
+    def log_info(self, message):
+        log_info(self.feedback_queue, message, self.name)
+
+    def log_error(self, err):
+        log_error(self.feedback_queue, err, self.name)
+
+    def log_debug(self, message):
+        log_debug(self.feedback_queue, message, self.name)
+
+    def saferun(self):
+        if self._target:
+            self._target(*self._args, **self._kwargs)
+
+    def run(self):
+        try:
+            self.saferun()
+        except Exception as e:
+            self.log_error(e)
+            raise e
+        return
+
+class storePath(SafeProcess):
+
+    def __init__(self, q, feedback_queue, runId, version):
+        SafeProcess.__init__(self, feedback_queue)
+        self.runId = runId
+        self.version = version
+        self.db = RandomWalkDB()
+        self.q = q
+
+    def __str__(self):
+        return "Executing storePath with sim_id '%d' and on version '%s'." \
+                % (self.runId, self.version)
+
+    def saferun(self):
+
+        proc_name = self.name
+        while True:
+            next_result = self.q.get()
+            if next_result == None:
+                print('%s: Exiting' % proc_name)
+                return
+
+            print('%s: Storing path for time %f and simulation %d'
+                  % (proc_name, next_result[0], self.runId))
+
+            self.db.storePath(next_result[1], next_result[0],
+                              self.runId, self.version, next_result[2])
+        return
+
+class Consumer(SafeProcess):
+
+    def __init__(self, task_queue, result_queue, feedback_queue):
         mp.Process.__init__(self)
         self.task_queue = task_queue
         self.result_queue = result_queue
+        self.feedback_queue = feedback_queue
 
-    def run(self):
+    def saferun(self):
         proc_name = self.name
         while True:
             next_task = self.task_queue.get()
@@ -404,9 +545,8 @@ class Simulation(object):
 
         # create sim object
         sim = PickalableSimulator(swig_param)
-        x = sim.getPath()
-
-        print(x[47], x[48], x[49], x[50], x[51])
+        #x = sim.getPath()
+        #print(x[47], x[48], x[49], x[50], x[51])
 
         #self.sim = s.Simulator(self.swig_param)
         #print('print info')
@@ -416,8 +556,11 @@ class Simulation(object):
         # run the simulation
         sim.run()
 
+        # get the number of steps
+        steps = swig_param.getSteps()
+
         # return only the cell path with finaltime
-        return self.FinalTime, np.asarray(sim.getPath())
+        return self.FinalTime, np.asarray(sim.getPath()), steps
 
 if __name__ == '__main__':
 
