@@ -93,6 +93,7 @@ class Parameters
 		const double getDriftSim() const
 		{ return getDrift() / ( 2.0 * getLambda() * getStepSizeSquare()); }
 		const unsigned long getICp() { return ic_p; }
+		unsigned long getSteps() { return steps; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -100,6 +101,7 @@ class Parameters
 		void setSensingRadius(double _R) { SensingRadius = _R; }
 		void setDiscreteX(double _h) { StepSize = _h; }
 		void setLambda(double _l) { lambda = _l; }
+		void setSteps(unsigned long _steps) { steps = _steps; }
 
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() { return domainShape; }
@@ -128,6 +130,7 @@ class Parameters
 		double Drift = 0.0;
 
 		unsigned long ic_p = 0;
+		unsigned long steps = 0;
 };
 
 
