@@ -45,6 +45,8 @@ void RandomWalk::GeneratePath()
 		//std::cout << std::endl;
 		//std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
 
+		param->setSteps(steps);
+
 		//print_info();
 
 	} catch (const std::exception& exception) {
