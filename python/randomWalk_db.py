@@ -10,6 +10,8 @@ import socket
 import datetime
 import numpy as np
 import pandas as pd
+import platform
+import multiprocessing as mp
 
 # can we solve this better?
 cls_type = sqlalchemy.ext.declarative.api.DeclarativeMeta
@@ -38,12 +40,12 @@ class RandomWalkDB(object):
 
         # setup database
         try:
-            self.engine, self.session = setup(url=databaseURL,\
+            self.engine, self.Session = setup(url=databaseURL,\
                                           databaseName=self.dbName)
         except ImportError as e:
             # use mysql connector
             databaseURL = 'mysql+mysqlconnector://adrs0061:it4fOmen@localhost'
-            self.engine, self.session = setup(url=databaseURL,\
+            self.engine, self.Session = setup(url=databaseURL,\
                                             databaseName=self.dbName)
         except:
             raise
@@ -51,20 +53,21 @@ class RandomWalkDB(object):
         # join the path tables
         self.data_entity = with_polymorphic(PathData, [DensityData, StateData])
 
-    def getSession(self): return self.session
+    def getSession(self): return self.Session()
     def getEngine(self): return self.engine
 
     def commit(self):
         self.session.commit()
 
     def add_and_commit(self, obj):
+        session = self.getSession()
         try:
-            self.session.add(obj)
+            session.add(obj)
         except:
-            self.session.rollback()
+            session.rollback()
             raise
         else:
-            self.commit()
+            session.commit()
 
     # TODO reimplement me better!!!
     def ParametersToDict(self, p):
@@ -86,7 +89,8 @@ class RandomWalkDB(object):
     def queryExistsParam(self, P):
         assert isinstance(P, dict), 'Argument P has to be a dictionary'
 
-        q = self.session.query(Parameters)
+        session = self.getSession()
+        q = session.query(Parameters)
         q = q.filter(exists())
         q = self.queryParamBuilder(q, **P)
 
@@ -113,7 +117,8 @@ class RandomWalkDB(object):
         return parameters
 
     def queryParam(self, **kwargs):
-        q = self.session.query(Parameters)
+        session = self.getSession()
+        q = session.query(Parameters)
         return self.queryParamBuilder(q, **kwargs)
 
     def queryParamBuilder(self, query, **kwargs):
@@ -138,7 +143,7 @@ class RandomWalkDB(object):
         version:     program version used to create this path
     """
     def storePath(self, stateVector, SimTime, simId,
-                  version, stochastic=True, cls=None):
+                  version, steps, stochastic=True, cls=None):
 
         assert isinstance(stateVector, np.ndarray), "This is only tested with \
                 numpy arrays"
@@ -148,6 +153,7 @@ class RandomWalkDB(object):
 
         metadata = PathMetaData(stochastic=stochastic,
                                 time=SimTime,
+                                steps=steps,
                                 simulation_date = datetime.datetime.utcnow(),
                                 program_version = version)
 
@@ -163,6 +169,7 @@ class RandomWalkDB(object):
 
         # TODO we would probably survive without storing all the
         # coordinates for all the points!! very expensive
+        session = self.getSession()
         try:
             for state in stateVector:
                 path_point = cls()
@@ -170,10 +177,10 @@ class RandomWalkDB(object):
 
                 metadata.path.append(path_point)
         except:
-            self.session.rollback()
+            session.rollback()
             raise
         else:
-            self.commit()
+            session.commit()
 
     """ create simulation """
     def createSimulation(self, description, paramId):
@@ -183,16 +190,17 @@ class RandomWalkDB(object):
 
         sim = Simulation(description)
 
+        session = self.getSession()
         # Query for both the parameters and machine info to link
-        p = self.session.query(Parameters).get(paramId)
+        p = session.query(Parameters).get(paramId)
         assert p, 'Queried parameter record does not exist. Add it!'
 
-        m = self.session.query(MachineInfo).get(machine_id)
+        m = session.query(MachineInfo).get(machine_id)
         assert m, 'Queried machine record does not exist. Add it!'
 
         m.simulations.append(sim)
         p.simulations.append(sim)
-        self.commit()
+        session.commit()
 
         # return the id to the created sim object
         return sim.id
@@ -201,7 +209,8 @@ class RandomWalkDB(object):
     def getFromId(self, cls, id):
         assert isinstance(id, int), "id has to be an integer"
         assert isinstance(cls, cls_type), "cls has to be sqlalchemy type"
-        ret = self.session.query(cls).get(id)
+        session = self.getSession()
+        ret = session.query(cls).get(id)
 
         if ret is None:
             raise InvalidEntry(cls, id)
@@ -226,7 +235,8 @@ class RandomWalkDB(object):
     """ Query for highest id in cls """
     def getMostRecent(self, cls):
         assert isinstance(cls, cls_type), "cls has to be sqlalchemy type"
-        return self.session.query(func.max(cls.id)).scalar()
+        session = self.getSession()
+        return session.query(func.max(cls.id)).scalar()
 
     """ get most recent randomwalk """
     def getMostRecentSimulation(self):
@@ -235,19 +245,28 @@ class RandomWalkDB(object):
     """ Create new machine info record """
     def createMachineRecord(self):
         machine = MachineInfo(socket.gethostname())
+        machine.python_version = platform.python_version()
+        machine.compiler = platform.python_compiler()
+        machine.release = platform.release()
+        machine.system = platform.system()
+        machine.processor = platform.processor()
+        machine.cpu_count = mp.cpu_count()
+        machine.interpreter = platform.architecture()[0]
+
         self.add_and_commit(machine)
 
     """ Query machine info record """
     def queryMachineRecord(self, hostname):
+        session = self.getSession()
         stmt = exists().where(MachineInfo.name == hostname)
-        q = self.session.query(MachineInfo.name).filter(stmt)
+        q = session.query(MachineInfo.name).filter(stmt)
 
         # if it doesn't exist, create a new record
         if not q.scalar():
             self.createMachineRecord()
 
         # Now that the machine record exists, return its id
-        return  self.session.query(MachineInfo.id).filter(MachineInfo.name ==
+        return  session.query(MachineInfo.id).filter(MachineInfo.name ==
                 hostname).first()
 
     def get_attr(self, l):
@@ -257,7 +276,8 @@ class RandomWalkDB(object):
         return None
 
     def returnPath(self, metadataId):
-        q = self.session.query(self.data_entity).\
+        session = self.getSession()
+        q = session.query(self.data_entity).\
                 filter(PathData.metadata_id==metadataId) #.\
 
         q.add_columns(DensityData.density, StateData.population)
@@ -289,12 +309,13 @@ class RandomWalkDB(object):
         except:
             raise
 
-        q = self.session.query(PathMetaData.time).\
+        session = self.getSession()
+        q = session.query(PathMetaData.time).\
                 filter(PathMetaData.simulation_id==simId)
 
         time_pts = [float(x[0]) for x in q.all()]
 
-        q = self.session.query(PathMetaData).\
+        q = session.query(PathMetaData).\
                 filter(PathMetaData.simulation_id==simId)
 
         # list of dataframes
@@ -305,7 +326,7 @@ class RandomWalkDB(object):
             # dataframe for return
             rdf = pd.DataFrame()
 
-            q = self.session.query(PathMetaData).\
+            q = session.query(PathMetaData).\
                 filter(PathMetaData.simulation_id==simId).\
                 filter(PathMetaData.time==time)
 

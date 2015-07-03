@@ -4,11 +4,12 @@ print("Using sqlalchemy version '%s'" % (sqlalchemy.__version__))
 
 # declare a mapping
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
 Base = declarative_base()
 
 # define global vars
 engine = None
-session = None
+Session = None
 query = None
 metadata = Base.metadata
 database_url = None
@@ -16,7 +17,7 @@ database = None
 
 def setup(url="sqlite:///:memory:", databaseName=None, verbose=False):
     global engine
-    global session
+    global Session
     global query
     global metadata
     global database
@@ -33,27 +34,23 @@ def setup(url="sqlite:///:memory:", databaseName=None, verbose=False):
     import models
 
     database_url = url
-    engine = sqlalchemy.create_engine(database_url, echo=(True if verbose else
-                                                          False))
+    engine = sqlalchemy.create_engine(database_url, echo=verbose)
 
     try:
         engine.execute('CREATE DATABASE IF NOT EXISTS ' + database)
-    except DatabaseError as e:
-        print("Database %s already exists" % database)
     except:
-        raise
+        print("Database already exists")
 
     engine.execute('USE ' + database)
 
     # create tables
     metadata.create_all(engine)
 
+    # factory
+    session_factory = sessionmaker(bind=engine)
+
     # create session
-    Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    Session = scoped_session(session_factory)
 
-    # create and save session object to Session
-    session = Session()
-    query = session.query
-
-    return engine, session
+    return engine, Session
 
