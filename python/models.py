@@ -17,6 +17,16 @@ class MachineInfo(Base):
     last_updated_date = Column(DateTime, nullable=False,
         onupdate=datetime.datetime.now)
 
+    python_version = Column(String(12))
+    compiler = Column(String(64))
+    release = Column(String(128))
+    machine = Column(String(20))
+    processor = Column(String(256))
+    cpu_count = Column(Integer)
+
+    system = Column(String(64))
+    interpreter = Column(String(64))
+
     # relationships
     simulations = relationship("Simulation", backref="MachineInfo")
 
@@ -137,6 +147,8 @@ class PathMetaData(Base):
     stochastic = Column(Boolean, nullable=False)
     simulation_date = Column(DateTime, nullable=False)
     program_version = Column(String(64), nullable=False)
+
+    steps = Column(BigInteger, nullable=True)
 
     def __repr__(self):
         return "<PathMetaData(id='%s', simId='%s', time='%s', stochastic='%s',\
