@@ -32,20 +32,26 @@ void RandomWalk::GeneratePath()
 		// initialize all propensities
 		computeAllPropensities();
 
-		do {
-			steps++;
+		for (auto& finalTime : finalTimes)
+		{
+			do {
+				steps++;
 
-			Step();
+				Step();
 
-			//std::cout << "\rTime:" << std::setw(15) << time
-			//	<< " Step: " << std::setw(10) << steps;
+				//std::cout << "\rTime:" << std::setw(15) << time
+				//	<< " Step: " << std::setw(10) << steps;
 
-		} while (time < param->getFinalTime() );
+			} while (time < finalTime );
+
+			param->setSteps(steps);
+
+			// TODO signal somehow that data should be written
+
+		}
 
 		//std::cout << std::endl;
 		//std::cout << "Simulation complete. The total number of steps is " << steps << std::endl;
-
-		param->setSteps(steps);
 
 		//print_info();
 

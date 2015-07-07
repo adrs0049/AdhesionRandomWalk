@@ -63,6 +63,7 @@ public:
 	void computeAllPropensities();
 
 	std::array<double, 2> getPropensity(long coordinate);
+	std::vector<double> finalTimes;
 
 	// function to wrap around propensity index
 	// when using periodic boundary conditions
