@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <iterator>
+#include <algorithm>
 #include "debug.h"
 
 class Parameters
@@ -12,7 +14,7 @@ class Parameters
 		Parameters(double Dsize_, double StepSize_,
 				double FinalTime_, unsigned long _ic_p)
 			: DomainSize(Dsize_), DomainSizeL(0),
-			StepSize(StepSize_), FinalTime(FinalTime_),
+			StepSize(StepSize_), FinalTimes(1, FinalTime_),
 			ic_p(_ic_p)
 	{
 		// TODO check if this is correct
@@ -29,7 +31,7 @@ class Parameters
 		Parameters(std::vector<double> _shape, double _stepSize,
 				double _finalTime,
 				unsigned long _ic_p)
-			: domainShape(_shape), StepSize(_stepSize), FinalTime(_finalTime),
+			: domainShape(_shape), StepSize(_stepSize), FinalTimes(1, _finalTime),
 			ic_p(_ic_p)
 	{
 		ASSERT(_shape.size()==2, "shape size is invalid!");
@@ -50,11 +52,16 @@ class Parameters
 				<< domainShape[1] << ").";
 			std::cout << " StepSize:" << StepSize << std::endl;
 			std::cout << " Sensing Radius:" << SensingRadiusL;
-			std::cout << " FinalTime:" << FinalTime << std::endl;
+			std::cout << " FinalTimes=(";
+			std::copy(FinalTimes.begin(), FinalTimes.end(),
+					  std::ostream_iterator<double>(std::cout, ", "));
+			std::cout << ")" << std::endl;
 		}
 
 		void update()
 		{
+			// sort elements of FinalTimes, required!!
+			std::sort(FinalTimes.begin(), FinalTimes.end());
 			DomainSizeL = DomainSize / StepSize;
 			SensingRadiusL = SensingRadius / StepSize;
 			lambda = 1E2;
@@ -65,6 +72,7 @@ class Parameters
 
 		void Check()
 		{
+			ASSERT(FinalTimes.size()>0, "FinalTimes are not set");
 			ASSERT(set, "Parameters are not initalized.");
 			ASSERT(domainShape.size()==2, "Domain shape has invalid size!");
 
@@ -75,7 +83,7 @@ class Parameters
 			ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
 		}
 
-		const double getFinalTime() const { return FinalTime; }
+		const std::vector<double> getFinalTimes() const { return FinalTimes; }
 
 		const double getDiffusion() const { return Diffusion; }
 		const double getDomainSize() const { return DomainSize; }
@@ -115,7 +123,7 @@ class Parameters
 		std::vector<double> domainShape;
 
 		double StepSize;
-		double FinalTime;
+		std::vector<double> FinalTimes;
 
 		// see random jump derivation
 		double lambda;
@@ -132,6 +140,5 @@ class Parameters
 		unsigned long ic_p = 0;
 		unsigned long steps = 0;
 };
-
 
 #endif
