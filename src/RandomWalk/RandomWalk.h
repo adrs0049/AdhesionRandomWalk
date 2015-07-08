@@ -11,16 +11,14 @@
 #include <memory>
 #include "make_unique.h"
 
-#define RIGHT_INC (+1)
-#define LEFT_INC (-1)
-
-#define CLAMP_ZERO(x) (if (x<0) std::max(0, x))
+#include "Event.h"
 
 class RandomWalk
 {
 	using state_vector = stateVector<unsigned int>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<state_vector>;
+	using event_type = Event<state_vector_type>;
 
 public:
 	RandomWalk()
@@ -54,13 +52,19 @@ public:
 	}
 
 	std::vector<double>& getProp() { return propensities; }
-
 	std::size_t getStride() { return propensity_stride; }
 
 public:
 	void setup();
 	void print_info();
 	void computeAllPropensities();
+
+	void notify()
+	{
+		event.notifyListeners(getPath());
+	}
+
+	event_type event;
 
 	std::array<double, 2> getPropensity(long coordinate);
 	std::vector<double> finalTimes;

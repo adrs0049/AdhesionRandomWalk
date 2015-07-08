@@ -3,6 +3,7 @@
 #include "RandomWalk.h"
 
 #include <iostream>
+#include <iterator>
 #include <exception>
 #include <cmath>
 
@@ -32,8 +33,11 @@ void RandomWalk::GeneratePath()
 		// initialize all propensities
 		computeAllPropensities();
 
+		ASSERT(finalTimes.size()>0, "FinalTimes is empty!");
+
 		for (auto& finalTime : finalTimes)
 		{
+			//std::cout << "Current final time is " << finalTime << std::endl;
 			do {
 				steps++;
 
@@ -47,7 +51,7 @@ void RandomWalk::GeneratePath()
 			param->setSteps(steps);
 
 			// TODO signal somehow that data should be written
-
+			notify();
 		}
 
 		//std::cout << std::endl;
@@ -137,6 +141,9 @@ void RandomWalk::setup()
 	propensities.clear();
 	propensities.resize(NumberOfReactions, 0.0);
 
+	// get final times
+	finalTimes = param->getFinalTimes();
+
 	//std::cout << "NumberOfReactions= " << NumberOfReactions
 	//	<< " propensity_stride=" << propensity_stride << std::endl;
 
@@ -150,8 +157,11 @@ void RandomWalk::print_info()
 		<< "drift." << std::endl;
 
 	std::cout << "This simulation is run with " << param->getNumberOfCells()
-		<< " cells. The final time of the simulation is "
-		<< param->getFinalTime() << "." << std::endl;
+		<< " cells. The final times of the simulation are ";
+		std::copy(param->getFinalTimes().begin(),
+				  param->getFinalTimes().end(),
+				  std::ostream_iterator<double>(std::cout, ", "));
+		std::cout << std::endl;
 
 	std::cout << "Courant Number=" << 1.0 / param->getDiffusionSim()
 		<< " StepSize=" << param->getDiscreteX()
