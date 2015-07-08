@@ -480,9 +480,8 @@ class Consumer(SafeProcess):
                 self.task_queue.task_done()
                 break
             print('%s: %s' % (proc_name, next_task))
-            answer = next_task()
+            next_task(self.result_queue)
             self.task_queue.task_done()
-            self.result_queue.put(answer)
         return
 
 # move somewhere else
@@ -520,11 +519,26 @@ class Simulation(object):
         self.Drift = Drift
         self.R = R
 
+        self.swig_param = None
+        self.result_queue = None
+        self.sim = None
+
     def __str__(self):
         return "Executing Simulation up to '%f' with '%d' players." \
                 % (self.FinalTime, self.NoPlayers)
 
-    def __call__(self):
+    def storePath(self):
+        # get steps + path
+        steps = self.swig_param.getSteps()
+        FinalTime = self.swig_param
+        path = np.asarray(self.sim.getPath())
+
+        self.result_queue.put(tuple(FinalTime, path, steps, ))
+
+    def __call__(self, result_queue):
+
+        # set result queue
+        self.result_queue = result_queue
 
         # domainN stores points per unit length
         stepSize = 1.0 / self.DomainN
@@ -533,18 +547,18 @@ class Simulation(object):
         domainShape = DVector([-5.0, 5.0])
 
         # get workable swig parameters
-        swig_param = PickalableParameters(domainShape, stepSize, self.FinalTime,
-                                          self.NoPlayers)
+        self.swig_param = PickalableParameters(domainShape, stepSize,
+                                          self.FinalTime, self.NoPlayers)
 
-        swig_param.setDiffusion(self.Diffusion)
-        swig_param.setDrift(self.Drift)
-        swig_param.setSensingRadius(self.R)
+        self.swig_param.setDiffusion(self.Diffusion)
+        self.swig_param.setDrift(self.Drift)
+        self.swig_param.setSensingRadius(self.R)
 
         #print(swig_param)
         #print('setup sim')
 
         # create sim object
-        sim = PickalableSimulator(swig_param)
+        self.sim = PickalableSimulator(self.swig_param)
         #x = sim.getPath()
         #print(x[47], x[48], x[49], x[50], x[51])
 
@@ -554,13 +568,13 @@ class Simulation(object):
         #time.sleep(1)
 
         # run the simulation
-        sim.run()
+        self.sim.run()
 
         # get the number of steps
-        steps = swig_param.getSteps()
+        steps = self.swig_param.getSteps()
 
         # return only the cell path with finaltime
-        return self.FinalTime, np.asarray(sim.getPath()), steps
+        # return self.FinalTime, np.asarray(sim.getPath()), steps
 
 if __name__ == '__main__':
 
