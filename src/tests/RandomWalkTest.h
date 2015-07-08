@@ -5,10 +5,16 @@
 #include "Parameters.h"
 #include "RandomWalk.h"
 #include <memory>
+#include <iterator>
+#include <vector>
+#include <algorithm>
 #include "debug.h"
 
 #include <iterator>
 #include <random>
+
+#include "Event.h"
+#include "EventListener.h"
 
 #include "Terminate.h"
 
@@ -42,7 +48,8 @@ public:
     void setUp(void)
     {
         std::cerr << "setup" << std::endl;
-        p = std::make_shared<Parameters>(5, 0.1, 0.1, 10);
+		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
+		p = std::make_shared<Parameters>(5, 0.1, FinalTimes, 1);
         p->setDiffusion(1.0);
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
@@ -71,6 +78,9 @@ public:
         TS_ASSERT_EQUALS(pVec.size(), 2*Dsz);
         for (auto& vec : pVec)
             TS_ASSERT_DELTA(vec, 0.0, tol);
+
+		auto finaltimes = p->getFinalTimes();
+		TS_ASSERT_EQUALS(finaltimes.size(), 3);
     }
 
     void testComputeBasic(void)
@@ -183,6 +193,30 @@ public:
         for (auto& vec : pVec)
             TS_ASSERT_DELTA(vec, 100.0, tol);
     }
+
+	void testEvent(void)
+	{
+		SyncValue<std::vector<unsigned int>> syncVal;
+		EventListener<std::vector<unsigned int>> EventListener =
+			rw->event.createListener([](std::vector<unsigned int> stateVec)
+				{
+					TS_ASSERT_EQUALS(stateVec.size(), 50);
+					std::cout << "stateVector=(";
+					std::copy(stateVec.begin(), stateVec.end(),
+							std::ostream_iterator<unsigned int>(std::cout, ", "));
+					std::cout << std::endl;
+				});
+
+		auto finaltimes = p->getFinalTimes();
+		TS_ASSERT_EQUALS(finaltimes.size(), 3);
+
+		std::cout << "Running simulation!" << std::endl;
+		try {
+			rw->GeneratePath();
+		} catch (const std::exception& e) {
+			std::cerr << "ERROR: " << e.what() << std::endl;
+		}
+	}
 
 };
 

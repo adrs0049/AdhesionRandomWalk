@@ -11,9 +11,9 @@ const std::string stateVector_impl<T>::delta("Delta");
 template<typename T>
 const std::string stateVector_impl<T>::uniform("Uniform");
 
-int main() 
+int main()
 {
-	Parameters p (20.0, 0.1, 0.1, 1000);
+	Parameters p (20.0, 0.01, 0.1, 1000);
 	Simulator sim (std::make_shared<Parameters>(p));
 
 	sim.run();
