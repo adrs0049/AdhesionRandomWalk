@@ -28,6 +28,23 @@ class Parameters
 		print_info();
 	}
 
+        Parameters(double Dsize_, double StepSize_,
+				std::vector<double>& FinalTimes_, unsigned long _ic_p)
+			: DomainSize(Dsize_), DomainSizeL(0),
+			StepSize(StepSize_), FinalTimes(FinalTimes_),
+			ic_p(_ic_p)
+	{
+		// TODO check if this is correct
+		domainShape.resize(2, 0);
+		domainShape[0] = -DomainSize/2;
+		domainShape[1] = DomainSize/2;
+
+		NumberOfCells = 0;
+
+		update();
+		print_info();
+	}
+
 		Parameters(std::vector<double> _shape, double _stepSize,
 				double _finalTime,
 				unsigned long _ic_p)
@@ -83,7 +100,7 @@ class Parameters
 			ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
 		}
 
-		const std::vector<double> getFinalTimes() const { return FinalTimes; }
+		const std::vector<double>& getFinalTimes() const { return FinalTimes; }
 
 		const double getDiffusion() const { return Diffusion; }
 		const double getDomainSize() const { return DomainSize; }
