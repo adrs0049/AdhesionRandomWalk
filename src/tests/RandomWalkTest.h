@@ -197,6 +197,7 @@ public:
 	void testEvent(void)
 	{
 		SyncValue<std::vector<unsigned int>> syncVal;
+        rw->event.registerSyncValue(syncVal);
 		EventListener<std::vector<unsigned int>> EventListener =
 			rw->event.createListener([](std::vector<unsigned int> stateVec)
 				{
@@ -204,18 +205,20 @@ public:
 					std::cout << "stateVector=(";
 					std::copy(stateVec.begin(), stateVec.end(),
 							std::ostream_iterator<unsigned int>(std::cout, ", "));
-					std::cout << std::endl;
+					std::cout << ")" << std::endl;
 				});
 
 		auto finaltimes = p->getFinalTimes();
 		TS_ASSERT_EQUALS(finaltimes.size(), 3);
-
-		std::cout << "Running simulation!" << std::endl;
+        		std::cout << "Running simulation!" << std::endl;
 		try {
 			rw->GeneratePath();
 		} catch (const std::exception& e) {
 			std::cerr << "ERROR: " << e.what() << std::endl;
 		}
+
+        auto values = syncVal.getValue();
+        TS_ASSERT_EQUALS(values.size(), 50);
 	}
 
 };
