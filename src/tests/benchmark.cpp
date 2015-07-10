@@ -18,8 +18,6 @@ int main()
 
 	sim.run();
 
-	sim.print(1);
-
 	return 0;
 }
 

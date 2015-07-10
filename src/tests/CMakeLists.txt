@@ -1,6 +1,7 @@
 # test cmake
 
 # find cxxtest
+find_package(PythonInterp REQUIRED)
 find_package(CxxTest)
 
 # tests are profiled
