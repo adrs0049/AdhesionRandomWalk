@@ -2,6 +2,8 @@
 //
 //
 
+#pragma once
+
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -17,90 +19,55 @@
 #include "RandomWalk.h"
 #include "Parameters.h"
 #include <memory>
+#include <functional>
 #include "make_unique.h"
 
-#include "Terminate.h"
-//#include "Event.h"
-//#include "EventListener.h"
+#include "EventRegistry.h"
+#include "Event.h"
+#include "EventListener.h"
 
 using namespace boundary;
+
+class RandomWalk;
 
 class Simulator
 {
 
+    using data_type = std::vector<unsigned int>;
+    using event_type = Event<data_type>;
+
 public:
+    Simulator();
+    Simulator(std::shared_ptr<Parameters> p );
 
-    Simulator()
-    : param(), TheRandomWalk()
-    {}
+    //~Simulator() = default;
+    ~Simulator();
 
-    Simulator ( std::shared_ptr<Parameters> p )
-    : param(p), TheRandomWalk ()
-    {
-        init(p);
-        //std::cout << "DL(sim)=" << p.DomainSizeL << std::endl;
-    }
+    Simulator(const Simulator& other) = delete;
+    Simulator(Simulator&& other) = delete;
+    Simulator& operator=(const Simulator& rhs) = delete;
+    Simulator& operator=(Simulator&& rhs) = delete;
 
-    ~Simulator() = default;
+    void init();
+	void registerListener(const std::function<void (std::vector<unsigned int>)>& l);
 
-    void init(std::shared_ptr<Parameters> param)
-    {
-		// DEBUG stuff
-        Error::TerminalCatcher::init();
-
-		//std::cout << "Simulator init" << std::endl;
-		//std::cout << "Parameters are: ";
-		//param->print_info();
-        TheRandomWalk = std::make_unique<RandomWalk>(param);
-    }
+    void print();
+    void run();
+    std::vector<unsigned int>& getPath() const;
+    void notify(EventType&& e);
 
     void update(std::shared_ptr<Parameters> param_)
     {
         param = param_;
-        TheRandomWalk->update(param);
+        init();
     }
 
-    void print() {
-        auto path = TheRandomWalk->getCells();
-        path->print();
-    }
-
-    void print ( int c ) {
-        //cells->print ( c );
-    }
-
-    void run()
-    {
-        try {
-            TheRandomWalk->GeneratePath();
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "ERROR: " << e.what() << std::endl;
-        }
-    }
-
-    std::vector<unsigned int> getPath()
-    {
-        return TheRandomWalk->getPath();
-    }
-    /*
-    std::vector<double> getCOM()
-    {
-        return TheRandomWalk->getCells()->getCellCOM();
-    }
-    */
-    void run ( std::shared_ptr<Parameters> param_ ) {
-        setParameters ( param_ );
-        run();
-    }
-
-    void setParameters( std::shared_ptr<Parameters> param_) {
-        update(param_);
-    }
+    static EventRegistry eventRegistry;
 
 private:
-    //std::unique_ptr<Cells> cells;
+    // does this really have to be here??
+    EventListener<data_type> listener;
+
     std::shared_ptr<Parameters> param;
     std::unique_ptr<RandomWalk> TheRandomWalk;
 };
