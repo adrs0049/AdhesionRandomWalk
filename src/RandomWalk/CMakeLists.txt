@@ -4,6 +4,7 @@ set(Python_ADDITIONAL_VERSIONS 3.3)
 
 find_package(SWIG REQUIRED)
 find_package(PythonLibs REQUIRED)
+find_package(NumPy REQUIRED)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -12,7 +13,7 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}/src/Random
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
-set(RANDOMWALK_SOURCES Simulator.cpp RandomWalk.cpp)
+set(RANDOMWALK_SOURCES Simulator.cpp RandomWalk.cpp EventListener.cpp)
 add_library(RandomWalk SHARED ${RANDOMWALK_SOURCES})
 
 # now build the python interface
@@ -25,6 +26,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${SWIG_USE_FILE}
     ${PYTHON_INCLUDE_PATH}
+    ${NUMPY_INCLUDE_DIRS}
     ${RANDOMWALK_SOURCE_DIR}
     ${RANDOMWALK_SOURCE_DIR}/utils
     ${RANDOMWALK_SOURCE_DIR}/src/Random
