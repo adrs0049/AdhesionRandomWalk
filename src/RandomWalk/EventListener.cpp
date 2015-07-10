@@ -2,7 +2,7 @@
 #include "Event.h"
 
 AbstractEventListener::AbstractEventListener(AbstractEvent *ae, int listenerId)
-    : ae(ae), listenerId(listenerId) {}
+    : listenerId(listenerId), ae(ae) {}
 
 AbstractEventListener::~AbstractEventListener()
 {
@@ -11,6 +11,6 @@ AbstractEventListener::~AbstractEventListener()
 
 void AbstractEventListener::destroyListener()
 {
-    if(ae)
+    if(ae != nullptr)
         ae->removeListener(listenerId);
 }

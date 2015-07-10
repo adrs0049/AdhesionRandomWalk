@@ -15,35 +15,26 @@ class AbstractEvent
 template<typename E>
 class Event : public AbstractEvent
 {
+    using value_type = std::vector<std::pair<std::function<void (E)>, int>>;
+    using size_type = typename value_type::size_type;
+
     public:
         EventListener<E> createListener(std::function<void (E)> listener)
         {
             listeners.emplace_back(listener, EventListenerId);
             EventListenerId++;
-            return EventListener<E>(this, EventListenerId-1);
+            return {this, EventListenerId-1};
         }
 
-        void registerSyncValue(SyncValue<E>& syncValue)
-        {
-            if (syncValue.listenerId > -1)
-                removeListener(syncValue.listenerId);
-
-            std::function<void (E)> updateFunction = [&](E e)
-            {
-                syncValue.value = e;
-            };
-
-            listeners.emplace_back(updateFunction, EventListenerId);
-            syncValue.listenerId = EventListenerId;
-            syncValue.ae = this;
-            EventListenerId++;
-        }
+        ~Event() {}
 
         void notifyListeners(E e)
         {
             for (auto& l : listeners)
                 l.first(e);
         }
+
+        size_type size() const { return listeners.size(); }
 
         bool removeListener(int id)
         {
@@ -61,7 +52,7 @@ class Event : public AbstractEvent
         }
 
     protected:
-        std::vector<std::pair<std::function<void (E)>, int>> listeners;
+        value_type listeners;
         friend class EventListener<E>;
         int EventListenerId = 0;
 };

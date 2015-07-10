@@ -56,6 +56,9 @@ class EventListener : public AbstractEventListener
         friend class Event<E>;
 };
 
+//
+// updateFunction = [&](E e) { syncValue.value = e; };
+//
 template<typename E>
 class SyncValue : public AbstractEventListener
 {
