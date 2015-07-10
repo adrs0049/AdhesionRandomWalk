@@ -1,9 +1,9 @@
 /*
  * concepts.h
- * 
- * Andreas Buttenschoen 
+ *
+ * Andreas Buttenschoen
  * 2014
- * 
+ *
  */
 
 #ifndef CONCEPTS_H
@@ -51,9 +51,15 @@ constexpr bool Different()
 }
 
 template<typename T>
-constexpr bool Scalar() 
+constexpr bool Scalar()
 {
 	return std::is_scalar<T>::value;
+}
+
+template<typename T>
+constexpr bool Pointer()
+{
+	return std::is_pointer<T>::value;
 }
 
 template<typename T>
@@ -84,7 +90,7 @@ private:
 	static substitution_failure check(...);			 // doesn't have value_type
 public:
 	using type = decltype(check(std::declval<T>()));
-}; 
+};
 
 template<typename T>
 struct has_value_type : substitution_succeeded<typename get_value_type<T>::type>
@@ -109,7 +115,7 @@ public:
 };
 
 template<typename T>
-struct has_extent : substitution_succeeded<typename get_extent_result<T>::type> 
+struct has_extent : substitution_succeeded<typename get_extent_result<T>::type>
 {};
 
 template<typename T>
@@ -119,7 +125,7 @@ constexpr bool Has_extent()
 }
 
 template<typename E>
-constexpr auto to_integral(E e) -> typename std::underlying_type<E>::type 
+constexpr auto to_integral(E e) -> typename std::underlying_type<E>::type
 {
 	return static_cast<typename std::underlying_type<E>::type>(e);
 }
