@@ -138,7 +138,7 @@ public:
         init(initial_condition);
     }
 
-	storage_type getStateVector() { return m_stateVector; }
+	storage_type& getStateVector() { return m_stateVector; }
 
  	bool checkTotal(void)
 	{
