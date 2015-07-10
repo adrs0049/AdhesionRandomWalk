@@ -10,8 +10,11 @@
 #include "Parameters.h"
 #include <memory>
 #include "make_unique.h"
-
 #include "Event.h"
+
+class Simulator;
+
+#include "Simulator.h"
 
 class RandomWalk
 {
@@ -21,24 +24,26 @@ class RandomWalk
 	using event_type = Event<state_vector_type>;
 
 public:
-	RandomWalk()
-		: state(nullptr), param(nullptr)
-	{}
+	RandomWalk();
+	RandomWalk(std::shared_ptr<Parameters> _param);
+	~RandomWalk();
 
-	RandomWalk( std::shared_ptr<Parameters> _param )
-		: state(std::make_shared<state_vector>(_param, "Uniform")),
-		param(_param),
-		rand ( 0.0, 1.0 )
-	{}
+    RandomWalk(const Simulator& other) = delete;
+    RandomWalk(RandomWalk&& other) = delete;
+    RandomWalk& operator=(const Simulator& rhs) = delete;
+    RandomWalk& operator=(RandomWalk&& rhs) = delete;
 
-	~RandomWalk() {}
+    void setSimulator(Simulator* sim_)
+    {
+        sim = sim_;
+    }
 
 	void update(std::shared_ptr<Parameters> _param)
 	{
 		setup();
 	}
 
-	state_vector_type getPath() const
+	state_vector_type& getPath() const
 	{
 		return state->getStateVector();
 	}
@@ -58,13 +63,6 @@ public:
 	void setup();
 	void print_info();
 	void computeAllPropensities();
-
-	void notify()
-	{
-		event.notifyListeners(getPath());
-	}
-
-	event_type event;
 
 	std::array<double, 2> getPropensity(long coordinate);
 	std::vector<double> finalTimes;
@@ -106,6 +104,7 @@ public:
 	unsigned long NumberOfUnsuccessfulFlips;
 	unsigned int Multiplier = 1;
 	UniformRandomNumberGenerator rand;
+    Simulator* sim;
 };
 
 #endif

@@ -10,6 +10,19 @@
 #include <Loop.h>
 #include <chronos.h>
 
+template<typename T>
+const std::string stateVector_impl<T>::delta("Delta");
+template<typename T>
+const std::string stateVector_impl<T>::uniform("Uniform");
+
+RandomWalk::~RandomWalk() {}
+RandomWalk::RandomWalk() {}
+RandomWalk::RandomWalk(std::shared_ptr<Parameters> _param)
+    : state(std::make_shared<state_vector>(_param, "Uniform")),
+    param(_param),
+    rand(0.0, 1.0)
+{}
+
 void RandomWalk::GeneratePath()
 {
 	try {
@@ -51,7 +64,7 @@ void RandomWalk::GeneratePath()
 			param->setSteps(steps);
 
 			// TODO signal somehow that data should be written
-			notify();
+		    sim->notify(EventType::new_data);
 		}
 
 		//std::cout << std::endl;
