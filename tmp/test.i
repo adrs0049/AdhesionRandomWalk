@@ -52,4 +52,10 @@ public:
     {
         register_handler(e, PyCallback(callback));
     }
+
+    #include <functional>
+    void register_handler(PyObject * callback)
+    {   
+        auto py_callback = PyCallback(callback);
+    }
 %}
