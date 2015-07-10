@@ -1,5 +1,4 @@
-#ifndef TERMINATE_H
-#define TERMINATE_H
+#pragma once
 
 #ifndef _GNU_SOURCE
 #   define _GNU_SOURCE
@@ -209,5 +208,3 @@ namespace Error {
     extern "C" void terminate_handler_impl(void) { signal_object->terminateHandler(); }
 
 } // end namespace
-
-#endif
