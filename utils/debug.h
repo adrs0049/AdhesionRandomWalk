@@ -4,6 +4,7 @@
 #ifdef DEBUG_BUILD
 
 #include <iostream>
+#include "dynamic_assert.h"
 
 #define DEBUG(x) do { std::cerr << "File:"  <<  __FILE__ << ":" << __LINE__ << ": " << x; } while (0)
 #define DEBUG2(x) do { std::cerr << "File:" << __FILE__ << ":" << __LINE__ << ": " << #x << "=" << x << std::endl; } while (0)
@@ -12,17 +13,29 @@
 
 #define DEBUG3(x, ...) fprintf(stderr, "[ERROR] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__ )
 
-#include <cassert>
+//#include <cassert>
 
+
+#define ASSERT(condition, message) \
+    do { \
+        std::ostringstream msg; \
+        msg << message; \
+        Assert::dynamic((condition), Assert::compose(#condition, __FILE__, \
+                __LINE__, msg.str())); \
+        std::abort(); \
+    } while (false)
+
+
+/*
 #define ASSERT(condition, message) \
     do { \
         if ( ! (condition) ) { \
             std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
                       << " line " << __LINE__ << ": " << message << std::endl; \
-            std::exit(EXIT_FAILURE); \
-        } \
+			std::abort(); \
+		} \
     } while (false)
-
+*/
 #define PRINT_FARGS std::printf("File:%s:%d: %s\n",__FILE__,__LINE__, __PRETTY_FUNCTION__);
 
 #else
@@ -34,4 +47,4 @@
 #define PRINT_FARGS
 #endif
 
-#endif 
+#endif
