@@ -311,7 +311,7 @@ class Player(object):
                     break
 
                 if fb["type"] == "error":
-                    print("ERROR in " + fb["process"] + ": "\
+                    print("ERROR in " + str(fb["process"]) + ": "\
                        + fb["message"] + "\n" )
                     p.terminate()
                     for child in mp.active_children():
@@ -319,7 +319,7 @@ class Player(object):
                 else:
                     print(datetime.datetime.fromtimestamp(fb["timestamp"]).\
                           strftime('%Y-%m-%d %H:%M:%S') + " " + \
-                          fb["process"] + ": " + fb["message"])
+                          str(fb["process"]) + ": " + fb["message"])
 
         except KeyboardInterrupt:
             print('keyboard interrupt')
@@ -339,7 +339,6 @@ class Player(object):
         print('Preparing simulation...')
         # NoPaths, number of paths to generate for each config
         NoPaths = 10
-        ftimes = [t for t in FinalTimes for _ in range(NoPaths) ]
 
         # create sim object in database
         self.prepareSimulation()
@@ -371,14 +370,17 @@ class Player(object):
         for sim in simulations:
             sim.start()
 
+        print('Starting writers...')
         for writer in writers:
             writer.start()
 
         # enqueue jobs
-        for t in ftimes:
-            tasks.put(Simulation(NoPlayers, t, self.DomainN, \
+        print('Enqueuing simulations')
+        for i in range(NoPaths):
+            tasks.put(Simulation(NoPlayers, FinalTimes, self.DomainN, \
                                  self.Diffusion, self.Drift, self.R))
 
+        print('Appending poison pill...')
         # send poison pill to all simulations
         for sim in simulations:
             tasks.put(None)
@@ -448,7 +450,6 @@ class storePath(SafeProcess):
                 % (self.runId, self.version)
 
     def saferun(self):
-
         proc_name = self.name
         while True:
             next_result = self.q.get()
@@ -474,6 +475,7 @@ class Consumer(SafeProcess):
     def saferun(self):
         proc_name = self.name
         while True:
+            print('next task')
             next_task = self.task_queue.get()
             if next_task is None:
                 print('%s: Exiting' % proc_name)
@@ -506,34 +508,23 @@ class PickalableSimulator(s.Simulator, PickalableSWIG):
 
 class Simulation(object):
 
-    def __init__(self, NoPlayers, FinalTime, DomainN, Diffusion, Drift, R):
+    def __init__(self, NoPlayers, FinalTimes, DomainN, Diffusion, Drift, R):
 
         assert (NoPlayers>0), "Number of players has to be larger 0"
-        assert (FinalTime>0), "Number of steps has to be larger 0"
-        if FinalTime>1E3: print ('WARNING number of steps is very large!!')
+        assert (np.max(FinalTimes)>0), "Number of steps has to be larger 0"
+        if np.max(FinalTimes)>1E3: print ('WARNING number of steps is very large!!')
 
         self.NoPlayers = NoPlayers
-        self.FinalTime = FinalTime
+        self.FinalTimes = FinalTimes
         self.DomainN = DomainN
         self.Diffusion = Diffusion
         self.Drift = Drift
         self.R = R
-
-        self.swig_param = None
         self.result_queue = None
-        self.sim = None
 
     def __str__(self):
         return "Executing Simulation up to '%f' with '%d' players." \
-                % (self.FinalTime, self.NoPlayers)
-
-    def storePath(self):
-        # get steps + path
-        steps = self.swig_param.getSteps()
-        FinalTime = self.swig_param
-        path = np.asarray(self.sim.getPath())
-
-        self.result_queue.put(tuple(FinalTime, path, steps, ))
+                % (np.max(self.FinalTimes), self.NoPlayers)
 
     def __call__(self, result_queue):
 
@@ -546,40 +537,43 @@ class Simulation(object):
         # FIXME
         domainShape = DVector([-5.0, 5.0])
 
-        # get workable swig parameters
-        self.swig_param = PickalableParameters(domainShape, stepSize,
-                                          self.FinalTime, self.NoPlayers)
+        if isinstance(self.FinalTimes, np.ndarray):
+            self.FinalTimes = self.FinalTimes.tolist()
 
-        self.swig_param.setDiffusion(self.Diffusion)
-        self.swig_param.setDrift(self.Drift)
-        self.swig_param.setSensingRadius(self.R)
+        swig_param = PickalableParameters(domainShape, stepSize,
+                                          DVector(self.FinalTimes),
+                                          self.NoPlayers)
 
-        #print(swig_param)
-        #print('setup sim')
+        swig_param.setDiffusion(self.Diffusion)
+        swig_param.setDrift(self.Drift)
+        swig_param.setSensingRadius(self.R)
 
+        print('create simulator')
         # create sim object
-        self.sim = PickalableSimulator(self.swig_param)
-        #x = sim.getPath()
-        #print(x[47], x[48], x[49], x[50], x[51])
+        sim = PickalableSimulator(swig_param)
 
-        #self.sim = s.Simulator(self.swig_param)
-        #print('print info')
-        #sim._print()
-        #time.sleep(1)
+        # the callback function
+        def storePath(*args, **kwargs):
+            # get steps + path
+            data = kwargs
+            steps = data["steps"]
+            FinalTime = np.around(data["time"], decimals=2)
+            path = np.asarray(data["states"])
+
+            self.result_queue.put((FinalTime, path, steps, ))
+
+        # register callback function
+        sim.registerPyListener(storePath)
 
         # run the simulation
-        self.sim.run()
+        sim.run()
 
-        # get the number of steps
-        steps = self.swig_param.getSteps()
-
-        # return only the cell path with finaltime
-        # return self.FinalTime, np.asarray(sim.getPath()), steps
+        return
 
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=20,
+    param = dict(DomainSize=10, DomainN=10,
                  diffusion_coeff=1.0, drift_coeff=20,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
                  u0=0.8, bcs='pp', ic_type=1, ic_p=0.1)
