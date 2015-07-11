@@ -12,15 +12,10 @@
 
 #include "debug.h"
 
-template<typename T>
-const std::string stateVector_impl<T>::delta("Delta");
-template<typename T>
-const std::string stateVector_impl<T>::uniform("Uniform");
-
 RandomWalk::~RandomWalk() {}
 RandomWalk::RandomWalk() {}
 RandomWalk::RandomWalk(std::shared_ptr<Parameters> _param)
-    : state(std::make_shared<state_vector>(_param, "Uniform")),
+    : state(std::make_shared<state_vector>(_param)),
     param(_param),
     rand(0.0, 1.0)
 {}
@@ -230,8 +225,9 @@ void  RandomWalk::updatePropensity(long coordinate)
 	}
 }
 
-double  RandomWalk::getPropensity(int coordinate, int flag)
+double RandomWalk::getPropensity(int coordinate, int flag) const
 {
+	/*
 	ASSERT(coordinate >= 0 && (unsigned)coordinate < param->getDomainSizeL(), \
 			"Lattice coordinate= " << coordinate << " is invalid. Valid \
 			lattice coordinate range is [" << 0 << ", " << \
@@ -243,6 +239,7 @@ double  RandomWalk::getPropensity(int coordinate, int flag)
 			<< " is invalid. The valid range is [" << 0 << ", "
 			<< propensities.size() << "). Coordinate=" << coordinate
 			<< " flag=" << flag << ".");
+	*/
 	/*
 	   std::cout << "propensity ( " << coordinate << " , " << flag << " ):"
 	   << propensities.at(flag * propensity_stride + coordinate) <<
@@ -252,16 +249,17 @@ double  RandomWalk::getPropensity(int coordinate, int flag)
 
 	// TODO save the complete propensity in a vector
 	// so we dont have to recompute it each
-	ASSERT(propensities.at(flag * propensity_stride + coordinate)>=0.0,
-			"Propensity at index " << flag * propensity_stride + coordinate <<
-			" is negative. (" << propensities.at(flag * propensity_stride + coordinate) \
-			<< ") Propensities have to be non-negative");
+	//ASSERT(propensities.at(flag * propensity_stride + coordinate)>=0.0,
+	//		"Propensity at index " << flag * propensity_stride + coordinate <<
+	//		" is negative. (" << propensities.at(flag * propensity_stride + coordinate) \
+	//		<< ") Propensities have to be non-negative");
 
 	// TODO check that this offset is correct
-	return propensities.at(flag * propensity_stride + coordinate);
+	return propensities[flag * propensity_stride + coordinate];
+	//return propensities.at(flag * propensity_stride + coordinate);
 }
 
-double  RandomWalk::getPropensitySum()
+double RandomWalk::getPropensitySum() const
 {
 	return std::accumulate(propensities.begin(), propensities.end(), 0.0);
 }
@@ -278,6 +276,11 @@ void RandomWalk::computePropensity( long coordinate )
 	//std::cout << "right=" << (symmetric + asymmetric);
 	//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
 
+	// TODO raise an exception!! instead
+	assert((symmetric+asymmetric)>=0.0);
+	assert((symmetric-asymmetric)>=0.0);
+
+	/*
 	ASSERT((symmetric+asymmetric)>=0.0, "tmp =" << symmetric+asymmetric << " "\
 			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
 			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
@@ -289,6 +292,7 @@ void RandomWalk::computePropensity( long coordinate )
 			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
 			" drift=" << param->getDriftSim() << \
 			" step=" << param->getDiscreteX());
+	*/
 
 	propensities.at(coordinate) = param->getLambda() *
 		state->getDensity(coordinate) * (symmetric + asymmetric);

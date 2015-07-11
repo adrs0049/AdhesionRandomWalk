@@ -73,8 +73,8 @@ public:
 
 	// TODO write a test to test if this really works
 	void updatePropensity(long coordinate);
-	double getPropensity(int coordinate, int flag);
-	double getPropensitySum();
+	double getPropensity(int coordinate, int flag) const;
+	double getPropensitySum() const;
 	void computePropensity( long coordinate );
 
 	// TODO think of something better for these functions
