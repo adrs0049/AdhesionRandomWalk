@@ -10,6 +10,8 @@
 #include <Loop.h>
 #include <chronos.h>
 
+#include "debug.h"
+
 template<typename T>
 const std::string stateVector_impl<T>::delta("Delta");
 template<typename T>
@@ -62,6 +64,7 @@ void RandomWalk::GeneratePath()
 			} while (time < finalTime );
 
 			param->setSteps(steps);
+			param->setCurrentTime(time);
 
 			// TODO signal somehow that data should be written
 		    sim->notify(EventType::new_data);
