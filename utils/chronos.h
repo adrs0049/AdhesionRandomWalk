@@ -66,6 +66,13 @@ public:
 
 	~Chronos()
 	{
+		compute();
+	}
+
+private:
+
+	void compute()
+	{
 		auto end = high_resolution_clock::now();
 
         auto dhours = duration_cast<hours>(end-start);
@@ -111,7 +118,6 @@ public:
 		os << ostr.str();
 	}
 
-private:
 	high_resolution_clock::time_point start;
 	std::ostream & os;
 };
