@@ -315,6 +315,8 @@ class RandomWalkDB(object):
 
         time_pts = [float(x[0]) for x in q.all()]
 
+        assert len(time_pts)>0, "More than one time point is required"
+
         q = session.query(PathMetaData).\
                 filter(PathMetaData.simulation_id==simId)
 
@@ -322,7 +324,6 @@ class RandomWalkDB(object):
         ddf = dict()
 
         for time in time_pts:
-
             # dataframe for return
             rdf = pd.DataFrame()
 
