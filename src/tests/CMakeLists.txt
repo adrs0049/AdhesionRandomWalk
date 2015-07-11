@@ -5,10 +5,10 @@ find_package(PythonInterp REQUIRED)
 find_package(CxxTest)
 
 # tests are profiled
-if (CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pg")
-    set(CMAKE_EXE_LINKER_FLAGS "-pg")
-endif(CMAKE_COMPILER_IS_GNUCC)
+#if (CMAKE_COMPILER_IS_GNUCC)
+#    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pg")
+#    set(CMAKE_EXE_LINKER_FLAGS "-pg")
+#endif(CMAKE_COMPILER_IS_GNUCC)
 
 include_directories(
     ${RANDOMWALK_SOURCE_DIR}

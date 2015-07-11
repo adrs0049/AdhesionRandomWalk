@@ -6,21 +6,12 @@
 
 #include "Terminate.h"
 
-const std::string BoundaryFactory::no_flux("NoFlux");
-const std::string BoundaryFactory::periodic("Periodic");
-
-template<typename T>
-const std::string stateVector_impl<T>::delta("Delta");
-
-template<typename T>
-const std::string stateVector_impl<T>::uniform("Uniform");
-
 int main()
 {
     Error::TerminalCatcher::init();
 
     auto p = std::make_shared<Parameters>(5, 0.1, 0.1, 10.0);
-    auto c = std::make_shared<stateVector<unsigned int>>(p, "Uniform");
+    auto c = std::make_shared<stateVector<unsigned int>>(p);
 
     c->print();
 

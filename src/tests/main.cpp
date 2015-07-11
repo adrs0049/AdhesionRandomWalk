@@ -3,14 +3,6 @@
 #include "Simulator.h"
 #include <memory>
 
-const std::string BoundaryFactory::no_flux("NoFlux");
-const std::string BoundaryFactory::periodic("Periodic");
-
-template<typename T>
-const std::string stateVector_impl<T>::delta("Delta");
-template<typename T>
-const std::string stateVector_impl<T>::uniform("Uniform");
-
 int main()
 {
 

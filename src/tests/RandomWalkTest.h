@@ -18,15 +18,6 @@
 
 #include "Terminate.h"
 
-const std::string BoundaryFactory::no_flux("NoFlux");
-const std::string BoundaryFactory::periodic("Periodic");
-
-template<typename T>
-const std::string stateVector_impl<T>::delta("Delta");
-
-template<typename T>
-const std::string stateVector_impl<T>::uniform("Uniform");
-
 void printVec(std::vector<double> pVec)
 {
     std::cout << "Propensity size = " << pVec.size() << std::endl;
