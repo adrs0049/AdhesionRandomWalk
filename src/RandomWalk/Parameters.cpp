@@ -44,7 +44,7 @@ Parameters::Parameters(std::vector<double> _shape, double _stepSize,
 : domainShape(_shape), StepSize(_stepSize), FinalTimes(1, _finalTime),
     ic_p(_ic_p)
 {
-    ASSERT(_shape.size()==2, "shape size is invalid!");
+    ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
 
     DomainSize = domainShape[1] - domainShape[0];
 
@@ -58,10 +58,11 @@ Parameters::Parameters(std::vector<double> _shape, double _stepSize,
 : domainShape(_shape), StepSize(_stepSize),
     FinalTimes(FinalTimes_), ic_p(_ic_p)
 {
-    ASSERT(_shape.size()==2, "shape size is invalid!");
+    ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
 
     DomainSize = domainShape[1] - domainShape[0];
 
+	std::cerr << "update" << std::endl;
     update();
     print_info();
 }
@@ -98,10 +99,17 @@ void Parameters::Check()
     ASSERT(FinalTimes.size()>0, "FinalTimes are not set");
     ASSERT(set, "Parameters are not initalized.");
     ASSERT(domainShape.size()==2, "Domain shape has invalid size!");
+	ASSERT(DomainSize>0.0, "DomainSize has to be larger than zero!");
+	ASSERT(DomainSizeL>0, "DomainSizeL has to be larger than zero!");
+    ASSERT(StepSize>0.0, "StepSize has to be larger than zero!");
+	ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
+	ASSERT(SensingRadiusL < DomainSizeL/2, "SensingRadiusL is too large!");
 
-    ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
+	WARNING(SensingRadiusL==0, "SensingRadiusL is zero!");
+	WARNING(SensingRadius==0.0, "SensingRadius is zero!");
 
     ASSERT(ic_p!=0, "Initial number of cells can't be zero!");
     ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
     ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
+	WARNING(Diffusion==0.0, "The diffusion coefficient is zero!");
 }
