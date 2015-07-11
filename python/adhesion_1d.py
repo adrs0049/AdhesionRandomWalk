@@ -14,27 +14,8 @@ from simulator import DVector
 from diffusion import *
 from heat import *
 from randomWalk_db import *
-
-def log_error(dest_q, message, name):
-    dest_q.put(dict(type='error',
-                    name=name,
-                    timestamp=datetime.datetime.now(),
-                    process=os.getpid(),
-                    message=message))
-
-def log_info(dest_q, message, name):
-    dest_q.put(dict(type='info',
-                    name=name,
-                    timestamp=datetime.datetime.now(),
-                    process=os.getpid(),
-                    message=message))
-
-def log_debug(dest_q, message, name):
-    dest_q.put(dict(type='debug',
-                    name=name,
-                    timestamp=datetime.datetime.now(),
-                    process=os.getpid(),
-                    message=message))
+from swig import *
+from log import *
 
 def timeit(method):
 
@@ -58,6 +39,7 @@ class Player(object):
 
         # parameters are a dict. First check if it exists in database
         self.param = self.db.param_create_if_not_exist(parameters)
+        self.dparam = parameters
 
         # store id to the most recent randomwalk
         self.runId = -1
@@ -92,7 +74,7 @@ class Player(object):
     def getVersion(self): return '0.1'
     def setSimId(self, simId):
         try:
-            db.getSimulationFromId(simId)
+            self.db.getSimulationFromId(simId)
         except InvalidEntry as e:
             print('Simulation id %d does not exist in database!' % simId)
         except:
@@ -103,14 +85,16 @@ class Player(object):
     # DEBUG STUFF
     def getParameters(self): return self.param
     def getDB(self): return self.db
+    def getNewConnection(self): return RandomWalkDB()
+    def setNewDB(self): self.db = self.getNewConnection()
 
     def getCellPathFromDB(self, simId=None):
-        return db.returnPathsForSim(simId)
+        return self.db.returnPathsForSim(simId)
 
-    def doHistogram(self, simId=None, bar_width=None):
+    def doHistogram(self, simId=None, bar_width=None, Compare=False):
         if not bar_width: bar_width = self.getStepSize()
 
-        sim = db.getSimulationFromId(simId)
+        sim = self.db.getSimulationFromId(simId)
         ddf = self.getCellPathFromDB(simId)
         self.param = sim.Parameters
 
@@ -143,61 +127,62 @@ class Player(object):
             print('shape bins=', np.shape(bins))
             print('shape x=', np.shape(x))
 
-            # get diffusion soln
-            xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
+            if Compare:
 
-            # try yet another diffusion solver
-            N = self.getDomainSize() * self.param.DomainN
+                # get diffusion soln
+                xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
 
-            if N<1000:
-                print('Using a larger N')
-                N = 2**10
+                # try yet another diffusion solver
+                N = self.getDomainSize() * self.param.DomainN
 
-            x2 = np.arange(-self.getDomainLeftBoundary(),
-                           self.getDomainRightBoundary(),
-                           self.getDomainSize()/N)
-            assert len(x2)==N, ""
-            u_ic = np.zeros(N)
+                if N<2000:
+                    print('Using a larger N')
+                    N = 2**12
 
-            print(len(bins))
+                x2 = np.arange(-self.getDomainLeftBoundary(),
+                               self.getDomainRightBoundary(),
+                               self.getDomainSize()/N)
+                assert len(x2)==N, ""
+                u_ic = np.zeros(N)
 
-            # index is zero based -> midpoint one lower
-            mid = int(N/2)-1
+                print(len(bins))
 
-            print('start=', mid-1, ' end=', mid+2, ' N=',N)
+                # index is zero based -> midpoint one lower
+                mid = int(N/2)-1
 
-            #u_ic[mid-1:mid+2]=0.33
-            u_ic = vg(x2)
+                print('start=', mid-1, ' end=', mid+2, ' N=',N)
 
-            assert len(u_ic)==N, ""
+                #u_ic[mid-1:mid+2]=0.33
+                u_ic = vg(x2, 1.0 / self.param.DomainN)
+                print('u_ic total=', np.sum(u_ic))
+                assert len(u_ic)==N, ""
 
-            time_step = key * self.getDiffusionCoeff()
-            solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSize())
-            solver.time_step()
-            u2 = solver.get_x()
+                time_step = key * self.getDiffusionCoeff()
+                solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSize())
+                solver.time_step()
+                u2 = solver.get_x()
 
-            #return x2, u2
+            if Compare:
+                y_max = max(np.max(x), np.max(u2))
+            else:
+                y_max = np.max(x)
 
-            # plotting
-            #plt.bar(bins, x, width=bar_width)
+            print('y_max=', y_max, ' u2=', np.max(u2))
+            plt.ylim(0, 1.1 * y_max)
+
             plt.plot(xd, x, color='r')
-            #plt.plot(xd, u, color='k')
 
-            print('x2=', np.shape(x2), ' u2=', np.shape(u2))
-            #plt.plot(x2, u2, color='g')
+            if Compare:
+                print('x2=', np.shape(x2), ' u2=', np.shape(u2))
+                plt.plot(x2, u2, color='g')
+                #plt.plot(x2, u_ic, color='k')
+                print('u2 total=', np.sum(u2))
 
-            # plot error
-            #error = u - x
-            #plt.plot(xd, error, color='r')
-
-            print('shape u=', np.shape(u))
-            print('shape x=', np.shape(x))
-            #self.print_error(u, x)
+            print('total sim=', np.sum(x))
 
             plt.title('Results of space-jump process with %d players at %f'\
                       % (total, key))
 
-            plt.ylim(0, 0.05)
             plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
             plt.show()
@@ -292,7 +277,7 @@ class Player(object):
         print('The L2 error=', self.norm2(x, y))
 
     def checkParametersInDB(self):
-        db.param_create_if_not_exist(self.param)
+        self.db.param_create_if_not_exist(self.param)
 
     @timeit
     def runSimulations(self, FinalTimes, NoPlayers=500):
@@ -377,8 +362,7 @@ class Player(object):
         # enqueue jobs
         print('Enqueuing simulations')
         for i in range(NoPaths):
-            tasks.put(Simulation(NoPlayers, FinalTimes, self.DomainN, \
-                                 self.Diffusion, self.Drift, self.R))
+            tasks.put(Simulation(NoPlayers, FinalTimes, self.dparam))
 
         print('Appending poison pill...')
         # send poison pill to all simulations
@@ -475,7 +459,6 @@ class Consumer(SafeProcess):
     def saferun(self):
         proc_name = self.name
         while True:
-            print('next task')
             next_task = self.task_queue.get()
             if next_task is None:
                 print('%s: Exiting' % proc_name)
@@ -486,29 +469,9 @@ class Consumer(SafeProcess):
             self.task_queue.task_done()
         return
 
-# move somewhere else
-class PickalableSWIG:
-    def __setstate__(self, state):
-        self.__init__(*state['args'])
-
-    def __getstate__(self):
-        return {'args' : self.args}
-
-class PickalableParameters(s.Parameters, PickalableSWIG):
-
-    def __init__(self, *args):
-        self.args = args
-        s.Parameters.__init__(self, *args)
-
-class PickalableSimulator(s.Simulator, PickalableSWIG):
-
-    def __init__(self, *args):
-        self.args = args
-        s.Simulator.__init__(self, *args)
-
 class Simulation(object):
 
-    def __init__(self, NoPlayers, FinalTimes, DomainN, Diffusion, Drift, R):
+    def __init__(self, NoPlayers, FinalTimes, parameters):
 
         assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (np.max(FinalTimes)>0), "Number of steps has to be larger 0"
@@ -516,10 +479,7 @@ class Simulation(object):
 
         self.NoPlayers = NoPlayers
         self.FinalTimes = FinalTimes
-        self.DomainN = DomainN
-        self.Diffusion = Diffusion
-        self.Drift = Drift
-        self.R = R
+        self.parameters = parameters
         self.result_queue = None
 
     def __str__(self):
@@ -532,25 +492,34 @@ class Simulation(object):
         self.result_queue = result_queue
 
         # domainN stores points per unit length
-        stepSize = 1.0 / self.DomainN
+        stepSize = 1.0 / self.parameters["DomainN"]
 
         # FIXME
-        domainShape = DVector([-5.0, 5.0])
+        domainSizeHalf = int(self.parameters["DomainSize"]/2)
+        domainShape = DVector([-domainSizeHalf, domainSizeHalf])
 
         if isinstance(self.FinalTimes, np.ndarray):
             self.FinalTimes = self.FinalTimes.tolist()
 
-        swig_param = PickalableParameters(domainShape, stepSize,
+        try:
+
+            swig_param = PickalableParameters(domainShape, stepSize,
                                           DVector(self.FinalTimes),
                                           self.NoPlayers)
 
-        swig_param.setDiffusion(self.Diffusion)
-        swig_param.setDrift(self.Drift)
-        swig_param.setSensingRadius(self.R)
+            swig_param.setDiffusion(self.parameters["diffusion_coeff"])
+            swig_param.setDrift(self.parameters["drift_coeff"])
+            swig_param.setSensingRadius(self.parameters["R"])
 
-        print('create simulator')
-        # create sim object
-        sim = PickalableSimulator(swig_param)
+            # always use uniform ic here
+            swig_param.setIcType(self.parameters["ic_type"])
+
+            print('create simulator')
+            # create sim object
+            sim = PickalableSimulator(swig_param)
+
+        except:
+            raise
 
         # the callback function
         def storePath(*args, **kwargs):
@@ -576,7 +545,7 @@ if __name__ == '__main__':
     param = dict(DomainSize=10, DomainN=10,
                  diffusion_coeff=1.0, drift_coeff=20,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=1, ic_p=0.1)
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1)
 
     player = Player(param)
     db=player.getDB()
