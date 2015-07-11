@@ -5,7 +5,6 @@
 
 #include "Boundary.h"
 #include "PeriodicBoundary.h"
-#include <cassert>
 
 namespace boundary {
 
@@ -21,10 +20,10 @@ public:
 		if (boundary == periodic)
 			return new PeriodicBoundary();
 		else
-			assert(0);
-	}
-
-
+            std::abort();
+            // TODO EXCEPTION
+	    return nullptr;
+    }
 };
 
 
