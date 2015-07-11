@@ -5,30 +5,28 @@
 
 #include "Boundary.h"
 #include "PeriodicBoundary.h"
+#include "exceptions.h"
 
 namespace boundary {
 
 class BoundaryFactory {
 
 public:
-	static const std::string no_flux;
-	static const std::string periodic;
-	//static const std::string dirichlet;
-
-	static Boundary * createBoundary(std::string boundary)
+	static Boundary * createBoundary(const BOUNDARY_TYPE& boundary)
 	{
-		if (boundary == periodic)
-			return new PeriodicBoundary();
-		else
-            std::abort();
-            // TODO EXCEPTION
+        switch (boundary)
+        {
+            case BOUNDARY_TYPE::PERIODIC:
+                return new PeriodicBoundary();
+                break;
+            case BOUNDARY_TYPE::DIRICHLET:
+            case BOUNDARY_TYPE::NEUMANN:
+            default:
+                throw NotImplementedException {""};
+        };
 	    return nullptr;
     }
 };
-
-
-//const std::string BoundaryFactory::no_flux("NoFlux");
-//const std::string BoundaryFactory::periodic("Periodic");
 
 } // end namespace
 

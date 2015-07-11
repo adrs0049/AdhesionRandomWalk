@@ -3,6 +3,13 @@
 
 namespace boundary {
 
+enum class BOUNDARY_TYPE : int
+{
+	PERIODIC,
+	NEUMANN,
+	DIRICHLET,
+};
+
 class Boundary {
 
 public:
