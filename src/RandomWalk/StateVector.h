@@ -12,6 +12,8 @@
 #include <memory>
 
 #include "debug.h"
+#include "vector.h"
+#include "exceptions.h"
 
 using namespace boundary;
 
@@ -22,16 +24,14 @@ private:
 	using BoundaryPtr = Boundary*;
 	using ParameterPtr = std::shared_ptr<Parameters>;
 public:
-	using storage_type = typename std::vector<T>;
+	//using storage_type = typename std::vector<T>;
+	using storage_type = AligndVector<T>;
 	using size_type = typename storage_type::size_type;
 
 protected:
 	storage_type m_stateVector;
 
 private:
-	static const std::string delta;
-    static const std::string uniform;
-
 	BoundaryPtr b;
     ParameterPtr p;
 
@@ -41,32 +41,31 @@ private:
 
 	bool init_flag = false;
 
-    void reinit(std::string initial_condition)
+    void reinit()
     {
             tearDown();
-            init(initial_condition);
+            init();
 			update();
     }
 
-    void init() { init("Delta"); }
-
-    void init(std::string initial_condition)
+    void init()
     {
-		// FIXME allow setting of this
-        b = BoundaryFactory::createBoundary ( BoundaryFactory::periodic );
+        b = BoundaryFactory::createBoundary ( p->getBoundaryType() );
         init_flag = true; // FIXME am i still useful?
 
-        if (initial_condition == uniform)
-            init_uniform();
-        else if (initial_condition == delta)
-            init_delta();
-        else {
-            std::cerr << "Unknown initial condition: "
-                        << initial_condition << std::endl;
-            std::cerr << "Aborting!" << std::endl;
-			// FIXME EXCEPTION
-			exit(1);
-        }
+		auto& ic_type = p->getIcType();
+
+		switch (ic_type)
+		{
+			case IC_TYPE::UNIFORM:
+				init_uniform();
+				break;
+			case IC_TYPE::DELTA:
+				init_delta();
+				break;
+			default:
+				throw NotImplementedException{""};
+		}
 
 		update();
     }
@@ -94,13 +93,12 @@ private:
 
     void init_delta()
     {
-        //std::cout << "init delta at location " << p->getDomainSizeL()/2
-        //  << " with " << p->getNumberOfCells() << " number of cells"
-        //  << std::endl;
-
-        //m_stateVector.resize ( p->getDomainSizeL(), 0 );
-
 		auto mid = m_stateVector.size()/2;
+
+        std::cout << "init delta at locations ("
+			<< mid-2 << ", " << mid-1 << ", " << mid << ")."
+			<< " Each with " << p->getICp() << " number of cells."
+			<< std::endl;
 
 		// index is zero based
 		m_stateVector[mid-2] = p->getICp();
@@ -108,10 +106,6 @@ private:
         m_stateVector[mid]= p->getICp();
 
 		p->setNumberOfCells(getTotalNumberOfCells());
-
-        //std::cout << "m_stateVector[ " << m_stateVector.size()/2
-        //          << " ] =" << m_stateVector[m_stateVector.size()/2]
-        //          << std::endl;
     }
 
 	void update()
@@ -129,13 +123,6 @@ public:
 		: m_stateVector(p_->getDomainSizeL(), 0), b(nullptr), p(p_)
     {
         init();
-    }
-
-    stateVector_impl(std::shared_ptr<Parameters> p_,
-					 std::string initial_condition)
-    : m_stateVector(p_->getDomainSizeL(), 0), b(nullptr), p(p_)
-    {
-        init(initial_condition);
     }
 
 	storage_type& getStateVector() { return m_stateVector; }
@@ -217,8 +204,9 @@ struct ShiftOperator
 		dst.applyCondition(nidx);
 		//std::cout << " nidx_post="<< nidx << std::endl;
 
-		ASSERT((unsigned)nidx<dst.size() && nidx>=0, "");
+		ASSERT_1((unsigned)nidx<dst.size() && nidx>=0);
 
+		/*
 		// DEBUG
 		long before1 = dst[x];
 		long before2 = dst[nidx];
@@ -226,9 +214,12 @@ struct ShiftOperator
 		//std::cout << " before[" << x << "]=" << dst[x];
 		//std::cout << " before[" << nidx << "]=" << dst[nidx];
 
+		*/
+
 		dst[x]-= (dst[x]>0) ? 1 : 0;
 		dst[nidx]+=1;
 
+		/*
 		ASSERT((before1>0) ? before1-1==dst[x] : before1==0, "");
 		ASSERT(before2+1==dst[nidx], "");
 
@@ -236,6 +227,7 @@ struct ShiftOperator
 		//std::cout << " after[" << nidx << "]=" << dst[nidx] << std::endl;
 
 		dst.checkTotal();
+		*/
 	}
 
 private:
@@ -258,23 +250,6 @@ public:
 	stateVector(std::shared_ptr<Parameters> p)
 		: stateVector_impl<T>(p), RightShift(*this), LeftShift(*this)
 	{}
-
-	stateVector(std::shared_ptr<Parameters> p, std::string initial_condition)
-		: stateVector_impl<T>(p, initial_condition),
-		RightShift(*this), LeftShift(*this)
-	{ std::cout << "statevector init" <<std::endl;}
-
-	/*
-	void print() const { m_state.print(); }
-	size_type size() const { return m_state.size(); }
-
-	unsigned int& get(int idx) { return m_state.getDensity(idx); }
-	const unsigned int& get(int idx) const
-		{ return m_state.getDensity(idx); }
-*/
-// the last two members are public to allow other classes to shift
-//private:
-//	state_type m_state;
 
 public:
 	ShiftOperator<1, state_type> RightShift;
