@@ -16,8 +16,14 @@
 
 #define DEBUG3(x, ...) fprintf(stderr, "[ERROR] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__ )
 
+#define DBG_ONLY(x) x
+
 //#include <cassert>
 
+#define ASSERT_1(condition) \
+	do { \
+		Assert::dynamic((condition)); \
+	} while (false)
 
 #define ASSERT(condition, message) \
     do { \
@@ -45,8 +51,13 @@
 #define NDEBUG
 #define DEBUG(x)
 #define DEBUG2(x)
-#define ASSERT(condition, message) do {} while(false)
+#define ASSERT(condition, message) \
+	do { \
+		Assert::dynamic((condition)); \
+	} while(false);
+
 #define TYPENAME(TYPE)
+#define DBG_ONLY(x)
 #define PRINT_FARGS
 #endif
 
