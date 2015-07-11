@@ -94,7 +94,8 @@ class AD(object):
         u = np.zeros(N)
         print(np.shape(u))
 
-        u[N/2] = 0.5
+        u[int(N/2)] = 0.5
+        u[int(N/2)+1] = 0.5
 
         #print 'u=', u
 
