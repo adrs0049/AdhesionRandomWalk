@@ -70,17 +70,12 @@ public:
             }
         }
 
-		//PyObject* args = Py_BuildValue("{s:O, s:l, s:d}",
-		//		"states", pylist, "steps", data.steps, "time", data.time);
-        //PyObject* args = Py_BuildValue("(O)", pylist);
 		PyObject* args = PyTuple_New(0);
 		PyObject* kwargs = Py_BuildValue("{s:O, s:l, s:d}",
 				"states", pylist, "steps", data.steps, "time", data.time);
 
-		std::cerr << "CALLING" << std::endl;
 		PyObject_Call(func, args, kwargs);
 
-		std::cerr << "DONE CALL" << std::endl;
 		Py_DECREF(kwargs);
         Py_DECREF(pylist);
         Py_DECREF(args);
