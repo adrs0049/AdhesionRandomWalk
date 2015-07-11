@@ -23,7 +23,10 @@ public:
     void register_handler(EventType&& e, ptr_type&& l)
     {
         table.emplace(e, l);
+		counter++;
     }
+
+	const int getNumberOfEvents() const { return counter; }
 
     ptr_type& get_handler(EventType&& e)
     {
@@ -31,6 +34,7 @@ public:
     }
 
 private:
+	int counter = 0;
     value_type table;
 };
 

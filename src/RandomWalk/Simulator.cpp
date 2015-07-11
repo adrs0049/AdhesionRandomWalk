@@ -88,10 +88,11 @@ std::vector<unsigned int>& Simulator::getPath() const
 
 void Simulator::notify(EventType&& e)
 {
-	std::cout << "notify simulator" << std::endl;
-    auto event = std::static_pointer_cast<event_type>(eventRegistry.get_handler(std::move(e)));
-	//Data DataContainer = {getPath(), p->getSteps(), p->getCurrentTime()};
-	event->notifyListeners({getPath(), param->getSteps(), param->getCurrentTime()});
-	//event->notifyListeners(DataContainer);
+	if (eventRegistry.getNumberOfEvents()>0)
+	{
+		std::cout << "notify simulator" << std::endl;
+		auto event = std::static_pointer_cast<event_type>(eventRegistry.get_handler(std::move(e)));
+		event->notifyListeners({getPath(), param->getSteps(), param->getCurrentTime()});
+	}
 }
 
