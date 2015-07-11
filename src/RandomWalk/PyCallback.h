@@ -6,6 +6,8 @@
 #include <concepts.h>
 #include <Python.h>
 
+#include "SimulationData.h"
+
 class PyCallback
 {
     PyObject * func = nullptr;
@@ -51,30 +53,38 @@ public:
         Py_XDECREF(this->func);
     }
 
-    void operator() (const std::vector<unsigned int> elements)
+	void operator() (SimulationData&& data)
     {
         if(func == nullptr || Py_None == func || !PyCallable_Check(func))
             return;
         PyObject* pylist = nullptr;
         PyObject* item = nullptr;
-        pylist = PyList_New(elements.size());
+        pylist = PyList_New(data.states.size());
         if (pylist != nullptr)
         {
             std::size_t idx {0};
-            for (const auto& element : elements)
+            for (const auto& state : data.states)
             {
-               item = PyLong_FromLong(element);
+               item = PyLong_FromLong(state);
                PyList_SET_ITEM(pylist, idx++, item);
             }
         }
 
-        PyObject* args = Py_BuildValue("(O)", pylist);
-        PyObject* result = PyObject_CallObject(func, args);
+		//PyObject* args = Py_BuildValue("{s:O, s:l, s:d}",
+		//		"states", pylist, "steps", data.steps, "time", data.time);
+        //PyObject* args = Py_BuildValue("(O)", pylist);
+		PyObject* args = PyTuple_New(0);
+		PyObject* kwargs = Py_BuildValue("{s:O, s:l, s:d}",
+				"states", pylist, "steps", data.steps, "time", data.time);
 
+		std::cerr << "CALLING" << std::endl;
+		PyObject_Call(func, args, kwargs);
+
+		std::cerr << "DONE CALL" << std::endl;
+		Py_DECREF(kwargs);
         Py_DECREF(pylist);
         Py_DECREF(args);
         Py_DECREF(item);
-        Py_XDECREF(result);
     }
 };
 
