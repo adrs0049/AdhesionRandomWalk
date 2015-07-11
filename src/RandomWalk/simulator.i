@@ -120,6 +120,7 @@ ADD_NUMPY_ARRAY_INTERFACE(long, UIVector, std::vector<unsigned int>);
 %{
 #define SWIG_FILE_WITH_INIT
 #include "Parameters.h"
+#include "SimulationData.h"
 #include "Simulator.h"
 %}
 
@@ -151,5 +152,6 @@ import_array();
 }
 
 %include "Parameters.h"
+%include "SimulationData.h"
 %include "Simulator.h"
 
