@@ -6,6 +6,22 @@
 #include <iterator>
 #include <algorithm>
 
+#include "Boundary.h"
+
+enum class IC_TYPE : int
+{
+	UNIFORM,
+	DELTA,
+};
+
+enum class OMEGA_TYPE : int
+{
+	UNIFORM,
+	TRIANGLE,
+};
+
+using namespace boundary;
+
 class Parameters
 {
 	public:
@@ -47,6 +63,10 @@ class Parameters
 		const unsigned long getICp() { return ic_p; }
 		const unsigned long getSteps() const { return steps; }
 		const double getCurrentTime() const { return time; }
+		const IC_TYPE& getIcType() const { return ic_type; }
+		const OMEGA_TYPE& getOmegaType() const { return omega_type; }
+		const double getOmegaP() const { return omega_p; }
+		const BOUNDARY_TYPE& getBoundaryType() const { return boundary_type; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -56,6 +76,11 @@ class Parameters
 		void setLambda(double _l) { lambda = _l; }
 		void setSteps(unsigned long _steps) { steps = _steps; }
 		void setCurrentTime(const double _time) { time = _time; }
+		void setIcType(const IC_TYPE& type) { ic_type = type; }
+		void setOmegaType(const OMEGA_TYPE& type) { omega_type = type; }
+		void setOmegaP(const double p) { omega_p = p; }
+		void setBoundaryType(const BOUNDARY_TYPE& type)
+			{ boundary_type = type; }
 
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() const { return domainShape; }
@@ -83,9 +108,18 @@ class Parameters
 		double Diffusion = 0.5;
 		double Drift = 0.0;
 
+		// ic density
 		unsigned long ic_p = 0;
-		unsigned long steps = 0;
+		IC_TYPE ic_type;
 
+		// data for omega function
+		double omega_p = 0.0;
+		OMEGA_TYPE omega_type;
+
+		// Boundary Type
+		BOUNDARY_TYPE boundary_type = BOUNDARY_TYPE::PERIODIC;
+
+		unsigned long steps = 0;
 		double time = 0.0;
 };
 
