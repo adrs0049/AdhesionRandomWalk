@@ -1,6 +1,9 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+// always include logging
+// #include "log.h"
+
 #ifdef DEBUG_BUILD
 
 #include <iostream>
@@ -22,9 +25,9 @@
         msg << message; \
         Assert::dynamic((condition), Assert::compose(#condition, __FILE__, \
                 __LINE__, msg.str())); \
-        std::abort(); \
     } while (false)
 
+#define WARNING(condition, message) do {} while(false)
 
 /*
 #define ASSERT(condition, message) \
