@@ -11,6 +11,8 @@
 #include "EventListener.h"
 #include "Terminate.h"
 
+#include "debug.h"
+
 template<typename T>
 const std::string stateVector_impl<T>::delta("Delta");
 template<typename T>
@@ -31,7 +33,8 @@ Simulator::Simulator(std::shared_ptr<Parameters> p)
 : param(p), TheRandomWalk(nullptr)
 {
     Error::TerminalCatcher::init();
-    init();
+    ASSERT(p!=nullptr, "parameters is null");
+	init();
     //std::cout << "DL(sim)=" << p.DomainSizeL << std::endl;
 }
 
@@ -49,8 +52,9 @@ void Simulator::init()
     TheRandomWalk->setSimulator(this);
 }
 
-void Simulator::registerListener(const std::function<void (std::vector<unsigned int>)>& l)
+void Simulator::registerListener(PyCallback_Fcn& l)
 {
+	//log<LOG::DEBUG>("Registering Listener");
     std::cout << "Registering listener" << std::endl;
     //auto& event = TheRandomWalk->getEvent();
     eventRegistry.register_handler(EventType::new_data,
@@ -84,7 +88,10 @@ std::vector<unsigned int>& Simulator::getPath() const
 
 void Simulator::notify(EventType&& e)
 {
+	std::cout << "notify simulator" << std::endl;
     auto event = std::static_pointer_cast<event_type>(eventRegistry.get_handler(std::move(e)));
-    event->notifyListeners(getPath());
+	//Data DataContainer = {getPath(), p->getSteps(), p->getCurrentTime()};
+	event->notifyListeners({getPath(), param->getSteps(), param->getCurrentTime()});
+	//event->notifyListeners(DataContainer);
 }
 
