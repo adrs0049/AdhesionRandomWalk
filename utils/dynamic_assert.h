@@ -1,10 +1,13 @@
 
+#pragma once
+
 #include <string>
 #include <iostream>
 #include <exception>
 #include <stdexcept>
 #include <sstream>
 
+// fix this somehow, can cmake set this value?
 #define CURRENT_LEVEL 0
 
 namespace Assert {
@@ -23,6 +26,7 @@ namespace Assert {
 
     std::string compose(const std::string& condition, const char* file,
                         int line, const std::string& message);
+	std::string compose(const char* file, int line, const std::string& message);
 
     template<bool condition = level(default_level), class Except = Error>
     void dynamic(bool assertion, const std::string& message = "Assert::dynamic failed");

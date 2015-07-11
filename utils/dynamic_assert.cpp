@@ -11,24 +11,22 @@ namespace Assert {
         return os.str();
     }
 
-    /*
     std::string compose(const char* file, int line, const std::string& message)
     {
         std::ostringstream os ("(");
         os << file << "," << line << "):" << message;
         return os.str();
     }
-    */
 
-    template<bool condition = level(default_level), class Except = Error>
-    void dynamic(bool assertion, const std::string& message = "Assert::dynamic failed")
+    template<bool condition, class Except>
+    void dynamic(bool assertion, const std::string& message)
     {
-        if (!assertion || current_mode == Assert::Mode::ignore_)
+        if (assertion || current_mode == Assert::Mode::ignore_)
             return;
         if (current_mode == Assert::Mode::throw_)
             throw Except{message};
         if (current_mode == Assert::Mode::terminate_)
-            std::terminate();
+			std::terminate();
     }
 
     template<>
