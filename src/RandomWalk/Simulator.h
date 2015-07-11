@@ -26,6 +26,7 @@
 #include "Event.h"
 #include "EventListener.h"
 #include "SimulationData.h"
+#include "vector.h"
 
 using namespace boundary;
 
@@ -56,7 +57,8 @@ public:
 
     void print();
     void run();
-    std::vector<unsigned int>& getPath() const;
+	AligndVector<unsigned int>& getPath() const;
+    //std::vector<unsigned int>& getPath() const;
     void notify(EventType&& e);
 
     void update(std::shared_ptr<Parameters> param_)

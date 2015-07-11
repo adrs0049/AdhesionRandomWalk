@@ -12,14 +12,7 @@
 #include "Terminate.h"
 
 #include "debug.h"
-
-template<typename T>
-const std::string stateVector_impl<T>::delta("Delta");
-template<typename T>
-const std::string stateVector_impl<T>::uniform("Uniform");
-
-const std::string BoundaryFactory::no_flux("NoFlux");
-const std::string BoundaryFactory::periodic("Periodic");
+#include "vector.h"
 
 EventRegistry Simulator::eventRegistry;
 
@@ -81,7 +74,8 @@ void Simulator::run()
     }
 }
 
-std::vector<unsigned int>& Simulator::getPath() const
+AligndVector<unsigned int>& Simulator::getPath() const
+//std::vector<unsigned int>& Simulator::getPath() const
 {
     return TheRandomWalk->getPath();
 }
@@ -90,7 +84,6 @@ void Simulator::notify(EventType&& e)
 {
 	if (eventRegistry.getNumberOfEvents()>0)
 	{
-		std::cout << "notify simulator" << std::endl;
 		auto event = std::static_pointer_cast<event_type>(eventRegistry.get_handler(std::move(e)));
 		event->notifyListeners({getPath(), param->getSteps(), param->getCurrentTime()});
 	}
