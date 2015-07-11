@@ -67,11 +67,10 @@ def test():
 
     plt.show()
 
-def g(x):
-    h = 0.1
+def g(x, h):
     value = 1.0 / 3.0
     mid = 5.0
-    if np.abs(x - mid) < h:
+    if np.abs(x - mid) < 1.5*h:
         return value
     else:
         return 0.0
