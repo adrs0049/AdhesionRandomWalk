@@ -22,6 +22,7 @@ class RandomWalk
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<state_vector>;
 	using event_type = Event<state_vector_type>;
+    using propensity_type = std::vector<double, AlignedAllocator<double, Alignment::AVX>>;
 
 public:
 	RandomWalk();
@@ -56,7 +57,7 @@ public:
 		return state;
 	}
 
-	std::vector<double>& getProp() { return propensities; }
+	propensity_type& getProp() { return propensities; }
 	std::size_t getStride() { return propensity_stride; }
 
 public:
@@ -90,7 +91,7 @@ public:
 	std::shared_ptr<Parameters> param;
 
 	// Propensity vector
-	std::vector<double> propensities;
+   	propensity_type propensities;
 	long propensity_stride;
 	unsigned long sensing_offset;
 
