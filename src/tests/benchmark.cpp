@@ -6,6 +6,8 @@
 #include <sstream>
 #include <chronos.h>
 
+#include "Parameters.h"
+
 int main(int argc, const char* argv[])
 {
 	long NumberOfCells = 10;
@@ -33,6 +35,7 @@ int main(int argc, const char* argv[])
 		p.setDiffusion(1.0);
 		p.setDrift(1.0);
 		p.setSensingRadius(1.0);
+		p.setIcType(IC_TYPE::UNIFORM);
 
 		Simulator sim (std::make_shared<Parameters>(p));
 

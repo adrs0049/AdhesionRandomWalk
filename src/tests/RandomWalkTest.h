@@ -18,7 +18,8 @@
 
 #include "Terminate.h"
 
-void printVec(std::vector<double> pVec)
+template<typename U>
+void printVec(std::vector<double, U> pVec)
 {
     std::cout << "Propensity size = " << pVec.size() << std::endl;
     std::cout << "pVec=(";
