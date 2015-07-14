@@ -1,5 +1,7 @@
 # Utils cmake
 
+add_subdirectory(vector_simd)
+
 set(UTILS_SRC format.cc Log.cpp BasicException.cpp BasicFileLocation.cpp
 	dynamic_assert.cpp aligned_allocator_detail.cpp)
 
