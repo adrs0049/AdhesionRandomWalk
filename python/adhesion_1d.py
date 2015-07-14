@@ -157,8 +157,9 @@ class Player(object):
                 print('u_ic total=', np.sum(u_ic))
                 assert len(u_ic)==N, ""
 
-                time_step = key * self.getDiffusionCoeff()
-                solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSize())
+                solver = FFTHeat1D_test(u_ic, key, self.getDomainSize(), \
+                                        self.getDiffusionCoeff(), \
+                                        self.getDriftCoeff())
                 solver.time_step()
                 u2 = solver.get_x()
 
