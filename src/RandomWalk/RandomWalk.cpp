@@ -264,14 +264,16 @@ double RandomWalk::getPropensitySum() const
 	return std::accumulate(propensities.begin(), propensities.end(), 0.0);
 }
 
+// TODO somehow select this function based on a enum class
+// make this a CRTP?? or are virtual functions ok for this?
 void RandomWalk::computePropensity( long coordinate )
 {
 	// compute polarization at the location only once
-	auto polarization = PolarizationVector(coordinate);
+	//auto polarization = PolarizationVector(coordinate);
 
 	// compute components for transition rates
 	double symmetric = param->getDiffusionSim();
-	double asymmetric = param->getDriftSim() * param->getDiscreteX() * polarization;
+	double asymmetric = param->getDriftSim() * param->getDiscreteX(); // * polarization;
 
 	//std::cout << "right=" << (symmetric + asymmetric);
 	//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
