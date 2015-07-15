@@ -45,6 +45,7 @@ public:
         p->setDiffusion(1.0);
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
+		p->setRandomWalkType(RANDOMWALK_TYPE::DIFFUSION);
 
         p->Check();
 
@@ -77,7 +78,9 @@ public:
 
     void testComputeBasic(void)
     {
+		const unsigned long Dsz = 50;
         auto& pVec = rw->getProp();
+		TS_ASSERT_EQUALS(pVec.size(), 2*Dsz);
 
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -88,14 +91,14 @@ public:
         for (int run = 0; run < number_of_runs; run++)
         {
 
-        int x = dis(gen);
+        unsigned int x = static_cast<unsigned int>(dis(gen));
         std::cout << "Testing to set propensities at " << x << std::endl;
 
         rw->computePropensity(x);
         printVec(rw->getProp());
 
         auto propensity_stride = rw->getStride();
-        for(int i = 0; i < propensity_stride; i++)
+        for(std::size_t i = 0; i < propensity_stride; i++)
         {
             if (i == x) {
                 TS_ASSERT_DELTA(pVec[i], 100.0, tol);
@@ -106,7 +109,7 @@ public:
             TS_ASSERT_DELTA(rw->getPropensity(i, 0), 0.0, tol);
         }
 
-        for(int i = propensity_stride; i < pVec.size(); i++)
+        for(std::size_t i = propensity_stride; i < pVec.size(); i++)
         {
             if (i == x + propensity_stride) {
                 TS_ASSERT_DELTA(pVec[i], 100.0, tol);
@@ -136,14 +139,14 @@ public:
     {
         auto& pVec = rw->getProp();
 
-        int x = 0;
+		unsigned int x = 0;
         std::cout << "Testing to set propensities at " << x << std::endl;
 
         rw->computePropensity(x);
         printVec(rw->getProp());
 
         auto propensity_stride = rw->getStride();
-        for(int i = 0; i < propensity_stride; i++)
+        for(std::size_t i = 0; i < propensity_stride; i++)
         {
             if (i == x) {
                 TS_ASSERT_DELTA(pVec[i], 100.0, tol);
@@ -154,7 +157,7 @@ public:
             TS_ASSERT_DELTA(rw->getPropensity(i, 0), 0.0, tol);
         }
 
-        for(int i = propensity_stride; i < pVec.size(); i++)
+        for(std::size_t i = propensity_stride; i < pVec.size(); i++)
         {
             if (i == x + propensity_stride) {
                 TS_ASSERT_DELTA(pVec[i], 100.0, tol);

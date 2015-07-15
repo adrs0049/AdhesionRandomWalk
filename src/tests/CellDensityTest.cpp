@@ -10,7 +10,7 @@ int main()
 {
     Error::TerminalCatcher::init();
 
-    auto p = std::make_shared<Parameters>(5, 0.1, 0.1, 10.0);
+    auto p = std::make_shared<Parameters>(5, 0.1, 0.1, 1.0);
     auto c = std::make_shared<stateVector<unsigned int>>(p);
 
     c->print();
