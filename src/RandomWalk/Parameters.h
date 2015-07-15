@@ -8,6 +8,13 @@
 
 #include "Boundary.h"
 
+enum class RANDOMWALK_TYPE : int
+{
+	DIFFUSION, // const diffusion
+	DIFFUSION_AND_DRIFT, // constant diffusion + drift
+	ADHESION, // adhesion
+};
+
 enum class IC_TYPE : int
 {
 	UNIFORM,
@@ -67,6 +74,7 @@ class Parameters
 		const OMEGA_TYPE& getOmegaType() const { return omega_type; }
 		const double getOmegaP() const { return omega_p; }
 		const BOUNDARY_TYPE& getBoundaryType() const { return boundary_type; }
+		const RANDOMWALK_TYPE& getRandomWalkType() const { return rw_type; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -81,7 +89,8 @@ class Parameters
 		void setOmegaP(const double p) { omega_p = p; }
 		void setBoundaryType(const BOUNDARY_TYPE& type)
 			{ boundary_type = type; }
-
+		void setRandomWalkType(const RANDOMWALK_TYPE& type)
+			{ rw_type = type; }
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() const { return domainShape; }
 
@@ -118,6 +127,9 @@ class Parameters
 
 		// Boundary Type
 		BOUNDARY_TYPE boundary_type = BOUNDARY_TYPE::PERIODIC;
+
+		// RandomWalk type
+		RANDOMWALK_TYPE rw_type = RANDOMWALK_TYPE::ADHESION;
 
 		unsigned long steps = 0;
 		double time = 0.0;
