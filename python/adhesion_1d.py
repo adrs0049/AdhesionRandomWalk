@@ -481,16 +481,12 @@ class Simulation(object):
         self.NoPlayers = NoPlayers
         self.FinalTimes = FinalTimes
         self.parameters = parameters
-        self.result_queue = None
 
     def __str__(self):
         return "Executing Simulation up to '%f' with '%d' players." \
                 % (np.max(self.FinalTimes), self.NoPlayers)
 
     def __call__(self, result_queue):
-
-        # set result queue
-        self.result_queue = result_queue
 
         # domainN stores points per unit length
         stepSize = 1.0 / self.parameters["DomainN"]
@@ -514,6 +510,7 @@ class Simulation(object):
 
             # always use uniform ic here
             swig_param.setIcType(self.parameters["ic_type"])
+            swig_param.setRandomWalkType(self.parameters["rw_type"])
 
             print('create simulator')
             # create sim object
@@ -530,7 +527,7 @@ class Simulation(object):
             FinalTime = np.around(data["time"], decimals=2)
             path = np.asarray(data["states"])
 
-            self.result_queue.put((FinalTime, path, steps, ))
+            result_queue.put((FinalTime, path, steps, ))
 
         # register callback function
         sim.registerPyListener(storePath)
@@ -546,7 +543,8 @@ if __name__ == '__main__':
     param = dict(DomainSize=10, DomainN=10,
                  diffusion_coeff=1.0, drift_coeff=20,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1)
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1,
+                 rw_type=s.RANDOMWALK_TYPE_ADHESION)
 
     player = Player(param)
     db=player.getDB()
