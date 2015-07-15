@@ -67,6 +67,9 @@ class Parameters(Base):
     ic_type = Column(Integer, nullable=False)
     ic_p = Column(Numeric(19, 4, asdecimal=True), nullable=False)
 
+    # RandomWalk type
+    rw_type = Column(Integer, nullable=True)
+
     # book keeping when things were created
     created_date = Column(DateTime, nullable=False)
     last_updated_date = Column(DateTime, nullable=False,
