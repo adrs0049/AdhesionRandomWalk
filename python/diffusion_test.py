@@ -12,7 +12,8 @@ if __name__ == '__main__':
     param = dict(DomainSize=10, DomainN=20,
                  diffusion_coeff=1.0, drift_coeff=0,
                  R=1.0, omega_type=1, omega_p=0.42, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_DELTA, ic_p=0.1)
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_DELTA, ic_p=0.1,
+                 rw_type=s.RANDOMWALK_TYPE_DIFFUSION)
 
     player = Player(param)
 
