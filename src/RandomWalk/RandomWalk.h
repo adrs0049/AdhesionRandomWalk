@@ -11,6 +11,7 @@
 #include <memory>
 #include "make_unique.h"
 #include "Event.h"
+#include "Propensities.h"
 
 class Simulator;
 
@@ -89,6 +90,7 @@ public:
 	// Variables
 	std::shared_ptr<state_vector> state;
 	std::shared_ptr<Parameters> param;
+	std::unique_ptr<PropensitiesGenerator> pgen;
 
 	// Propensity vector
    	propensity_type propensities;

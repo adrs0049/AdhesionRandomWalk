@@ -12,11 +12,15 @@
 
 #include "debug.h"
 
+#include <make_unique.h>
+#include <PropensityGenerator.h>
+
 RandomWalk::~RandomWalk() {}
 RandomWalk::RandomWalk() {}
 RandomWalk::RandomWalk(std::shared_ptr<Parameters> _param)
     : state(std::make_shared<state_vector>(_param)),
     param(_param),
+	pgen(PropensitiesGeneratorFactory::createPropensitiesGenerator(_param->getRandomWalkType())),
     rand(0.0, 1.0)
 {}
 
@@ -155,6 +159,9 @@ void RandomWalk::setup()
 	// get final times
 	finalTimes = param->getFinalTimes();
 
+	// setup prop generator
+	pgen->set(param);
+
 	//std::cout << "NumberOfReactions= " << NumberOfReactions
 	//	<< " propensity_stride=" << propensity_stride << std::endl;
 
@@ -187,13 +194,14 @@ void RandomWalk::print_info()
 		<< std::endl;
 }
 
-void  RandomWalk::computeAllPropensities()
+void RandomWalk::computeAllPropensities()
 {
 	for (long k = 0; k < propensity_stride; k++)
 		computePropensity(k);
 }
 
-bool  RandomWalk::propensityApplyCondition(long& idx, const long& max_value)
+// TODO can this be moved to the boundary condition somehow?
+bool RandomWalk::propensityApplyCondition(long& idx, const long& max_value)
 {
 	if (idx < 0)
 	{
@@ -210,7 +218,7 @@ bool  RandomWalk::propensityApplyCondition(long& idx, const long& max_value)
 }
 
 // TODO write a test to test if this really works
-void  RandomWalk::updatePropensity(long coordinate)
+void RandomWalk::updatePropensity(long coordinate)
 {
 	// add 1 to the offset
 	long offset = sensing_offset + 1;
@@ -266,41 +274,16 @@ double RandomWalk::getPropensitySum() const
 
 // TODO somehow select this function based on a enum class
 // make this a CRTP?? or are virtual functions ok for this?
-void RandomWalk::computePropensity( long coordinate )
+void RandomWalk::computePropensity(long coordinate)
 {
-	// compute polarization at the location only once
-	//auto polarization = PolarizationVector(coordinate);
-
-	// compute components for transition rates
-	double symmetric = param->getDiffusionSim();
-	double asymmetric = param->getDriftSim() * param->getDiscreteX(); // * polarization;
-
-	//std::cout << "right=" << (symmetric + asymmetric);
-	//std::cout << "left=" << (symmetric - asymmetric) << std::endl;
-
-	// TODO raise an exception!! instead
-	assert((symmetric+asymmetric)>=0.0);
-	assert((symmetric-asymmetric)>=0.0);
-
-	/*
-	ASSERT((symmetric+asymmetric)>=0.0, "tmp =" << symmetric+asymmetric << " "\
-			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
-			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
-			" drift=" << param->getDriftSim() << \
-			" step=" << param->getDiscreteX());
-
-	ASSERT((symmetric-asymmetric)>=0.0, "tmp =" << symmetric-asymmetric << " "\
-			<< " pol=" << polarization << " symm=" << symmetric << " asym="\
-			<< asymmetric << " diffusion=" << param->getDiffusionSim() << \
-			" drift=" << param->getDriftSim() << \
-			" step=" << param->getDiscreteX());
-	*/
+	// returns array [0] is the one to the right, [1] is the one to the left
+	auto tmp = pgen->compute(coordinate);
 
 	propensities.at(coordinate) = param->getLambda() *
-		state->getDensity(coordinate) * (symmetric + asymmetric);
+		state->getDensity(coordinate) * tmp[0];
 
 	propensities.at(propensity_stride + coordinate) = param->getLambda() *
-		state->getDensity(coordinate) * (symmetric - asymmetric);
+		state->getDensity(coordinate) * tmp[1];
 }
 
 std::array<double, 2> RandomWalk::getPropensity( long coordinate )
@@ -309,28 +292,3 @@ std::array<double, 2> RandomWalk::getPropensity( long coordinate )
 				propensities.at(propensity_stride + coordinate)};
 }
 
-double RandomWalk::omega ( long coordinate )
-{
-	return 1.0;
-}
-
-double RandomWalk::adhesivity ( long coordinate )
-{
-	return state->getDensity ( coordinate );
-}
-
-double RandomWalk::space ( long coordinate )
-{
-	return 1.0; //std::max(0.0, 1.0 - (state->get(r) / CarryingCapacity) );
-}
-
-double RandomWalk::PolarizationVector ( long coordinate )
-{
-	// FIXME compute this without jumping around in memory constantly
-	double total {0.0};
-	for ( auto offset : range<unsigned> ( 0, sensing_offset ) )
-		total+= ( space ( coordinate + offset ) * omega ( +offset ) * adhesivity ( coordinate + offset ) -
-				space ( coordinate - offset ) * omega ( -offset ) * adhesivity ( coordinate - offset ) );
-
-	return total / TotalNumberOfCells;
-}
