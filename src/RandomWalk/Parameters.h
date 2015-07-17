@@ -27,6 +27,17 @@ enum class OMEGA_TYPE : int
 	TRIANGLE,
 };
 
+enum class SPACE_TYPE : int
+{
+	ALWAYS_FREE,
+	CLASSICAL_VOLUME_FILLING,
+};
+
+enum class ADHESIVITY_TYPE : int
+{
+	SIMPLE,
+};
+
 using namespace boundary;
 
 class Parameters
@@ -75,6 +86,8 @@ class Parameters
 		const double getOmegaP() const { return omega_p; }
 		const BOUNDARY_TYPE& getBoundaryType() const { return boundary_type; }
 		const RANDOMWALK_TYPE& getRandomWalkType() const { return rw_type; }
+		const SPACE_TYPE& getSpaceType() const { return space_type; }
+		const ADHESIVITY_TYPE& getAdhesivityType() const { return adhesivity_type; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -91,6 +104,10 @@ class Parameters
 			{ boundary_type = type; }
 		void setRandomWalkType(const RANDOMWALK_TYPE& type)
 			{ rw_type = type; }
+		void setSpaceType(const SPACE_TYPE& type)
+			{ space_type = type; }
+		void setAdhesivityType(const ADHESIVITY_TYPE& type)
+			{ adhesivity_type = type; }
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() const { return domainShape; }
 
@@ -123,13 +140,19 @@ class Parameters
 
 		// data for omega function
 		double omega_p = 0.0;
-		OMEGA_TYPE omega_type;
+		OMEGA_TYPE omega_type = OMEGA_TYPE::UNIFORM;
 
 		// Boundary Type
 		BOUNDARY_TYPE boundary_type = BOUNDARY_TYPE::PERIODIC;
 
 		// RandomWalk type
 		RANDOMWALK_TYPE rw_type = RANDOMWALK_TYPE::ADHESION;
+
+		// Space type
+		SPACE_TYPE space_type = SPACE_TYPE::ALWAYS_FREE;
+
+		// Adhesivity type
+		ADHESIVITY_TYPE adhesivity_type = ADHESIVITY_TYPE::SIMPLE;
 
 		unsigned long steps = 0;
 		double time = 0.0;
