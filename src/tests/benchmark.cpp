@@ -36,6 +36,7 @@ int main(int argc, const char* argv[])
 		p.setDrift(1.0);
 		p.setSensingRadius(1.0);
 		p.setIcType(IC_TYPE::UNIFORM);
+		p.setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
 
 		Simulator sim (std::make_shared<Parameters>(p));
 
