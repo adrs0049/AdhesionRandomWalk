@@ -7,6 +7,7 @@ from sqlalchemy import Column, Integer, BigInteger
 from sqlalchemy import String, DateTime, Time, Numeric
 from sqlalchemy import ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
+from sqlalchemy import inspect
 
 class MachineInfo(Base):
     __tablename__ = 'machine_info'
@@ -69,6 +70,8 @@ class Parameters(Base):
 
     # RandomWalk type
     rw_type = Column(Integer, nullable=True)
+    adhesivity_type = Column(Integer, nullable=True)
+    space_type = Column(Integer, nullable=True)
 
     # book keeping when things were created
     created_date = Column(DateTime, nullable=False)
@@ -80,10 +83,19 @@ class Parameters(Base):
 
     """ debug function to check if all values are set """
     def is_valid(self):
+        # TODO is there a better way then this?
+        insp = inspect(Parameters)
         for k in self.__mapper__.all_orm_descriptors.keys():
             # id will be taken care of on commit
             if k == '__mapper__' or k == 'id':
                 continue
+
+            # TODO why??
+            if k != 'simulations':
+                column_prop = getattr(insp.column_attrs, k)
+                if column_prop.expression.nullable:
+                    continue
+
             if getattr(self, k) is None:
                 print(k, ' is None')
                 return False
