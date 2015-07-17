@@ -149,7 +149,6 @@ void RandomWalk::setup()
 	// for no flux boundary conditions
 	// NumberOfReactions = 2 * (param->getDomainSizeL() - 1);
 	// for periodic boundary conditions
-	TotalNumberOfCells = param->getNumberOfCells();
 	NumberOfReactions = 2 * param->getDomainSizeL();
 	sensing_offset = param->getSensingRadiusL();
 
@@ -161,6 +160,8 @@ void RandomWalk::setup()
 
 	// setup prop generator
 	pgen->set(param);
+	pgen->set(state);
+	pgen->verify();
 
 	//std::cout << "NumberOfReactions= " << NumberOfReactions
 	//	<< " propensity_stride=" << propensity_stride << std::endl;
@@ -168,7 +169,7 @@ void RandomWalk::setup()
 	//state->print();
 }
 
-void RandomWalk::print_info()
+void RandomWalk::print_info() const
 {
 	std::cout << "Starting Gillespie's SSA for a simulation a space-jump "
 		<< "process. The space-jump process includes diffusion and "

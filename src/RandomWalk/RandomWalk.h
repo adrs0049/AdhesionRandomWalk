@@ -21,7 +21,7 @@ class RandomWalk
 {
 	using state_vector = stateVector<unsigned int>;
 	using state_vector_type = typename state_vector::storage_type;
-	using state_vector_ptr = std::shared_ptr<state_vector>;
+	using state_vector_ptr = std::shared_ptr<const state_vector>;
 	using event_type = Event<state_vector_type>;
     using propensity_type = std::vector<double, AlignedAllocator<double, Alignment::AVX>>;
 
@@ -59,11 +59,12 @@ public:
 	}
 
 	propensity_type& getProp() { return propensities; }
-	std::size_t getStride() { return propensity_stride; }
+	std::size_t getStride() const { return propensity_stride; }
 
+// FIXME make me private again, but make sure test still work
 public:
 	void setup();
-	void print_info();
+	void print_info() const;
 	void computeAllPropensities();
 
 	std::array<double, 2> getPropensity(long coordinate);
@@ -77,15 +78,7 @@ public:
 	void updatePropensity(long coordinate);
 	double getPropensity(int coordinate, int flag) const;
 	double getPropensitySum() const;
-	void computePropensity( long coordinate );
-
-	// TODO think of something better for these functions
-	double omega(long coordinate);
-	double adhesivity(long coordinate);
-	double space(long coordinate);
-	double PolarizationVector(long coordinate);
-
-	unsigned long TotalNumberOfCells;
+	void computePropensity(long coordinate);
 
 	// Variables
 	std::shared_ptr<state_vector> state;
@@ -100,12 +93,7 @@ public:
 	unsigned long steps;
 	double time;
 
-	unsigned long right;
-	unsigned long left;
 	unsigned long NumberOfReactions;
-	unsigned long NumberOfAttemptFlips;
-	unsigned long NumberOfUnsuccessfulFlips;
-	unsigned int Multiplier = 1;
 	UniformRandomNumberGenerator rand;
     Simulator* sim;
 };
