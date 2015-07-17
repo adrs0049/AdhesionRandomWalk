@@ -165,7 +165,7 @@ class AdhesionPropensities : public PropensitiesGenerator
 				case ADHESIVITY_TYPE::SIMPLE:
 					adhesivity = [this] (const long coordinate)
 					{
-						return state->getDensity(coordinate);
+						return state->getDensityQuick(coordinate);
 					};
 
 					break;
@@ -214,6 +214,7 @@ class AdhesionPropensities : public PropensitiesGenerator
 			// compute polarization
 			double total {0.0};
 
+			// TODO can we use SIMD here??
 			// Do the left hand side
 			for (long idx = 0; idx < sensing_radius; idx++)
 			{
