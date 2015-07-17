@@ -12,6 +12,7 @@
 #include <memory>
 
 #include "debug.h"
+#include <cassert>
 #include "vector.h"
 #include "exceptions.h"
 
@@ -163,6 +164,18 @@ public:
 		return m_stateVector[idx];
 	}
 
+	T& getDensityQuick(int idx)
+	{
+		applyCondition(idx);
+		return m_stateVector[idx];
+	}
+
+	const T& getDensityQuick(int idx) const
+	{
+		applyCondition(idx);
+		return m_stateVector[idx];
+	}
+
 	const T& getDensity(int idx) const
 	{
 		applyCondition(idx);
@@ -197,7 +210,8 @@ struct ShiftOperator
 
 	void operator() (int x)
 	{
-		ASSERT ((unsigned)x<dst.size() && x>=0, "index="<< x << " invalid density vector index!");
+		assert((unsigned)x<dst.size() && x>=0);
+		//ASSERT ((unsigned)x<dst.size() && x>=0, "index="<< x << " invalid density vector index!");
 		auto nidx = x + N;
 
 		//std::cout << " nidx="<<nidx << " N=" << N;
@@ -205,7 +219,8 @@ struct ShiftOperator
 		dst.applyCondition(nidx);
 		//std::cout << " nidx_post="<< nidx << std::endl;
 
-		ASSERT_1((unsigned)nidx<dst.size() && nidx>=0);
+		assert((unsigned)nidx<dst.size() && nidx>=0);
+		//ASSERT_1((unsigned)nidx<dst.size() && nidx>=0);
 
 		/*
 		// DEBUG
