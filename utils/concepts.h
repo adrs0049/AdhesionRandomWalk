@@ -16,7 +16,7 @@
 template<bool B, typename T = void>
 using Enable_if = typename std::enable_if<B, T>::type;
 
-constexpr bool All() { return true; };
+constexpr bool All() { return true; }
 
 template<typename... Args>
 constexpr bool All(bool b, Args... args)
