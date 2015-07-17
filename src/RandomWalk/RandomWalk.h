@@ -45,7 +45,7 @@ public:
 		setup();
 	}
 
-	state_vector_type& getPath() const
+	state_vector_type getPath() const
 	{
 		return state->getStateVector();
 	}
@@ -78,6 +78,7 @@ public:
 	void updatePropensity(long coordinate);
 	double getPropensity(const int coordinate, const int flag) const;
 	double getPropensitySum() const;
+	double getPropensitySumQuick() const;
 	void computePropensity(long coordinate);
 
 	// Variables

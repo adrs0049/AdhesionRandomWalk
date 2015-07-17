@@ -15,6 +15,12 @@
 #include <make_unique.h>
 #include <PropensityGenerator.h>
 
+// FIXME fix all these complicated include structure!
+#include <simd.hpp>
+#include <simd_traits.h>
+#include <simd_traits_avx.h>
+#include <vector4d.h>
+
 RandomWalk::~RandomWalk() {}
 RandomWalk::RandomWalk() {}
 RandomWalk::RandomWalk(std::shared_ptr<Parameters> _param)
@@ -87,7 +93,7 @@ void RandomWalk::Step()
 	//std::cout << "r1: " << r1 << " r2: " << r2 << std::endl;
 
 	// compute propensity
-	double a0 = getPropensitySum();
+	const double a0 = getPropensitySumQuick();
 	//ASSERT(a0!=0.0, "total propensity is zero. Error!");
 	assert(a0!=0.0);
 
@@ -98,7 +104,7 @@ void RandomWalk::Step()
 	// start at -1
 	long k {-1};
 	double ss {0.0};
-	auto r2a0 = r2 * a0;
+	const auto r2a0 = r2 * a0;
 
 	//std::cout << "step: " << steps << " r2a0:" << r2a0
 	//          << std::endl;
@@ -273,6 +279,33 @@ double RandomWalk::getPropensity(const int coordinate, const int flag) const
 double RandomWalk::getPropensitySum() const
 {
 	return std::accumulate(propensities.begin(), propensities.end(), 0.0);
+}
+
+double RandomWalk::getPropensitySumQuick() const
+{
+	double total {0.0};
+
+	using vec_type = simd_traits<double>::type;
+	std::size_t vec_size = simd_traits<double>::size;
+
+	const std::size_t regularpart = NumberOfReactions & (-vec_size);
+
+	std::size_t i = 0;
+	vec_type sum(0);
+	for (; i < regularpart; i += vec_size)
+	{
+		vec_type av = load_a(&propensities[i]);
+		sum += av;
+	}
+
+	total = hadd(sum);
+
+	// loop for the last <4 elements
+	// FIXME deal with this differently!!
+	for (; i < NumberOfReactions; ++i)
+		total += propensities[i];
+
+	return total;
 }
 
 // TODO somehow select this function based on a enum class
