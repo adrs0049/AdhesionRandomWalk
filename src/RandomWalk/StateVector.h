@@ -127,7 +127,7 @@ public:
         init();
     }
 
-	storage_type& getStateVector() { return m_stateVector; }
+	storage_type getStateVector() { return m_stateVector; }
 
  	bool checkTotal(void)
 	{
@@ -168,6 +168,16 @@ public:
 	{
 		applyCondition(idx);
 		return m_stateVector[idx];
+	}
+
+	T* data(int idx)
+	{
+		return m_stateVector.data(idx);
+	}
+
+	const T* data(int idx) const
+	{
+		return m_stateVector.data(idx);
 	}
 
 	const T& getDensityQuick(int idx) const
