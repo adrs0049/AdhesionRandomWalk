@@ -64,7 +64,8 @@ private:
 				init_delta();
 				break;
 			default:
-				throw NotImplementedException{""};
+				throw NotImplementedException{"IC_TYPE UNKNOWN"};
+				break;
 		}
 
 		update();
