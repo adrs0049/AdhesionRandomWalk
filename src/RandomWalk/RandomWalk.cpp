@@ -88,7 +88,8 @@ void RandomWalk::Step()
 
 	// compute propensity
 	double a0 = getPropensitySum();
-	ASSERT(a0!=0.0, "total propensity is zero. Error!");
+	//ASSERT(a0!=0.0, "total propensity is zero. Error!");
+	assert(a0!=0.0);
 
 	//std::cout << "a0: " << a0 << std::endl;
 
@@ -126,7 +127,8 @@ void RandomWalk::Step()
 		}
 
 		// The simulation has to find a Rxn
-		ASSERT((unsigned)k<param->getDomainSizeL(), "Simulation failed did not find a Rxn to update!");
+		//ASSERT((unsigned)k<param->getDomainSizeL(), "Simulation failed did not find a Rxn to update!");
+		assert((unsigned)k<param->getDomainSizeL());
 
 		state->LeftShift(k);
 	}
@@ -137,8 +139,8 @@ void RandomWalk::Step()
 	//computeAllPropensities();
 
 	// Tolerance to account for slight rounding errors
-	ASSERT(ss<=a0+1E-3, "Propensity sum (" << ss << ") can't be larger than the propensity sum a0 (" << a0 << ") !");
-
+	assert(ss<=a0+1E-3);
+	//ASSERT(ss<=a0+1E-3, "Propensity sum (" << ss << ") can't be larger than the propensity sum a0 (" << a0 << ") !");
 }
 
 void RandomWalk::setup()
@@ -234,7 +236,7 @@ void RandomWalk::updatePropensity(long coordinate)
 	}
 }
 
-double RandomWalk::getPropensity(int coordinate, int flag) const
+double RandomWalk::getPropensity(const int coordinate, const int flag) const
 {
 	/*
 	ASSERT(coordinate >= 0 && (unsigned)coordinate < param->getDomainSizeL(), \
@@ -279,6 +281,9 @@ void RandomWalk::computePropensity(long coordinate)
 {
 	// returns array [0] is the one to the right, [1] is the one to the left
 	auto tmp = pgen->compute(coordinate);
+
+	assert(tmp[0]>=0.0);
+	assert(tmp[1]>=0.0);
 
 	propensities.at(coordinate) = param->getLambda() *
 		state->getDensity(coordinate) * tmp[0];
