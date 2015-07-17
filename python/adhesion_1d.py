@@ -84,7 +84,12 @@ class Player(object):
 
     # DEBUG STUFF
     def getParameters(self): return self.param
-    def getDB(self): return self.db
+    def getDB(self):
+        # TODO figure out why i have to do this, otherwise database
+        # returns an old state??
+        self.db = RandomWalkDB()
+        return self.db
+
     def getNewConnection(self): return RandomWalkDB()
     def setNewDB(self): self.db = self.getNewConnection()
 
@@ -93,6 +98,9 @@ class Player(object):
 
     def doHistogram(self, simId=None, bar_width=None, Compare=False):
         if not bar_width: bar_width = self.getStepSize()
+
+        # FIXME WHY??
+        self.getDB()
 
         sim = self.db.getSimulationFromId(simId)
         ddf = self.getCellPathFromDB(simId)
@@ -165,13 +173,13 @@ class Player(object):
 
             if Compare:
                 y_max = max(np.max(x), np.max(u2))
+                print('y_max=', y_max, ' u2=', np.max(u2))
+
             else:
                 y_max = np.max(x)
 
-            print('y_max=', y_max, ' u2=', np.max(u2))
             plt.ylim(0, 1.1 * y_max)
-
-            plt.plot(xd, x, color='r')
+            plt.plot(bins, x, color='r')
 
             if Compare:
                 print('x2=', np.shape(x2), ' u2=', np.shape(u2))
@@ -541,10 +549,12 @@ if __name__ == '__main__':
 
     # TODO read this from an XML file
     param = dict(DomainSize=10, DomainN=10,
-                 diffusion_coeff=1.0, drift_coeff=20,
-                 R=1.0, omega_type=1, omega_p=0.42, g_type=1,
+                 diffusion_coeff=1.0, drift_coeff=40,
+                 R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.42, g_type=1,
                  u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1,
-                 rw_type=s.RANDOMWALK_TYPE_ADHESION)
+                 rw_type=s.RANDOMWALK_TYPE_ADHESION,
+                 space_type=s.SPACE_TYPE_ALWAYS_FREE,
+                 adhesivity_type=s.ADHESIVITY_TYPE_SIMPLE)
 
     player = Player(param)
     db=player.getDB()
