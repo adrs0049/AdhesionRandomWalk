@@ -1,3 +1,5 @@
+#pragma once
+
 #include "simd_traits.h"
 
 template<class T, class V>
@@ -57,4 +59,5 @@ store_a(T* dst, const typename simd_traits<T>::type& src)
 template<class T> inline void
 store_u(T* dst, const typename simd_traits<T>::type& src)
 { simd_functions_invoker<T, typename simd_traits<T>::type>::store_u(dst, src); }
+
 

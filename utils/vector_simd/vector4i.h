@@ -4,6 +4,8 @@
 #include "vector_base.h"
 #include "simd_traits.h"
 #include <pmmintrin.h>
+#include <immintrin.h>
+#include <smmintrin.h>
 
 class vector4i : public simd_vector<vector4i>
 {
@@ -244,24 +246,19 @@ inline vector4i operator*(const vector4i& lhs, const vector4i& rhs)
     return _mm_mullo_epi32(lhs,rhs);
 }
 
-inline vector4i operator/(const vector4i& lhs, const vector4i& rhs)
-{
-    return _mm_div_epi32(lhs,rhs);
-}
-
 inline vector4ib operator&(const vector4i& lhs, const vector4i& rhs)
 {
-    return _mm_and_epi32(lhs,rhs);
+    return _mm_and_si128(lhs,rhs);
 }
 
 inline vector4ib operator|(const vector4i& lhs, const vector4i& rhs)
 {
-    return _mm_or_epi32(lhs,rhs);
+    return _mm_or_si128(lhs,rhs);
 }
 
 inline vector4ib operator^(const vector4i& lhs, const vector4i& rhs)
 {
-    return _mm_xor_epi32(lhs,rhs);
+    return _mm_xor_si128(lhs,rhs);
 }
 
 inline vector4i operator~(const vector4i& rhs)
@@ -271,33 +268,22 @@ inline vector4i operator~(const vector4i& rhs)
 
 inline vector4ib operator&(const vector4ib& lhs, const vector4ib& rhs)
 {
-    return _mm_and_epi32(lhs,rhs);
+    return _mm_and_si128(lhs,rhs);
 }
 
 inline vector4ib operator|(const vector4ib& lhs, const vector4ib& rhs)
 {
-    return _mm_or_epi32(lhs,rhs);
+    return _mm_or_si128(lhs,rhs);
 }
 
 inline vector4ib operator^(const vector4ib& lhs, const vector4ib& rhs)
 {
-    return _mm_xor_epi32(lhs,rhs);
+    return _mm_xor_si128(lhs,rhs);
 }
 
 inline vector4ib operator~(const vector4ib& rhs)
 {
-    return _mm_xor_epi32(rhs,_mm_set1_epi32(-1));
-}
-
-inline vector4ib operator==(const vector4ib& lhs, const vector4ib& rhs)
-{
-    return _mm_cmpeq_epi32(lhs,rhs);
-}
-
-// comparisons for vector4i
-inline vector4ib operator!=(const vector4i& lhs, const vector4ib& rhs)
-{
-	return vector4ib(vector4i (~(lhs == rhs)));
+    return _mm_xor_si128(rhs,_mm_set1_epi32(-1));
 }
 
 inline vector4ib operator==(const vector4i& lhs, const vector4i& rhs)
@@ -305,7 +291,18 @@ inline vector4ib operator==(const vector4i& lhs, const vector4i& rhs)
     return _mm_cmpeq_epi32(lhs,rhs);
 }
 
+// comparisons for vector4i
 inline vector4ib operator!=(const vector4i& lhs, const vector4i& rhs)
+{
+	return vector4ib(vector4i (~(lhs == rhs)));
+}
+
+inline vector4ib operator==(const vector4ib& lhs, const vector4ib& rhs)
+{
+    return _mm_cmpeq_epi32(lhs,rhs);
+}
+
+inline vector4ib operator!=(const vector4ib& lhs, const vector4ib& rhs)
 {
 	return vector4ib(vector4i (~(lhs == rhs)));
 }

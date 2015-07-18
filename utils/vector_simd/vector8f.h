@@ -6,6 +6,17 @@
 
 #include <immintrin.h>
 
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+static inline __m256 constant8f()
+{
+	static const union
+	{
+		int32_t		i[8];
+		__m256		ymm;
+	} u = {{i0, i1, i2, i3, i4, i5, i6, i7}};
+	return u.ymm;
+}
+
 class vector8f : public simd_vector<vector8f>
 {
     using value_type = typename simd_vector_traits<vector8f>::value_type;
@@ -107,6 +118,75 @@ inline vector8f operator*(const vector8f& lhs, const vector8f& rhs)
 inline vector8f operator/(const vector8f& lhs, const vector8f& rhs)
 {
 	return _mm256_div_ps(lhs,rhs);
+}
+
+// c[i] = a[i] * b[i] + c[i]
+inline vector8f mul_add(const vector8f& a, const vector8f& b, const vector8f& c)
+{
+	return _mm256_fmadd_ps(a, b, c);
+}
+
+// c[i] = a[i] * b[i] - c[i]
+inline vector8f mul_sub(const vector8f& a, const vector8f& b, const vector8f& c)
+{
+	return _mm256_fmsub_ps(a, b, c);
+}
+
+// c[i] = - (a[i] * b[i]) + c[i]
+inline vector8f nmul_add(const vector8f& a, const vector8f& b, const vector8f& c)
+{
+	return _mm256_fnmadd_ps(a, b, c);
+}
+
+// c[i] = - (a[i] * b[i]) - c[i]
+inline vector8f nmul_sub(const vector8f& a, const vector8f& b, const vector8f& c)
+{
+	return _mm256_fnmsub_ps(a, b, c);
+}
+
+inline vector8f max(const vector8f& a, const vector8f& b)
+{
+	return _mm256_max_ps(a, b);
+}
+
+inline vector8f min(const vector8f& a, const vector8f& b)
+{
+	return _mm256_min_ps(a, b);
+}
+
+inline vector8f abs(const vector8f& a)
+{
+	__m256 mask = constant8f<0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF> ();
+	return _mm256_and_ps(a, mask);
+}
+
+inline vector8f sqrt(const vector8f& a)
+{
+	return _mm256_sqrt_ps(a);
+}
+
+inline vector8f square(const vector8f& a)
+{
+	return a * a;
+}
+
+inline vector8f rcp(const vector8f& a)
+{
+	return _mm256_rcp_ps(a);
+}
+
+inline vector8f rsqrt(const vector8f& a)
+{
+	return _mm256_rsqrt_ps(a);
+}
+
+inline float hadd(const vector8f& a)
+{
+	__m256 t1 = _mm256_hadd_ps(a, a);
+	__m256 t2 = _mm256_hadd_ps(t1, t1);
+	__m128 t3 = _mm256_extractf128_ps(t2, 1);
+	__m128 t4 = _mm_add_ss(_mm256_castps256_ps128(t2), t3);
+	return _mm_cvtss_f32(t4);
 }
 
 inline vector8fb operator&(const vector8f& lhs, const vector8f& rhs)

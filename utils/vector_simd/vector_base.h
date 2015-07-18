@@ -111,7 +111,7 @@ class simd_vector
             return (*this)();
         }
 
-        inline X& operator|(const X& rhs)
+        inline X& operator|=(const X& rhs)
         {
             (*this)() = (*this) || rhs;
             return (*this)();

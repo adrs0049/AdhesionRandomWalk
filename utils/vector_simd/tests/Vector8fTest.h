@@ -112,6 +112,9 @@ public:
 
 		for (std::size_t run = 0; run < runs; run++)
 		{
+			// FIXME
+			continue;
+
 			vector_type a, b, c;
 			unsigned int length = dis(gen);
 
@@ -769,6 +772,725 @@ public:
 	}
 
 */
+	void testSqrt(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+			}
+
+			vector_type result;
+			result.resize(length);
+
+			std::transform(a.begin(), a.end(), result.begin(),
+						static_cast<float (*)(float)>(std::sqrt));
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			b.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				vec_type bv = sqrt(av);
+				store_a(&b[i],bv);
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], b[i], tol);
+			}
+
+		}
+	}
+
+	void testSquare(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+			}
+
+			vector_type result;
+			result.resize(length);
+
+			std::transform(a.begin(), a.end(), result.begin(),
+						[] (float d) -> float { return d * d; });
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			b.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				vec_type bv = square(av);
+				store_a(&b[i],bv);
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], b[i], tol);
+			}
+
+		}
+	}
+
+	void testReciprocal(void)
+	{
+		// needs higher tolerance -> it's an approx
+		double tol = 1E-1;
+
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0.1,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			std::vector<double, AlignedAllocator<double, Alignment::AVX>> a_double, result;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				auto value = dis(gen);
+				a.push_back(value);
+				a_double.push_back(value);
+			}
+
+		 	//vector_type tmp, result;
+			result.resize(length);
+
+			std::transform(a.begin(), a.end(), result.begin(),
+						std::bind1st(std::divides<double>(), 1.0));
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			b.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				vec_type bv = rcp(av);
+				store_a(&b[i],bv);
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], b[i], tol);
+			}
+
+		}
+	}
+
+	void testRSqrt(void)
+	{
+		// needs higher tolerance -> it's an approx
+		double tol = 1E-1;
+
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0.1,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			std::vector<double, AlignedAllocator<double, Alignment::AVX>> a_double, tmp, result;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				auto value = dis(gen);
+				a.push_back(value);
+				a_double.push_back(value);
+			}
+
+		 	//vector_type tmp, result;
+			tmp.resize(length);
+			result.resize(length);
+
+			std::transform(a.begin(), a.end(), tmp.begin(),
+						static_cast<double (*)(double)>(std::sqrt));
+
+			std::transform(tmp.begin(), tmp.end(), result.begin(),
+						std::bind1st(std::divides<double>(), 1.0));
+
+			TS_ASSERT_EQUALS(a.size(), tmp.size());
+			TS_ASSERT_EQUALS(a.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			b.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				vec_type bv = rsqrt(av);
+				store_a(&b[i],bv);
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], b[i], tol);
+			}
+
+		}
+	}
+
+	void testAbs(void)
+	{
+		// needs higher tolerance -> it's an approx
+		double tol = 1E-1;
+
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-2.0,2.0);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			std::vector<double, AlignedAllocator<double, Alignment::AVX>> a_double, tmp, result;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				auto value = dis(gen);
+				a.push_back(value);
+				a_double.push_back(value);
+			}
+
+		 	//vector_type tmp, result;
+			result.resize(length);
+
+			std::transform(a.begin(), a.end(), result.begin(),
+						static_cast<double (*)(double)>(std::abs));
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			b.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				vec_type bv = abs(av);
+				store_a(&b[i],bv);
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], b[i], tol);
+			}
+		}
+	}
+
+	void testHorizonalAdd(void)
+	{
+		// needs higher tolerance -> it's an approx
+		double tol = 1E-1;
+
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+			}
+
+			auto result = std::accumulate(a.begin(), a.end(), 0.0);
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			float total {0.0};
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+
+				total += hadd(av);
+			}
+
+			TS_ASSERT_DELTA(result, total, tol);
+		}
+	}
+
+	void testMax(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			vector_type result;
+
+			auto i1 = a.begin(), i2 = b.begin();
+			for (; i1 != a.end(); i1++, i2++)
+				result.push_back(std::max(*i1, *i2));
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			c.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+
+				vec_type cv = max(av, bv);
+				store_a(&c[i],cv);
+			}
+
+			TS_ASSERT_EQUALS(c.size(), a.size());
+			TS_ASSERT_EQUALS(c.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], c[i], tol);
+			}
+
+		}
+	}
+
+	void testMin(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			vector_type result;
+
+			auto i1 = a.begin(), i2 = b.begin();
+			for (; i1 != a.end(); i1++, i2++)
+				result.push_back(std::min(*i1, *i2));
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			c.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+
+				vec_type cv = min(av, bv);
+				store_a(&c[i],cv);
+			}
+
+			TS_ASSERT_EQUALS(c.size(), a.size());
+			TS_ASSERT_EQUALS(c.size(), b.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], c[i], tol);
+			}
+
+		}
+	}
+
+	void testMulAdd(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c, d;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+				c.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+			TS_ASSERT_EQUALS(a.size(), c.size());
+
+			vector_type result;
+
+			for (std::size_t i = 0; i < length; i++)
+				result.push_back(a[i] * b[i] + c[i]);
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+			TS_ASSERT_EQUALS(c.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			d.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+			TS_ASSERT_EQUALS(c.size(), n);
+			TS_ASSERT_EQUALS(d.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+				vec_type cv = load_a(&c[i]);
+
+				vec_type dv = mul_add(av, bv, cv);
+				store_a(&d[i],dv);
+			}
+
+			TS_ASSERT_EQUALS(d.size(), a.size());
+			TS_ASSERT_EQUALS(d.size(), b.size());
+			TS_ASSERT_EQUALS(d.size(), c.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], d[i], tol);
+			}
+
+		}
+	}
+
+	void testMulSub(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c, d;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+				c.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+			TS_ASSERT_EQUALS(a.size(), c.size());
+
+			vector_type result;
+
+			for (std::size_t i = 0; i < length; i++)
+				result.push_back(a[i] * b[i] - c[i]);
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+			TS_ASSERT_EQUALS(c.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			d.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+			TS_ASSERT_EQUALS(c.size(), n);
+			TS_ASSERT_EQUALS(d.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+				vec_type cv = load_a(&c[i]);
+
+				vec_type dv = mul_sub(av, bv, cv);
+				store_a(&d[i],dv);
+			}
+
+			TS_ASSERT_EQUALS(d.size(), a.size());
+			TS_ASSERT_EQUALS(d.size(), b.size());
+			TS_ASSERT_EQUALS(d.size(), c.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], d[i], tol);
+			}
+
+		}
+	}
+
+	void testNMulAdd(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c, d;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+				c.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+			TS_ASSERT_EQUALS(a.size(), c.size());
+
+			vector_type result;
+
+			for (std::size_t i = 0; i < length; i++)
+				result.push_back(-(a[i] * b[i]) + c[i]);
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+			TS_ASSERT_EQUALS(c.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			d.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+			TS_ASSERT_EQUALS(c.size(), n);
+			TS_ASSERT_EQUALS(d.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+				vec_type cv = load_a(&c[i]);
+
+				vec_type dv = nmul_add(av, bv, cv);
+				store_a(&d[i],dv);
+			}
+
+			TS_ASSERT_EQUALS(d.size(), a.size());
+			TS_ASSERT_EQUALS(d.size(), b.size());
+			TS_ASSERT_EQUALS(d.size(), c.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], d[i], tol);
+			}
+
+		}
+	}
+
+	void testNMulSub(void)
+	{
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c, d;
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				a.push_back(dis(gen));
+				b.push_back(dis(gen));
+				c.push_back(dis(gen));
+			}
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+			TS_ASSERT_EQUALS(a.size(), c.size());
+
+			vector_type result;
+
+			for (std::size_t i = 0; i < length; i++)
+				result.push_back(-(a[i] * b[i]) - c[i]);
+
+			TS_ASSERT_EQUALS(a.size(), result.size());
+			TS_ASSERT_EQUALS(b.size(), result.size());
+			TS_ASSERT_EQUALS(c.size(), result.size());
+
+			using vec_type = simd_traits<float>::type;
+			size_t vec_size = simd_traits<float>::size;
+
+			std::size_t n = a.size();
+
+			d.resize(length, 0.0);
+
+			TS_ASSERT_EQUALS(a.size(), n);
+			TS_ASSERT_EQUALS(b.size(), n);
+			TS_ASSERT_EQUALS(c.size(), n);
+			TS_ASSERT_EQUALS(d.size(), n);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+				vec_type cv = load_a(&c[i]);
+
+				vec_type dv = nmul_sub(av, bv, cv);
+				store_a(&d[i],dv);
+			}
+
+			TS_ASSERT_EQUALS(d.size(), a.size());
+			TS_ASSERT_EQUALS(d.size(), b.size());
+			TS_ASSERT_EQUALS(d.size(), c.size());
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				TS_ASSERT_DELTA(result[i], d[i], tol);
+			}
+
+		}
+	}
+
 
 
 };

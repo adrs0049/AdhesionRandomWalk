@@ -115,6 +115,65 @@ inline vector4d operator/(const vector4d& lhs, const vector4d& rhs)
 	return _mm256_div_pd(lhs,rhs);
 }
 
+// c[i] = a[i] * b[i] + c[i]
+inline vector4d mul_add(const vector4d& a, const vector4d& b, const vector4d& c)
+{
+	return _mm256_fmadd_pd(a, b, c);
+}
+
+// c[i] = a[i] * b[i] - c[i]
+inline vector4d mul_sub(const vector4d& a, const vector4d& b, const vector4d& c)
+{
+	return _mm256_fmsub_pd(a, b, c);
+}
+
+// c[i] = - (a[i] * b[i]) + c[i]
+inline vector4d nmul_add(const vector4d& a, const vector4d& b, const vector4d& c)
+{
+	return _mm256_fnmadd_pd(a, b, c);
+}
+
+// c[i] = - (a[i] * b[i]) - c[i]
+inline vector4d nmul_sub(const vector4d& a, const vector4d& b, const vector4d& c)
+{
+	return _mm256_fnmsub_pd(a, b, c);
+}
+
+inline vector4d max(const vector4d& a, const vector4d& b)
+{
+	return _mm256_max_pd(a, b);
+}
+
+inline vector4d min(const vector4d& a, const vector4d& b)
+{
+	return _mm256_min_pd(a, b);
+}
+
+inline vector4d abs(const vector4d& a)
+{
+	__m256d mask = _mm256_castps_pd(constant8f<-1,0x7FFFFFFF,-1,
+			0x7FFFFFFF,-1,0x7FFFFFFF,-1,0x7FFFFFFF> ());
+	return _mm256_and_pd(a, mask);
+}
+
+inline vector4d sqrt(const vector4d& a)
+{
+	return _mm256_sqrt_pd(a);
+}
+
+inline vector4d square(const vector4d& a)
+{
+	return a * a;
+}
+
+inline double hadd(const vector4d& a)
+{
+	__m256d t1 = _mm256_hadd_pd(a, a);
+	__m128d t2 = _mm256_extractf128_pd(t1, 1);
+	__m128d t3 = _mm_add_sd(_mm256_castpd256_pd128(t1), t2);
+	return _mm_cvtsd_f64(t3);
+}
+
 inline vector4db operator&(const vector4d& lhs, const vector4d& rhs)
 {
 	return _mm256_and_pd(lhs,rhs);

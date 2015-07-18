@@ -14,23 +14,23 @@
 
 #include "Terminate.h"
 #include <simd.hpp>
-#include <simd_traits.h>
-#include "simd_traits_see.h"
-#include "vector4i.h"
+#include <simd_traits_avx.h>
+#include "vector8i.h"
 #include <AlignmentAllocator.h>
 
 #include "vector_ops.h"
+#include <cstdlib>
 
-class Vector4iTest : public CxxTest::TestSuite
+class Vector8iTest : public CxxTest::TestSuite
 {
 private:
     double tol = 1E-5;
 
-	using vector_type = std::vector<int,
-		  AlignedAllocator<int, Alignment::SSE>>;
+	using vector_type = std::vector<int32_t,
+		  AlignedAllocator<int32_t, Alignment::AVX>>;
 
 	using vector_bool_type = std::vector<bool,
-		  AlignedAllocator<bool, Alignment::SSE>>;
+		  AlignedAllocator<bool, Alignment::AVX>>;
 
 public:
 
@@ -47,13 +47,13 @@ public:
 
 	void testBasic(void)
 	{
-		vector4i test;
+		vector8i test;
 	}
 
 	void testAdditionConst(void)
 	{
 		vector_type a, b, c;
-		unsigned int length = 20;
+		unsigned int length = 40;
 
 		a.resize(length, 1.0);
 		b.resize(length, 1.0);
@@ -64,8 +64,8 @@ public:
 
 		std::cerr << "Testing SIMD instructions" << std::endl;
 
-		using vec_type = simd_traits<int>::type;
-		size_t vec_size = simd_traits<int>::size;
+		using vec_type = simd_traits<int32_t>::type;
+		size_t vec_size = simd_traits<int32_t>::size;
 
 		std::size_t n = a.size();
 		c.resize(length, 0.0);
@@ -103,10 +103,59 @@ public:
 		}
 	}
 
+	//void testAdditionVar(void)
+	//{
+	/*
+		unsigned runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(1, 200);
+
+		for (std::size_t run = 0; run < runs; run++)
+		{
+			vector_type a, b, c;
+			unsigned int length = dis(gen);
+
+			std::cerr << "Variable length test with " << length
+					  << "." << std::endl;
+
+			a.resize(length, 1.0);
+			b.resize(length, 1.0);
+
+			TS_ASSERT_EQUALS(a.size(), b.size());
+
+			auto result = a + b;
+
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
+
+			std::size_t n = a.size();
+			c.resize(length, 0.0);
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+
+				vec_type cv = av + bv;
+				store_a(&c[i],cv);
+			}
+
+			for (std::size_t i = 0; i < length; i++)
+			{
+				//std::cout<<"result["<<i<<"]="<<result[i]
+				//	<<", c["<<i<<"]="<<c[i]<<std::endl;
+				TS_ASSERT_DELTA(result[i], c[i], tol);
+			}
+		}
+	}
+	*/
+
 	void testSubstractionConst(void)
 	{
 		vector_type a, b, c;
-		unsigned int length = 20;
+		unsigned int length = 40;
 
 		a.resize(length, 2.0);
 		b.resize(length, 1.0);
@@ -117,8 +166,8 @@ public:
 
 		std::cerr << "Testing SIMD instructions" << std::endl;
 
-		using vec_type = simd_traits<int>::type;
-		size_t vec_size = simd_traits<int>::size;
+		using vec_type = simd_traits<int32_t>::type;
+		size_t vec_size = simd_traits<int32_t>::size;
 
 		std::size_t n = a.size();
 		c.resize(length, 0.0);
@@ -159,7 +208,7 @@ public:
 	void testMultiplicationConst(void)
 	{
 		vector_type a, b, c;
-		unsigned int length = 20;
+		unsigned int length = 40;
 
 		a.resize(length, 2.0);
 		b.resize(length, 2.0);
@@ -170,8 +219,8 @@ public:
 
 		std::cerr << "Testing SIMD instructions" << std::endl;
 
-		using vec_type = simd_traits<int>::type;
-		size_t vec_size = simd_traits<int>::size;
+		using vec_type = simd_traits<int32_t>::type;
+		size_t vec_size = simd_traits<int32_t>::size;
 
 		std::size_t n = a.size();
 		c.resize(length, 0.0);
@@ -212,15 +261,15 @@ public:
 	void testInkrementConst(void)
 	{
 		vector_type a, b, c, result;
-		unsigned int length = 20;
+		unsigned int length = 40;
 
 		a.resize(length, 4.0);
 		b.resize(length, 0.0);
 		c.resize(length, 0.0);
 		result.resize(length, 5.0);
 
-		using vec_type = simd_traits<int>::type;
-		size_t vec_size = simd_traits<int>::size;
+		using vec_type = simd_traits<int32_t>::type;
+		size_t vec_size = simd_traits<int32_t>::size;
 
 		std::size_t n = a.size();
 
@@ -258,15 +307,15 @@ public:
 	void testDekrementConst(void)
 	{
 		vector_type a, b, c, result;
-		unsigned int length = 20;
+		unsigned int length = 40;
 
 		a.resize(length, 4.0);
 		b.resize(length, 0.0);
 		c.resize(length, 0.0);
 		result.resize(length, 3.0);
 
-		using vec_type = simd_traits<int>::type;
-		size_t vec_size = simd_traits<int>::size;
+		using vec_type = simd_traits<int32_t>::type;
+		size_t vec_size = simd_traits<int32_t>::size;
 
 		std::size_t n = a.size();
 
@@ -324,8 +373,8 @@ public:
 
 			auto result = a + b;
 
-			using vec_type = simd_traits<int>::type;
-			size_t vec_size = simd_traits<int>::size;
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
 
 			std::size_t n = a.size();
 
@@ -378,8 +427,8 @@ public:
 
 			auto result = a - b;
 
-			using vec_type = simd_traits<int>::type;
-			size_t vec_size = simd_traits<int>::size;
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
 
 			std::size_t n = a.size();
 
@@ -431,8 +480,8 @@ public:
 
 			auto result = a * b;
 
-			using vec_type = simd_traits<int>::type;
-			size_t vec_size = simd_traits<int>::size;
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
 
 			std::size_t n = a.size();
 
@@ -485,8 +534,8 @@ public:
 
 			result = a + d;
 
-			using vec_type = simd_traits<int>::type;
-			size_t vec_size = simd_traits<int>::size;
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
 
 			std::size_t n = a.size();
 
@@ -535,8 +584,8 @@ public:
 
 			result = a - d;
 
-			using vec_type = simd_traits<int>::type;
-			size_t vec_size = simd_traits<int>::size;
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
 
 			std::size_t n = a.size();
 
@@ -560,5 +609,65 @@ public:
 
 		}
 	}
+
+//	void testLogic1(void)
+//	{
+//		using vec_type = simd_traits<int32_t>::type;
+//		using vec_bool_type = vector4fb;
+//		size_t vec_size = simd_traits<int32_t>::size;
+//
+//		vec_type a(1);
+//		vec_type b(1);
+//		vec_type c(0);
+//	}
+
+//	void testLogic2(void)
+//	{
+/*
+		unsigned int length = 200;
+		int runs = 1000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0,2);
+
+		for (int run = 0; run < runs; run++)
+		{
+			vector_type a, b, c, d, result;
+
+			for(std::size_t i = 0; i < length; i++)
+			{
+				auto number = dis(gen);
+				a.push_back(number);
+				b.push_back(number);
+				c.push_back(number + 0.5);
+			}
+
+			using vec_type = simd_traits<int32_t>::type;
+			size_t vec_size = simd_traits<int32_t>::size;
+
+			std::size_t n = a.size();
+
+			for(size_t i = 0; i < n; i += vec_size)
+			{
+				vec_type av = load_a(&a[i]);
+				vec_type bv = load_a(&b[i]);
+				vec_type cv = load_a(&c[i]);
+
+				TS_ASSERT(av==bv);
+				TS_ASSERT(!(av!=bv));
+
+				TS_ASSERT(av!=cv);
+				TS_ASSERT(!(av==cv));
+
+				TS_ASSERT(bv!=cv);
+				TS_ASSERT(!(bv==cv));
+			}
+		}
+	}
+
+*/
+
+
 };
 

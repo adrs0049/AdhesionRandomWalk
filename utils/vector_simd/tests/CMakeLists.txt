@@ -27,9 +27,17 @@ if (CXXTEST_FOUND)
 		${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Vector4dTest.h)
 
-	#CXXTEST_ADD_TEST(Vector4iTest Vector4iTest.cc 
+    	CXXTEST_ADD_TEST(Vector4iTest Vector4iTest.cc 
+		${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
+	    ${CMAKE_CURRENT_SOURCE_DIR}/Vector4iTest.h)
+
+		CXXTEST_ADD_TEST(Vector8iTest Vector8iTest.cc 
+		${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
+	    ${CMAKE_CURRENT_SOURCE_DIR}/Vector8iTest.h)
+
+	#CXXTEST_ADD_TEST(Vector256bTest Vector256bTest.cc 
 	#	${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
-	#    ${CMAKE_CURRENT_SOURCE_DIR}/Vector4iTest.h)
+	#    ${CMAKE_CURRENT_SOURCE_DIR}/Vector256bTest.h)
 
 endif()
 
