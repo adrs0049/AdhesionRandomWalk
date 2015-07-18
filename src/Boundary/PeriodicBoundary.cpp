@@ -1,29 +1,24 @@
 #include "Boundary.h"
 #include "PeriodicBoundary.h"
 
-#include <cmath>
-
-#include <iostream>
-
 namespace boundary {
 
-bool PeriodicBoundary::applyCondition(int& coordinate, const int& max_value)
+bool PeriodicBoundary::applyCondition(int& coordinate,
+									  const int& max_value)
 {
-        short val;
-
-	if (coordinate < 0) 
+	short val;
+	if (coordinate < 0)
 	{
-		val = std::abs((float)(coordinate % max_value));
-                //std::cout << "coordinate="<<coordinate << " max=" << max_value << " val = "<<val<< " coord=" << max_value - val << std::endl;
-		coordinate = max_value - val;
+		val = coordinate % max_value;
+		coordinate = (val != 0) ? max_value + val : 0;
 		return true;
 	}
-	else if (coordinate >= max_value) 
+	else if (coordinate >= max_value)
 	{
 		coordinate = coordinate % max_value;
-		return true;	
+		return true;
 	}
-	
+
 	return false;
 }
 
