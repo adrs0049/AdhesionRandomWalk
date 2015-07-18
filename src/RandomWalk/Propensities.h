@@ -12,6 +12,12 @@
 
 #include <StateVector.h>
 
+// FIXME fix all these complicated include structure!
+#include <simd.hpp>
+#include <simd_traits.h>
+#include <simd_traits_avx.h>
+#include <vector4d.h>
+
 class PropensitiesGenerator
 {
 	protected:
@@ -99,11 +105,14 @@ class DriftPropensities : public PropensitiesGenerator
 
 class AdhesionPropensities : public PropensitiesGenerator
 {
+		using vec_type = simd_traits<double>::type;
+		std::size_t vec_size = simd_traits<double>::size;
 
 	public:
 		AdhesionPropensities() {}
 
-		AdhesionPropensities& set(const std::shared_ptr<state_vector>& state_ptr)
+		AdhesionPropensities& set(const
+				std::shared_ptr<state_vector>& state_ptr)
 		{
 			state = state_ptr;
 			return *this;
@@ -115,6 +124,7 @@ class AdhesionPropensities : public PropensitiesGenerator
 			drift_coeff_and_h = p->getDriftSim() * p->getDiscreteX();
 			sensing_radius = p->getSensingRadiusL();
 			TotalNumberOfCells = p->getNumberOfCells();
+			domainSizeL = p->getDomainSizeL();
 
 			const auto& omega_type = p->getOmegaType();
 			const auto& space_type = p->getSpaceType();
@@ -123,7 +133,8 @@ class AdhesionPropensities : public PropensitiesGenerator
 			switch (omega_type)
 			{
 				case OMEGA_TYPE::UNIFORM:
-					omega_normalization_constant = 1.0 / (2.0 * p->getSensingRadius());
+					omega_normalization_constant =
+						1.0 / (2.0 * p->getSensingRadius());
 
 					omega = [this] (const long coordinate)
 					{
@@ -152,7 +163,8 @@ class AdhesionPropensities : public PropensitiesGenerator
 					break;
 
 				case SPACE_TYPE::CLASSICAL_VOLUME_FILLING:
-					throw NotImplementedException {"SPACE_TYPE::CLASSICAL_VOLUME_FILLING"};
+					throw NotImplementedException
+						{"SPACE_TYPE::CLASSICAL_VOLUME_FILLING"};
 					break;
 
 				default:
@@ -213,19 +225,57 @@ class AdhesionPropensities : public PropensitiesGenerator
 		{
 			// compute polarization
 			double total {0.0};
+			const std::size_t regularpart = sensing_radius & (-vec_size);
 
-			// TODO can we use SIMD here??
-			// Do the left hand side
-			for (long idx = 0; idx < sensing_radius; idx++)
+			std::size_t i = 0;
+			vec_type sum1(0);
+			for (;i < regularpart; i += vec_size)
 			{
-				total -= space(coordinate - idx) * omega(-idx) * adhesivity(coordinate - idx);
+				// FIXME both are assumed to be uniform for the moment
+				vec_type space_vec(space(i));
+				vec_type omega_vec(omega(i));
+				vec_type adhes_vec(adhesivity(coordinate - i),
+								   adhesivity(coordinate - (i+1)),
+								   adhesivity(coordinate - (i+2)),
+								   adhesivity(coordinate - (i+3)));
+
+				vec_type rv = space_vec * omega_vec * adhes_vec;
+
+				sum1 -= rv;
 			}
 
-			// Do the right hand side
-			for (long idx = 0; idx < sensing_radius; idx++)
+			total += hadd(sum1);
+
+			// loop for the last <4 elements
+			// FIXME deal with this differently!!
+			for (; i < sensing_radius; ++i)
+				total -= space(coordinate - i) *
+					omega(-i) * adhesivity(coordinate - i);
+
+			std::size_t j = 0;
+			vec_type sum2(0);
+			for (;j < regularpart; j += vec_size)
 			{
-				total += space(coordinate + idx) * omega(idx)  * adhesivity(coordinate + idx);
+				// FIXME both are assumed to be uniform for the moment
+				vec_type space_vec(space(j));
+				vec_type omega_vec(omega(j));
+				vec_type adhes_vec(adhesivity(coordinate - j),
+								   adhesivity(coordinate - (j+1)),
+								   adhesivity(coordinate - (j+2)),
+								   adhesivity(coordinate - (j+3)));
+
+				vec_type rv = space_vec * omega_vec * adhes_vec;
+
+				sum2 += rv;
 			}
+
+			total += hadd(sum2);
+
+			// loop for the last <4 elements
+			// FIXME deal with this differently!!
+			for (; j < sensing_radius; ++j)
+				total += space(coordinate - j) *
+					omega(-j) * adhesivity(coordinate - j);
 
 			total /= TotalNumberOfCells;
 			total *= drift_coeff_and_h;
@@ -237,8 +287,9 @@ class AdhesionPropensities : public PropensitiesGenerator
 	private:
 		double diffusion_coeff;
 		double drift_coeff_and_h;
-		double sensing_radius;
+		unsigned long sensing_radius;
 		unsigned long TotalNumberOfCells;
+		unsigned long domainSizeL;
 
 		double omega_normalization_constant;
 
