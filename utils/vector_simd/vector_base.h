@@ -5,6 +5,17 @@
 #include "simd_traits.h"
 #include <x86intrin.h>
 
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+static inline __m256 constant8f()
+{
+	static const union
+	{
+		int		i[8];
+		__m256	ymm;
+	} u = {{i0,i1,i2,i3,i4,i5,i6,i7}};
+	return u.ymm;
+}
+
 template<class X>
 struct simd_vector_traits;
 

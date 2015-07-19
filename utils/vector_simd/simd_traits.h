@@ -3,13 +3,6 @@
 
 #include <cstdint>
 
-template<class T>
-struct simd_traits
-{
-    using value = T;
-    static const std::size_t size = 1;
-};
-
 template<typename T> struct simd_vector_traits;
 
 class vector256b;
@@ -80,3 +73,11 @@ struct simd_vector_traits<vector4d>
 	using value_type = double;
 	using vector_bool = vector4db;
 };
+
+template<class T>
+struct simd_traits
+{
+    using value = T;
+    static const std::size_t size = 1;
+};
+

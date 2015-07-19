@@ -13,10 +13,11 @@
 #include <random>
 
 #include "Terminate.h"
-#include <simd.hpp>
+#include <invoker.h>
 #include <simd_traits.h>
 #include "simd_traits_avx.h"
 #include "vector4d.h"
+#include "vector2d.h"
 #include <AlignmentAllocator.h>
 
 #include "vector_ops.h"
@@ -36,18 +37,224 @@ public:
 
     void setUp(void)
     {
-        std::cerr << "setup" << std::endl;
 		Error::TerminalCatcher::init();
     }
 
     void tearDown(void)
-    {
-        std::cerr << "TearDown" << std::endl;
-    }
+    {}
 
-	void testBasic(void)
+	void testConstructorConstant(void)
 	{
-		vector4d test;
+		unsigned long runs = 10000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+			double value = dis(gen);
+			vector4d test(value);
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], value, tol);
+			TS_ASSERT_DELTA(x[1], value, tol);
+			TS_ASSERT_DELTA(x[2], value, tol);
+			TS_ASSERT_DELTA(x[3], value, tol);
+		}
+	}
+
+	void testConstructorVariable(void)
+	{
+		unsigned long runs = 10000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+
+			std::vector<double> values;
+			for (std::size_t idx = 0; idx < 4; idx++)
+				values.push_back(dis(gen));
+
+			vector4d test(values[0], values[1], values[2], values[3]);
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], values[0], tol);
+			TS_ASSERT_DELTA(x[1], values[1], tol);
+			TS_ASSERT_DELTA(x[2], values[2], tol);
+			TS_ASSERT_DELTA(x[3], values[3], tol);
+		}
+	}
+
+	void testConstructVector2d(void)
+	{
+		unsigned long runs = 10000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+
+			std::vector<double> values;
+			for (std::size_t idx = 0; idx < 4; idx++)
+				values.push_back(dis(gen));
+
+			vector2d test_low (values[0], values[1]);
+			vector2d test_high (values[2], values[3]);
+
+			TS_ASSERT_DELTA(test_low[0], values[0], tol);
+			TS_ASSERT_DELTA(test_low[1], values[1], tol);
+			TS_ASSERT_DELTA(test_high[0], values[2], tol);
+			TS_ASSERT_DELTA(test_high[1], values[3], tol);
+
+			vector4d test(test_low, test_high);
+
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], values[0], tol);
+			TS_ASSERT_DELTA(x[1], values[1], tol);
+			TS_ASSERT_DELTA(x[2], values[2], tol);
+			TS_ASSERT_DELTA(x[3], values[3], tol);
+
+			TS_ASSERT_DELTA(test[0], values[0], tol);
+			TS_ASSERT_DELTA(test[1], values[1], tol);
+			TS_ASSERT_DELTA(test[2], values[2], tol);
+			TS_ASSERT_DELTA(test[3], values[3], tol);
+		}
+	}
+
+	void testExtract(void)
+	{
+		unsigned long runs = 10000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+
+			std::vector<double> values;
+			for (std::size_t idx = 0; idx < 4; idx++)
+				values.push_back(dis(gen));
+
+			vector4d test(values[0], values[1], values[2], values[3]);
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], values[0], tol);
+			TS_ASSERT_DELTA(x[1], values[1], tol);
+			TS_ASSERT_DELTA(x[2], values[2], tol);
+			TS_ASSERT_DELTA(x[3], values[3], tol);
+
+			TS_ASSERT_DELTA(test[0], values[0], tol);
+			TS_ASSERT_DELTA(test[1], values[1], tol);
+			TS_ASSERT_DELTA(test[2], values[2], tol);
+			TS_ASSERT_DELTA(test[3], values[3], tol);
+		}
+	}
+
+	void testExtractLowAndHigh(void)
+	{
+		unsigned long runs = 10000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+
+			std::vector<double> values;
+			for (std::size_t idx = 0; idx < 4; idx++)
+				values.push_back(dis(gen));
+
+			vector4d test(values[0], values[1], values[2], values[3]);
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], values[0], tol);
+			TS_ASSERT_DELTA(x[1], values[1], tol);
+			TS_ASSERT_DELTA(x[2], values[2], tol);
+			TS_ASSERT_DELTA(x[3], values[3], tol);
+
+			TS_ASSERT_DELTA(test[0], values[0], tol);
+			TS_ASSERT_DELTA(test[1], values[1], tol);
+			TS_ASSERT_DELTA(test[2], values[2], tol);
+			TS_ASSERT_DELTA(test[3], values[3], tol);
+
+			// extract lower
+			vector2d low = test.get_low();
+
+			TS_ASSERT_DELTA(low[0], values[0], tol);
+			TS_ASSERT_DELTA(low[1], values[1], tol);
+
+			// extract high
+			vector2d high = test.get_high();
+
+			TS_ASSERT_DELTA(high[0], values[2], tol);
+			TS_ASSERT_DELTA(high[1], values[3], tol);
+		}
+	}
+
+	void testLoadPartial(void)
+	{
+		unsigned long runs = 100000;
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(-1000.0,1000.0);
+
+		for (uint32_t n = 0; n < 5; n++)
+		{
+
+		for (unsigned long run = 0; run < runs; run++)
+		{
+			double x[4];
+
+			std::vector<double> values;
+			for (std::size_t idx = 0; idx < n; idx++)
+				values.push_back(dis(gen));
+
+			for (std::size_t idx = n; idx < 4; idx++)
+				values.push_back(0.0);
+
+			vector4d test;
+			test.load_partial(n, &values[0]);
+			test.store_u(&x[0]);
+
+			TS_ASSERT_DELTA(x[0], values[0], tol);
+			TS_ASSERT_DELTA(x[1], values[1], tol);
+			TS_ASSERT_DELTA(x[2], values[2], tol);
+			TS_ASSERT_DELTA(x[3], values[3], tol);
+
+			TS_ASSERT_DELTA(test[0], values[0], tol);
+			TS_ASSERT_DELTA(test[1], values[1], tol);
+			TS_ASSERT_DELTA(test[2], values[2], tol);
+			TS_ASSERT_DELTA(test[3], values[3], tol);
+
+			// extract lower
+			vector2d low = test.get_low();
+
+			TS_ASSERT_DELTA(low[0], values[0], tol);
+			TS_ASSERT_DELTA(low[1], values[1], tol);
+
+			// extract high
+			vector2d high = test.get_high();
+
+			TS_ASSERT_DELTA(high[0], values[2], tol);
+			TS_ASSERT_DELTA(high[1], values[3], tol);
+		}
+
+		}
 	}
 
 	void testAdditionConst(void)
@@ -61,8 +268,6 @@ public:
 		TS_ASSERT_EQUALS(a.size(), b.size());
 
 		auto result = a + b;
-
-		std::cerr << "Testing SIMD instructions" << std::endl;
 
 		using vec_type = simd_traits<double>::type;
 		size_t vec_size = simd_traits<double>::size;
@@ -115,8 +320,6 @@ public:
 
 		auto result = a - b;
 
-		std::cerr << "Testing SIMD instructions" << std::endl;
-
 		using vec_type = simd_traits<double>::type;
 		size_t vec_size = simd_traits<double>::size;
 
@@ -168,8 +371,6 @@ public:
 
 		auto result = a * b;
 
-		std::cerr << "Testing SIMD instructions" << std::endl;
-
 		using vec_type = simd_traits<double>::type;
 		size_t vec_size = simd_traits<double>::size;
 
@@ -220,8 +421,6 @@ public:
 		TS_ASSERT_EQUALS(a.size(), b.size());
 
 		auto result = a / b;
-
-		std::cerr << "Testing SIMD instructions" << std::endl;
 
 		using vec_type = simd_traits<double>::type;
 		size_t vec_size = simd_traits<double>::size;

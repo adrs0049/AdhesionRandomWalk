@@ -3,19 +3,10 @@
 
 #include "vector_base.h"
 #include "simd_traits.h"
-
 #include <immintrin.h>
+#include <vector2d.h>
 
-template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
-static inline __m256 constant8f()
-{
-	static const union
-	{
-		int		i[8];
-		__m256	ymm;
-	} u = {{i0,i1,i2,i3,i4,i5,i6,i7}};
-	return u.ymm;
-}
+#define set_m128r(lo,hi) _mm256_insertf128_ps(_mm256_castps128_ps256(lo),(hi),1)
 
 class vector4d : public simd_vector<vector4d>
 {
@@ -29,6 +20,12 @@ class vector4d : public simd_vector<vector4d>
 
         inline vector4d(const __m256d& rhs)
 			: m_value(rhs) {}
+
+		inline vector4d(const vector2d& lhs, const vector2d& rhs)
+		{
+			m_value = _mm256_castps_pd(set_m128r(
+						_mm_castpd_ps(lhs), _mm_castpd_ps(rhs)));
+		}
 
         inline vector4d& operator=(const __m256d& rhs)
         {
@@ -60,9 +57,49 @@ class vector4d : public simd_vector<vector4d>
             _mm256_storeu_pd(dst, m_value);
         }
 
+		inline vector4d& load_partial(int n, const value_type* src)
+		{
+			if (n > 0 && n <= 2)
+			{
+				*this = vector4d(vector2d().load_partial(n, src),
+						         _mm_setzero_pd());
+			}
+			else if (n > 2 && n <= 4)
+			{
+				*this = vector4d(vector2d().load_u(src),
+								 vector2d().load_partial(n - 2, src + 2));
+			}
+			else
+			{
+				m_value = _mm256_setzero_pd();
+			}
+			return *this;
+		}
+
+		double extract(uint32_t index) const
+		{
+			double x[4];
+			store_u(x);
+			return x[index & 3];
+		}
+
+		double operator [] (uint32_t index) const
+		{
+			return extract(index);
+		}
+
+		vector2d get_low() const
+		{
+			return _mm256_castpd256_pd128(m_value);
+		}
+
+		vector2d get_high() const
+		{
+			return _mm256_extractf128_pd(m_value, 1);
+		}
+
     private:
         __m256d m_value;
-
 };
 
 class vector4db : public simd_vector_bool<vector4db>

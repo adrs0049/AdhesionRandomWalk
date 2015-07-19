@@ -13,7 +13,7 @@
 #include <random>
 
 #include "Terminate.h"
-#include <simd.hpp>
+#include <invoker.h>
 #include <simd_traits_avx.h>
 #include "vector8i.h"
 #include <AlignmentAllocator.h>
