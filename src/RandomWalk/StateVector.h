@@ -127,9 +127,9 @@ public:
         init();
     }
 
-	storage_type getStateVector() { return m_stateVector; }
+	storage_type getStateVector() const { return m_stateVector; }
 
- 	bool checkTotal(void)
+ 	bool checkTotal(void) const
 	{
 		return getTotalNumberOfCells() == p->getNumberOfCells();
     }
@@ -170,14 +170,14 @@ public:
 		return m_stateVector[idx];
 	}
 
-	T* data(int idx)
+	T* data(const int idx)
 	{
-		return m_stateVector.data(idx);
+		return (m_stateVector.data() + idx);
 	}
 
-	const T* data(int idx) const
+	const T* data(const int idx) const
 	{
-		return m_stateVector.data(idx);
+		return (m_stateVector.data() + idx);
 	}
 
 	const T& getDensityQuick(int idx) const
