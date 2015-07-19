@@ -44,16 +44,16 @@ class Parameters
 {
 	public:
 		Parameters();
-		Parameters(double Dsize_, double StepSize_,
+		Parameters(double Dsize_, unsigned int DomainN_,
 				double FinalTime_, unsigned long _ic_p);
 
-        Parameters(double Dsize_, double StepSize_,
+        Parameters(double Dsize_, unsigned int DomainN_,
 				std::vector<double> FinalTimes_, unsigned long _ic_p);
 
-		Parameters(std::vector<double> _shape, double _stepSize,
+		Parameters(std::vector<double> _shape, unsigned int _DomainN,
 				double _finalTime, unsigned long _ic_p);
 
-		Parameters(std::vector<double> _shape, double _stepSize,
+		Parameters(std::vector<double> _shape, unsigned int _DomainN,
 				std::vector<double> FinalTimes_,
 				unsigned long _ic_p);
 
@@ -110,6 +110,7 @@ class Parameters
 			{ adhesivity_type = type; }
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() const { return domainShape; }
+		void toggleBase2(void) { base2 = !base2; }
 
 	private:
 		bool set = false;
@@ -119,6 +120,7 @@ class Parameters
 
 		std::vector<double> domainShape;
 
+		unsigned int DomainN;
 		double StepSize;
 		std::vector<double> FinalTimes;
 
@@ -156,6 +158,9 @@ class Parameters
 
 		unsigned long steps = 0;
 		double time = 0.0;
+
+		// use base 2 lengths
+		bool base2 = false;
 };
 
 #endif

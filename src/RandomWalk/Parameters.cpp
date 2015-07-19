@@ -4,10 +4,10 @@
 
 Parameters::Parameters() {}
 
-Parameters::Parameters(double Dsize_, double StepSize_,
+Parameters::Parameters(double Dsize_, unsigned int DomainN_,
         double FinalTime_, unsigned long _ic_p)
 : DomainSize(Dsize_), DomainSizeL(0),
-    StepSize(StepSize_), FinalTimes(1, FinalTime_),
+    DomainN(DomainN_), FinalTimes(1, FinalTime_),
     ic_p(_ic_p)
 {
     // TODO check if this is correct
@@ -21,10 +21,10 @@ Parameters::Parameters(double Dsize_, double StepSize_,
     print_info();
 }
 
-Parameters::Parameters(double Dsize_, double StepSize_,
+Parameters::Parameters(double Dsize_, unsigned int DomainN_,
         std::vector<double> FinalTimes_, unsigned long _ic_p)
 : DomainSize(Dsize_), DomainSizeL(0),
-    StepSize(StepSize_), FinalTimes(FinalTimes_),
+    DomainN(DomainN_), FinalTimes(FinalTimes_),
     ic_p(_ic_p)
 {
     // TODO check if this is correct
@@ -38,10 +38,10 @@ Parameters::Parameters(double Dsize_, double StepSize_,
     print_info();
 }
 
-Parameters::Parameters(std::vector<double> _shape, double _stepSize,
+Parameters::Parameters(std::vector<double> _shape, unsigned int _DomainN,
         double _finalTime,
         unsigned long _ic_p)
-: domainShape(_shape), StepSize(_stepSize), FinalTimes(1, _finalTime),
+: domainShape(_shape), DomainN(_DomainN), FinalTimes(1, _finalTime),
     ic_p(_ic_p)
 {
     ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
@@ -52,10 +52,10 @@ Parameters::Parameters(std::vector<double> _shape, double _stepSize,
     print_info();
 }
 
-Parameters::Parameters(std::vector<double> _shape, double _stepSize,
+Parameters::Parameters(std::vector<double> _shape, unsigned int _DomainN,
         std::vector<double> FinalTimes_,
         unsigned long _ic_p)
-: domainShape(_shape), StepSize(_stepSize),
+: domainShape(_shape), DomainN(_DomainN),
     FinalTimes(FinalTimes_), ic_p(_ic_p)
 {
     ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
@@ -86,10 +86,40 @@ void Parameters::update()
 {
     // sort elements of FinalTimes, required!!
     std::sort(FinalTimes.begin(), FinalTimes.end());
-    DomainSizeL = DomainSize / StepSize;
-    SensingRadiusL = SensingRadius / StepSize;
+
+	if (base2)
+	{
+		std::cerr << "Base2 is on!";
+		std::cerr << " domainSize=" << DomainN;
+
+		DomainN--;
+		DomainN |= DomainN >> 1;
+		DomainN |= DomainN >> 2;
+		DomainN |= DomainN >> 4;
+		DomainN |= DomainN >> 8;
+		DomainN |= DomainN >> 16;
+		DomainN++;
+
+		std::cerr << " domainSize=" << DomainN;
+
+		StepSize = 1.0 / DomainN;
+		DomainSizeL = DomainSize / StepSize;
+		SensingRadiusL = SensingRadius / StepSize;
+
+		std::cerr << " SesningRad=" << SensingRadiusL << std::endl;
+	}
+	else
+	{
+		StepSize = 1.0 / DomainN;
+		DomainSizeL = DomainSize / StepSize;
+		SensingRadiusL = SensingRadius / StepSize;
+	}
     lambda = 1E2;
     set = true;
+
+	// FIXME
+	if (DomainN % 2 == 0)
+		base2 = true;
 
     Check();
 }
@@ -112,4 +142,7 @@ void Parameters::Check()
     ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
     ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
 	WARNING(Diffusion==0.0, "The diffusion coefficient is zero!");
+
+	if (rw_type == RANDOMWALK_TYPE::ADHESION)
+		ASSERT(base2, "For simulation type adhesion base2 has to be set!");
 }
