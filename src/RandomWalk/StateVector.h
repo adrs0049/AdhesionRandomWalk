@@ -10,6 +10,7 @@
 #include <iterator>
 #include <algorithm>
 #include <memory>
+#include <random>
 
 #include "debug.h"
 #include <cassert>
@@ -64,6 +65,13 @@ private:
 			case IC_TYPE::DELTA:
 				init_delta();
 				break;
+			case IC_TYPE::RANDOM:
+				init_random();
+				break;
+			case IC_TYPE::HEAVISIDE_LEFT:
+			case IC_TYPE::HEAVISIDE_RIGHT:
+				init_heaviside(ic_type);
+				break;
 			default:
 				throw NotImplementedException{"IC_TYPE UNKNOWN"};
 				break;
@@ -80,12 +88,53 @@ private:
         init_flag = false;
     }
 
+	void init_heaviside(const IC_TYPE& type)
+	{
+		std::cout << "init heaviside, vector size is " << m_stateVector.size() << std::endl;
+
+		// this includes mid point
+		auto mid = m_stateVector.size()/2;
+		if (type == IC_TYPE::HEAVISIDE_LEFT)
+		{
+			for (std::size_t idx = 0; idx < mid; idx++)
+				m_stateVector[idx] = p->getICp();
+		}
+		else if (type == IC_TYPE::HEAVISIDE_RIGHT)
+		{
+			for (std::size_t idx = mid - 1; idx < m_stateVector.size(); idx++)
+				m_stateVector[idx] = p->getICp();
+		}
+		else
+		{
+			assert(false);
+		}
+		p->setNumberOfCells(getTotalNumberOfCells());
+		print();
+	}
+
+	void init_random()
+	{
+		std::cout << "init random, vector size is " << m_stateVector.size() << std::endl;
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, p->getICp());
+
+		for (auto& elem : m_stateVector)
+			elem = dis(gen);
+
+		p->setNumberOfCells(getTotalNumberOfCells());
+
+		print();
+	}
+
     void init_uniform()
     {
         std::cout << "init uniform. vector size is " << m_stateVector.size() << std::endl;
 		m_stateVector.assign(m_stateVector.size(), p->getICp());
 		std::cout << "number of cells = " << getTotalNumberOfCells() << std::endl;
         p->setNumberOfCells(getTotalNumberOfCells());
+
+		print();
     }
 
 	unsigned long getTotalNumberOfCells()
@@ -108,6 +157,8 @@ private:
         m_stateVector[mid]= p->getICp();
 
 		p->setNumberOfCells(getTotalNumberOfCells());
+
+		print();
     }
 
 	void update()
