@@ -9,11 +9,11 @@ struct SimulationData
 	//typedef std::vector<unsigned int> data_type;
 
 	SimulationData() = delete;
-	SimulationData(data_type& _states, unsigned long _steps, double _time)
+	SimulationData(data_type _states, unsigned long _steps, double _time)
 		: states(_states), steps(_steps), time(_time)
 	{}
 
-	data_type& states;
+	data_type states;
 	unsigned long steps;
 	double time;
 };
