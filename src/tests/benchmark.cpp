@@ -23,7 +23,7 @@ int main(int argc, const char* argv[])
 	std::cout << "Simulation running with " << NumberOfCells << " of cells." << std::endl;
 
 	//std::vector<double> FinalTimes {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9};
-	std::vector<double> FinalTimes {0.1};
+	std::vector<double> FinalTimes {1.0};
 
 	for (auto& time : FinalTimes)
 	{
@@ -31,7 +31,7 @@ int main(int argc, const char* argv[])
 
 		chronos::Chronos timer;
 
-		Parameters p (10.0, 0.05, 0.1, NumberOfCells);
+		Parameters p (10.0, 20, FinalTimes, NumberOfCells);
 		p.setDiffusion(1.0);
 		p.setDrift(1.0);
 		p.setSensingRadius(1.0);
