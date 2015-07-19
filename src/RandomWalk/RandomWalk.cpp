@@ -15,11 +15,7 @@
 #include <make_unique.h>
 #include <PropensityGenerator.h>
 
-// FIXME fix all these complicated include structure!
 #include <simd.hpp>
-#include <simd_traits.h>
-#include <simd_traits_avx.h>
-#include <vector4d.h>
 
 RandomWalk::~RandomWalk() {}
 RandomWalk::RandomWalk() {}
@@ -168,7 +164,7 @@ void RandomWalk::setup()
 
 	// setup prop generator
 	pgen->set(param);
-	pgen->set(state);
+	pgen->set(state.get());
 	pgen->verify();
 
 	//std::cout << "NumberOfReactions= " << NumberOfReactions
@@ -325,7 +321,7 @@ void RandomWalk::computePropensity(long coordinate)
 		state->getDensity(coordinate) * tmp[1];
 }
 
-std::array<double, 2> RandomWalk::getPropensity( long coordinate )
+std::array<double, 2> RandomWalk::getPropensity( long coordinate ) const
 {
 	return { propensities.at(coordinate),
 				propensities.at(propensity_stride + coordinate)};

@@ -53,7 +53,7 @@ public:
 	void GeneratePath();
 	void Step();
 
-	state_vector_ptr getCells()
+	state_vector_ptr getCells() const
 	{
 		return state;
 	}
@@ -61,13 +61,12 @@ public:
 	propensity_type& getProp() { return propensities; }
 	std::size_t getStride() const { return propensity_stride; }
 
-// FIXME make me private again, but make sure test still work
-public:
+private:
 	void setup();
 	void print_info() const;
 	void computeAllPropensities();
 
-	std::array<double, 2> getPropensity(long coordinate);
+	std::array<double, 2> getPropensity(long coordinate) const;
 	std::vector<double> finalTimes;
 
 	// function to wrap around propensity index
