@@ -10,10 +10,12 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${RANDOMWALK_SOURCE_DIR}
     ${RANDOMWALK_SOURCE_DIR}/utils
+	${RANDOMWALK_SOURCE_DIR}/utils/vector_simd
     ${RANDOMWALK_SOURCE_DIR}/src/Random
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
-set(RANDOMWALK_SOURCES Parameters.cpp Simulator.cpp RandomWalk.cpp EventListener.cpp)
+set(RANDOMWALK_SOURCES Parameters.cpp Simulator.cpp RandomWalk.cpp
+	EventListener.cpp Propensities.cpp)
 add_library(RandomWalk SHARED ${RANDOMWALK_SOURCES})
 target_link_libraries(RandomWalk Utils)
 
@@ -36,6 +38,7 @@ include_directories(
 set_source_files_properties(${SIMULATOR_SWIG_SOURCES} PROPERTIES CPLUSPLUS ON)
 set_source_files_properties(${SIMULATOR_SWIG_SOURCES} PROPERTIES SWIG_FLAGS "-py3")
 set(CMAKE_SWIG_OUTDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set_source_files_properties(${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-O2")
 
 SWIG_ADD_MODULE(simulator python ${SIMULATOR_SWIG_SOURCES})
 swig_link_libraries(simulator RandomWalk Boundary ${PYTHON_LIBRARIES})

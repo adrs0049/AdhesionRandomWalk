@@ -13,7 +13,8 @@ find_package(CxxTest)
 include_directories(
     ${RANDOMWALK_SOURCE_DIR}
     ${RANDOMWALK_SOURCE_DIR}/utils
-    ${RANDOMWALK_SOURCE_DIR}/src/Random
+	${RANDOMWALK_SOURCE_DIR}/utils/vector_simd
+	${RANDOMWALK_SOURCE_DIR}/src/Random
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary
     ${RANDOMWALK_SOURCE_DIR}/src/RandomWalk)
 
@@ -32,11 +33,23 @@ add_executable(TerminateTest TerminateTest.cpp)
 
 if (CXXTEST_FOUND)
     include_directories(${CXXTEST_INCLUDE_DIR})
-    enable_testing()
     CXXTEST_ADD_TEST(RandomWalkTest RandomWalkTest.cc
 		${RANDOMWALK_SOURCE_DIR}/src/RandomWalk/EventListener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/RandomWalkTest.h)
     target_link_libraries(RandomWalkTest ${RANDOMWALK_LIBS})
+
+	CXXTEST_ADD_TEST(DiffusionPropensitiesTest PropensitiesDiffusionTest.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/PropensitiesDiffusionTest.h)
+	target_link_libraries(DiffusionPropensitiesTest ${RANDOMWALK_LIBS})
+
+	CXXTEST_ADD_TEST(DriftPropensitiesTest PropensitiesDriftTest.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/PropensitiesDriftTest.h)
+	target_link_libraries(DriftPropensitiesTest ${RANDOMWALK_LIBS})
+
+	CXXTEST_ADD_TEST(AdhesionPropensitiesTest PropensitiesAdhesionTest.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/PropensitiesAdhesionTest.h)
+	target_link_libraries(AdhesionPropensitiesTest ${RANDOMWALK_LIBS})
+
 endif()
 
 
