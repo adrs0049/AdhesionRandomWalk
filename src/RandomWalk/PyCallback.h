@@ -17,7 +17,7 @@ public:
     PyCallback(const PyCallback& o) : func(o.func)
     {
         // without this decref it segfaults in python3
-        Py_XDECREF(o.func);
+        // Py_XDECREF(o.func);
         Py_XINCREF(this->func);
     }
 
@@ -53,33 +53,86 @@ public:
         Py_XDECREF(this->func);
     }
 
-	void operator() (SimulationData&& data)
+	void operator() (SimulationData data)
     {
-        if(func == nullptr || Py_None == func || !PyCallable_Check(func))
+        if(func == nullptr || Py_None == func) // || !PyCallable_Check(func))
             return;
+
+		if(!data.states.size())
+		{
+			std::cerr << "data states is empty!" << std::endl;
+			return;
+		}
+
+		std::size_t length = data.states.size();
         PyObject* pylist = nullptr;
-        PyObject* item = nullptr;
-        pylist = PyList_New(data.states.size());
+		PyObject* item = nullptr;
+		pylist = PyList_New(length);
+		//Py_INCREF(pylist);
         if (pylist != nullptr)
         {
-            std::size_t idx {0};
-            for (const auto& state : data.states)
+			//PyObject* item = nullptr;
+
+			std::cout << "size=" << length << std::endl;
+			std::cout << "state=(";
+			for (std::size_t idx = 0; idx < length; idx++)
             {
-               item = PyLong_FromLong(state);
-               PyList_SET_ITEM(pylist, idx++, item);
+				unsigned long temp = data.states[idx];
+				std::cout << "[" << idx << "]="<< temp << ", ";
+				item = PyLong_FromLong(temp);
+				if (item == nullptr){
+					std::cerr << "ERROR item is null!!" << std::endl;
+				}
+				PyList_SET_ITEM(pylist, idx, item);
+
             }
+			std::cout << ")." << std::endl;
+			Py_XDECREF(item);
         }
+		else
+		{
+			std::cerr << "PyList is NULL" << std::endl;
+			return;
+		}
 
 		PyObject* args = PyTuple_New(0);
 		PyObject* kwargs = Py_BuildValue("{s:O, s:l, s:d}",
 				"states", pylist, "steps", data.steps, "time", data.time);
 
-		PyObject_Call(func, args, kwargs);
+		Py_INCREF(args);
+		Py_INCREF(kwargs);
 
-		Py_DECREF(kwargs);
-        Py_DECREF(pylist);
-        Py_DECREF(args);
-        Py_DECREF(item);
+		std::cerr << "steps=" << data.steps << " data.sz="
+			<< data.states.size() << " time=" << data.time << "." << std::endl;
+
+		assert(args!=nullptr);
+		assert(kwargs!=nullptr);
+
+		std::cerr << "CALL NOW!" << std::endl;
+		PyObject* myobject_method = PyObject_GetAttrString(func, "callback");
+		if (!PyCallable_Check(myobject_method))
+		{
+			std::cerr << "it's not callable" << std::endl;
+			Py_XDECREF(args);
+			Py_XDECREF(kwargs);
+			Py_XDECREF(myobject_method);
+
+			return;
+		}
+		PyObject* ret = PyObject_Call(myobject_method, args, kwargs);
+
+		Py_XDECREF(pylist);
+		Py_XDECREF(args);
+		Py_XDECREF(kwargs);
+		Py_XDECREF(myobject_method);
+
+		std::cerr << "CALLED" << std::endl;
+
+		if (ret==nullptr) {
+			std::cerr << "ERROR in call" << std::endl;
+		}
+
+		Py_XDECREF(ret);
     }
 };
 
