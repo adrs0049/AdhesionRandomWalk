@@ -19,6 +19,9 @@ enum class IC_TYPE : int
 {
 	UNIFORM,
 	DELTA,
+	RANDOM,
+	HEAVISIDE_RIGHT,
+	HEAVISIDE_LEFT,
 };
 
 enum class OMEGA_TYPE : int
