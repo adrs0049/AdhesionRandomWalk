@@ -200,7 +200,7 @@ AdhesionPropensities::compute(const long coordinate) const
 
 	total += hadd(sum1);
 
-	std::size_t j = 0;
+	std::size_t j = 1;
 	vec_type sum2(0);
 	for (;j < regularpart; j += vec_size)
 	{
@@ -209,7 +209,6 @@ AdhesionPropensities::compute(const long coordinate) const
 	}
 
 	total += hadd(sum2);
-	assert(regularpart == j);
 
 	total /= TotalNumberOfCells;
 	total *= drift_coeff_and_h;
