@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import multiprocessing as mp
+import queue
 import datetime
 
 import math
@@ -43,6 +44,9 @@ class Player(object):
 
         # store id to the most recent randomwalk
         self.runId = -1
+
+        # number of paths to generate
+        self.NoPaths = 16
 
         # use multiprocessors
         self.multiprocessing = True
@@ -97,14 +101,14 @@ class Player(object):
         return self.db.returnPathsForSim(simId)
 
     def doHistogram(self, simId=None, bar_width=None, Compare=False):
-        if not bar_width: bar_width = self.getStepSize()
-
         # FIXME WHY??
         self.getDB()
 
         sim = self.db.getSimulationFromId(simId)
         ddf = self.getCellPathFromDB(simId)
         self.param = sim.Parameters
+
+        if not bar_width: bar_width = self.getStepSize()
 
         assert isinstance(ddf, dict), "df is expected to be a dict"
 
@@ -192,7 +196,7 @@ class Player(object):
             plt.title('Results of space-jump process with %d players at %f'\
                       % (total, key))
 
-            plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
+            #plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
             plt.show()
 
@@ -332,7 +336,7 @@ class Player(object):
 
         print('Preparing simulation...')
         # NoPaths, number of paths to generate for each config
-        NoPaths = 10
+        NoPaths = self.NoPaths
 
         # create sim object in database
         self.prepareSimulation()
@@ -340,7 +344,7 @@ class Player(object):
         # starts consumers
         num = 1
         if self.multiprocessing:
-            num = mp.cpu_count() + 1
+            num = mp.cpu_count()
 
         print('Simulation id is %d. Running %d paths for each time. The '\
               'total number of simulations is %d. The final times are ' \
@@ -351,11 +355,15 @@ class Player(object):
 
         print('Starting simulating...')
 
+        lock = mp.Lock()
         tasks = mp.JoinableQueue()
-        results = mp.Queue()
+        # Why does this work better?
+        m = mp.Manager()
+        results = m.Queue()
+        #results = mp.Queue()
 
         print('Creating %d simulations' % num)
-        simulations = [Consumer(tasks, results, feedback_q)
+        simulations = [Consumer(tasks, results, feedback_q, lock)
                        for i in range(num) ]
         writers = [storePath(results, feedback_q, self.runId, self.getVersion())
                     for i in range(1)]
@@ -404,8 +412,9 @@ class Player(object):
 
 class SafeProcess(mp.Process):
 
-    def __init__(self, feedback_queue):
+    def __init__(self, feedback_queue, lock = None):
         mp.Process.__init__(self)
+        self.lock = lock
         self.feedback_queue = feedback_queue
 
     def log_info(self, message):
@@ -445,7 +454,12 @@ class storePath(SafeProcess):
     def saferun(self):
         proc_name = self.name
         while True:
-            next_result = self.q.get()
+            try:
+                next_result = self.q.get(timeout=100)
+            except queue.Empty:
+                print('still empty')
+                continue
+
             if next_result == None:
                 print('%s: Exiting' % proc_name)
                 return
@@ -459,8 +473,8 @@ class storePath(SafeProcess):
 
 class Consumer(SafeProcess):
 
-    def __init__(self, task_queue, result_queue, feedback_queue):
-        mp.Process.__init__(self)
+    def __init__(self, task_queue, result_queue, feedback_queue, lock):
+        SafeProcess.__init__(self, feedback_queue, lock)
         self.task_queue = task_queue
         self.result_queue = result_queue
         self.feedback_queue = feedback_queue
@@ -474,9 +488,29 @@ class Consumer(SafeProcess):
                 self.task_queue.task_done()
                 break
             print('%s: %s' % (proc_name, next_task))
-            next_task(self.result_queue)
-            self.task_queue.task_done()
+            try:
+                next_task(self)
+            except:
+                raise
+            finally:
+                self.task_queue.task_done()
         return
+
+    def __call__(self, result):
+        self.lock.acquire()
+        try:
+            self.put_in_queue(result)
+        finally:
+            self.lock.release()
+
+    def put_in_queue(self, result):
+        print('HELLO putting in queue')
+        try:
+            self.result_queue.put_nowait(result)
+        except queue.Full:
+            print('QUEUE WAS FULL')
+        except:
+            raise
 
 class Simulation(object):
 
@@ -490,14 +524,45 @@ class Simulation(object):
         self.FinalTimes = FinalTimes
         self.parameters = parameters
 
-    def __str__(self):
-        return "Executing Simulation up to '%f' with '%d' players." \
-                % (np.max(self.FinalTimes), self.NoPlayers)
+        self.call = None
 
-    def __call__(self, result_queue):
+    #def __str__(self):
+    #    return "Executing Simulation up to '%f' with '%d' players." \
+    #            % (np.max(self.FinalTimes), self.NoPlayers)
 
-        # domainN stores points per unit length
-        stepSize = 1.0 / self.parameters["DomainN"]
+    # FIXME use a unidirectional pipe here!!!
+    # the callback function
+    def callback(self, *args, **kwargs):
+        # get steps + path
+        print('storePATH')
+        print('type=', type(kwargs))
+        #print('test2')
+        #print(kwargs.keys())
+        #print('test=', kwargs["steps"])
+        data = kwargs
+        #print('post data, steps=',data["steps"])
+        steps = data["steps"]
+        #print('post steps, FinalTime=', data["time"])
+        FinalTime = np.around(data["time"], decimals=2)
+        #FinalTime = 0.1
+        #print('HELLO data sz=', len(data["states"]), ' type=',
+        #      type(data["states"]))
+        path = np.asarray(data["states"])
+
+        test_data = (FinalTime, path, steps, )
+
+        # FIXME use a unidirectional pipe here!!
+        self.call(test_data)
+        # self.c.send((FinalTime, path, steps, ))
+
+    def __call__(self, call):
+
+        self.call = call
+
+        #self.callback = callback
+        #print('callback=', callback)
+
+        #assert self.c!=None, "Connection cannot be None"
 
         # FIXME
         domainSizeHalf = int(self.parameters["DomainSize"]/2)
@@ -508,9 +573,10 @@ class Simulation(object):
 
         try:
 
-            swig_param = PickalableParameters(domainShape, stepSize,
-                                          DVector(self.FinalTimes),
-                                          self.NoPlayers)
+            swig_param = PickalableParameters(domainShape,
+                                              self.parameters["DomainN"],
+                                              DVector(self.FinalTimes),
+                                              self.NoPlayers)
 
             swig_param.setDiffusion(self.parameters["diffusion_coeff"])
             swig_param.setDrift(self.parameters["drift_coeff"])
@@ -527,18 +593,9 @@ class Simulation(object):
         except:
             raise
 
-        # the callback function
-        def storePath(*args, **kwargs):
-            # get steps + path
-            data = kwargs
-            steps = data["steps"]
-            FinalTime = np.around(data["time"], decimals=2)
-            path = np.asarray(data["states"])
-
-            result_queue.put((FinalTime, path, steps, ))
-
         # register callback function
-        sim.registerPyListener(storePath)
+        print('self=',self)
+        sim.registerPyListener(self)
 
         # run the simulation
         sim.run()
@@ -548,7 +605,7 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=10,
+    param = dict(DomainSize=10, DomainN=16,
                  diffusion_coeff=1.0, drift_coeff=40,
                  R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.42, g_type=1,
                  u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1,
