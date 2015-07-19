@@ -1,4 +1,5 @@
 
+import datetime, os
 
 def log_error(dest_q, message, name):
     dest_q.put(dict(type='error',
