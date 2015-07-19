@@ -26,9 +26,6 @@ target_link_libraries(RandomWalk_test ${RANDOMWALK_LIBS})
 add_executable(RandomWalkBenchmark benchmark.cpp)	
 target_link_libraries(RandomWalkBenchmark ${RANDOMWALK_LIBS})
 
-add_executable(CellDensity_test CellDensityTest.cpp)
-target_link_libraries(CellDensity_test ${RANDOMWALK_LIBS})
-
 add_executable(TerminateTest TerminateTest.cpp)
 
 if (CXXTEST_FOUND)
@@ -37,6 +34,10 @@ if (CXXTEST_FOUND)
 		${RANDOMWALK_SOURCE_DIR}/src/RandomWalk/EventListener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/RandomWalkTest.h)
     target_link_libraries(RandomWalkTest ${RANDOMWALK_LIBS})
+
+	CXXTEST_ADD_TEST(StateVectorTest StateVectorTest.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/StateVectorTest.h)
+	target_link_libraries(StateVectorTest ${RANDOMWALK_LIBS})
 
 	CXXTEST_ADD_TEST(DiffusionPropensitiesTest PropensitiesDiffusionTest.cc
 		${CMAKE_CURRENT_SOURCE_DIR}/PropensitiesDiffusionTest.h)
