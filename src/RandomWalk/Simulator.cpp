@@ -74,7 +74,7 @@ void Simulator::run()
     }
 }
 
-AligndVector<unsigned int>& Simulator::getPath() const
+AligndVector<unsigned int> Simulator::getPath() const
 //std::vector<unsigned int>& Simulator::getPath() const
 {
     return TheRandomWalk->getPath();
@@ -84,8 +84,10 @@ void Simulator::notify(EventType&& e)
 {
 	if (eventRegistry.getNumberOfEvents()>0)
 	{
-		auto event = std::static_pointer_cast<event_type>(eventRegistry.get_handler(std::move(e)));
-		event->notifyListeners({getPath(), param->getSteps(), param->getCurrentTime()});
+		auto event = std::static_pointer_cast<event_type>
+			(eventRegistry.get_handler(std::move(e)));
+		event->notifyListeners({getPath(), param->getSteps(),
+				param->getCurrentTime()});
 	}
 }
 

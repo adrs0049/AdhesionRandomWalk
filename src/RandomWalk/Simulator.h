@@ -57,7 +57,7 @@ public:
 
     void print();
     void run();
-	AligndVector<unsigned int>& getPath() const;
+	AligndVector<unsigned int> getPath() const;
     //std::vector<unsigned int>& getPath() const;
     void notify(EventType&& e);
 
