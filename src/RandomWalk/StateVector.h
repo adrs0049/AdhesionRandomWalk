@@ -72,6 +72,9 @@ private:
 			case IC_TYPE::HEAVISIDE_RIGHT:
 				init_heaviside(ic_type);
 				break;
+			case IC_TYPE::TRIG_NOISE:
+				init_noise();
+				break;
 			default:
 				throw NotImplementedException{"IC_TYPE UNKNOWN"};
 				break;
@@ -88,9 +91,29 @@ private:
         init_flag = false;
     }
 
+	void init_noise()
+	{
+		std::cout << "init heaviside, vector size is " <<
+			m_stateVector.size() << std::endl;
+
+		const double coordinate {0.0};
+		const double weight {1E-3};
+		const double StepSize = p->getDiscreteX();
+
+		for (std::size_t idx = 0; idx < size(); idx++)
+		{
+			m_stateVector[idx] = p->getICp() +
+				static_cast<unsigned long>(weight * p->getICp() *
+						std::sin(coordinate + idx * StepSize) );
+		}
+
+		p->setNumberOfCells(getTotalNumberOfCells());
+	}
+
 	void init_heaviside(const IC_TYPE& type)
 	{
-		std::cout << "init heaviside, vector size is " << m_stateVector.size() << std::endl;
+		std::cout << "init heaviside, vector size is " <<
+			m_stateVector.size() << std::endl;
 
 		// this includes mid point
 		auto mid = m_stateVector.size()/2;
