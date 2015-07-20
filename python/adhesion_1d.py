@@ -105,7 +105,7 @@ class Player(object):
         self.getDB()
 
         sim = self.db.getSimulationFromId(simId)
-        ddf = self.getCellPathFromDB(simId)
+        ddf, steps = self.getCellPathFromDB(simId)
         self.param = sim.Parameters
 
         if not bar_width: bar_width = self.getStepSize()
@@ -119,6 +119,7 @@ class Player(object):
         print('Plotting for times ', end='')
         print(" ".join(str(x) for x in sorted(ddf.keys())))
         print('.')
+        print('The average number of steps is %d.' % steps)
 
         for key, df in iter(sorted(ddf.items())):
             try:

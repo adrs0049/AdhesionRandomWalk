@@ -332,14 +332,17 @@ class RandomWalkDB(object):
                 filter(PathMetaData.time==time)
 
             idx=0
+            total_steps = 0
             for metadata in q.all():
                 rdf[idx]=self.returnPath(metadata.id)
+                total_steps += int(metadata.steps)
                 idx+=1
 
+            total_steps /= idx
             rdf['avg']=rdf.mean(axis=1)
             ddf[time] = rdf
 
-        return ddf
+        return ddf, total_steps
 
 # debugging
 if __name__ == '__main__':
