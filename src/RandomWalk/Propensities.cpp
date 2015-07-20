@@ -75,7 +75,7 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 	{
 		case OMEGA_TYPE::UNIFORM:
 			omega_normalization_constant =
-				1.0 / (2.0 * p->getSensingRadius());
+				p->getOmegaP() / (2.0 * p->getSensingRadius());
 
 			omega = [this] (const long coordinate)
 			{
