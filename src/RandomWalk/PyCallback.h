@@ -86,7 +86,6 @@ public:
 				PyList_SET_ITEM(pylist, idx, item);
 
             }
-			std::cout << ")." << std::endl;
 			Py_XDECREF(item);
         }
 		else
