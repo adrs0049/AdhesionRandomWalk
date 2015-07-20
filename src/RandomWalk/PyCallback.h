@@ -73,12 +73,12 @@ public:
         {
 			//PyObject* item = nullptr;
 
-			std::cout << "size=" << length << std::endl;
-			std::cout << "state=(";
+			//std::cout << "size=" << length << std::endl;
+			//std::cout << "state=(";
 			for (std::size_t idx = 0; idx < length; idx++)
             {
 				unsigned long temp = data.states[idx];
-				std::cout << "[" << idx << "]="<< temp << ", ";
+				//std::cout << "[" << idx << "]="<< temp << ", ";
 				item = PyLong_FromLong(temp);
 				if (item == nullptr){
 					std::cerr << "ERROR item is null!!" << std::endl;
@@ -102,13 +102,13 @@ public:
 		Py_INCREF(args);
 		Py_INCREF(kwargs);
 
-		std::cerr << "steps=" << data.steps << " data.sz="
-			<< data.states.size() << " time=" << data.time << "." << std::endl;
+		//std::cerr << "steps=" << data.steps << " data.sz="
+		//	<< data.states.size() << " time=" << data.time << "." << std::endl;
 
 		assert(args!=nullptr);
 		assert(kwargs!=nullptr);
 
-		std::cerr << "CALL NOW!" << std::endl;
+		//std::cerr << "CALL NOW!" << std::endl;
 		PyObject* myobject_method = PyObject_GetAttrString(func, "callback");
 		if (!PyCallable_Check(myobject_method))
 		{
@@ -126,7 +126,7 @@ public:
 		Py_XDECREF(kwargs);
 		Py_XDECREF(myobject_method);
 
-		std::cerr << "CALLED" << std::endl;
+		//std::cerr << "CALLED" << std::endl;
 
 		if (ret==nullptr) {
 			std::cerr << "ERROR in call" << std::endl;
