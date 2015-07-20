@@ -46,7 +46,7 @@ class Player(object):
         self.runId = -1
 
         # number of paths to generate
-        self.NoPaths = 16
+        self.NoPaths = 8
 
         # use multiprocessors
         self.multiprocessing = True
@@ -117,10 +117,10 @@ class Player(object):
             return
 
         print('Plotting for times ', end='')
-        print(" ".join(str(x) for x in ddf.keys()))
+        print(" ".join(str(x) for x in sorted(ddf.keys())))
         print('.')
 
-        for key, df in ddf.items():
+        for key, df in iter(sorted(ddf.items())):
             try:
                 x = df['avg']
             except KeyError:
@@ -129,6 +129,7 @@ class Player(object):
             except:
                 raise
 
+            # maybe do the total over a unit interval?
             total = np.sum(x)
             x = x / total
 
@@ -136,8 +137,8 @@ class Player(object):
                        self.getDomainRightBoundary(),
                        bar_width)
 
-            print('shape bins=', np.shape(bins))
-            print('shape x=', np.shape(x))
+            #print('shape bins=', np.shape(bins))
+            #print('shape x=', np.shape(x))
 
             if Compare:
 
@@ -157,16 +158,12 @@ class Player(object):
                 assert len(x2)==N, ""
                 u_ic = np.zeros(N)
 
-                print(len(bins))
-
                 # index is zero based -> midpoint one lower
                 mid = int(N/2)-1
 
-                print('start=', mid-1, ' end=', mid+2, ' N=',N)
-
                 #u_ic[mid-1:mid+2]=0.33
                 u_ic = vg(x2, 1.0 / self.param.DomainN)
-                print('u_ic total=', np.sum(u_ic))
+                #print('u_ic total=', np.sum(u_ic))
                 assert len(u_ic)==N, ""
 
                 solver = FFTHeat1D_test(u_ic, key, self.getDomainSize(), \
@@ -186,12 +183,12 @@ class Player(object):
             plt.plot(bins, x, color='r')
 
             if Compare:
-                print('x2=', np.shape(x2), ' u2=', np.shape(u2))
+                #print('x2=', np.shape(x2), ' u2=', np.shape(u2))
                 plt.plot(x2, u2, color='g')
                 #plt.plot(x2, u_ic, color='k')
-                print('u2 total=', np.sum(u2))
+                #print('u2 total=', np.sum(u2))
 
-            print('total sim=', np.sum(x))
+            #print('total sim=', np.sum(x))
 
             plt.title('Results of space-jump process with %d players at %f'\
                       % (total, key))
@@ -199,83 +196,6 @@ class Player(object):
             #plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
             plt.show()
-
-    def plotIC(self, sim):
-        bar_width = self.h
-        x=sim.getCellPath()
-        bins=np.arange(-self.L, self.L + self.h, bar_width)
-
-        print('shape bins=', np.shape(bins))
-        print('shape x=', np.shape(x))
-
-        # get diffusion soln
-        xd, u = self.computeDiffusionSoln(FinalTime=0.0)
-
-        N = 100
-        x2 = np.arange(-self.getDomainLeftBoundary(),
-                       self.getDomainRightBoundary(),
-                       self.getDomainSize()/N)
-        assert len(x2)==N, ""
-        u_ic = np.zeros(N)
-
-        print(len(bins))
-
-        # index is zero based -> midpoint one lower
-        mid = int(N/2)-1
-
-        print('start=', mid-1, ' end=', mid+2, ' N=',N)
-
-        u_ic[mid-1:mid+2]=0.33
-
-        assert len(u_ic)==N, ""
-
-        time_step = key * self.getDomainSize()* self.getDiffusionCoeff()
-        solver = FFTHeat1D_test(u_ic, time_step, self.getDomainSizeL())
-        solver.time_step()
-        u2 = solver.get_x()
-
-        # plotting
-        plt.bar(bins[:-1], x, width=bar_width)
-        plt.plot(xd, u, color='k')
-
-        # plot error
-        error = u - x
-        plt.plot(xd, error, color='r')
-
-        print('shape u=', np.shape(u))
-        print('shape x=', np.shape(x))
-        self.print_error(u, x)
-
-        plt.ylim(0,1000)
-        plt.show()
-
-    def computeDiffusionSoln(self, T, D):
-        N=self.getDomainSizeL()
-        Nhalf = N/2
-
-        print('Solving heat equation using the FFT')
-        print('N=',N,' T=',T,' D=', self.getDiffusionCoeff())
-        print('The domain is [', self.getDomainLeftBoundary(), ', ', \
-              self.getDomainRightBoundary(),']')
-
-        # domain is [-L, L]
-        xd=np.linspace(self.getDomainLeftBoundary(), self.getDomainRightBoundary(), N)
-        u0=np.zeros(N)
-        u0[N/2]=1.0/2.0
-        u0[N/2+1]=1.0/2.0
-
-        if T==0.0:
-            return xd, u0
-
-        # IC
-        F = np.fft.fft(u0)
-        k = np.append(np.arange(Nhalf), np.arange(-Nhalf,0,1))
-        k2 = self.getDiffusionCoeff() * k**2
-        W=np.exp(-k2 * T)
-        Ft = F * W
-        u = np.real(np.fft.ifft(Ft))
-
-        return xd, u
 
     # Compute norm between vectors x, y
     def norm1(self, x, y):
@@ -504,9 +424,9 @@ class Consumer(SafeProcess):
             self.lock.release()
 
     def put_in_queue(self, result):
-        print('HELLO putting in queue')
+        #print('HELLO putting in queue')
         try:
-            self.result_queue.put_nowait(result)
+            self.result_queue.put(result)
         except queue.Full:
             print('QUEUE WAS FULL')
         except:
@@ -518,7 +438,8 @@ class Simulation(object):
 
         assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (np.max(FinalTimes)>0), "Number of steps has to be larger 0"
-        if np.max(FinalTimes)>1E3: print ('WARNING number of steps is very large!!')
+        if np.max(FinalTimes)>1E3:
+            print ('WARNING number of steps is very large!!')
 
         self.NoPlayers = NoPlayers
         self.FinalTimes = FinalTimes
@@ -526,34 +447,24 @@ class Simulation(object):
 
         self.call = None
 
-    #def __str__(self):
-    #    return "Executing Simulation up to '%f' with '%d' players." \
-    #            % (np.max(self.FinalTimes), self.NoPlayers)
+    def __str__(self):
+        return "Executing Simulation up to '%f' with '%d' players." \
+                % (np.max(self.FinalTimes), self.NoPlayers)
 
     # FIXME use a unidirectional pipe here!!!
     # the callback function
     def callback(self, *args, **kwargs):
         # get steps + path
-        print('storePATH')
-        print('type=', type(kwargs))
-        #print('test2')
-        #print(kwargs.keys())
-        #print('test=', kwargs["steps"])
         data = kwargs
-        #print('post data, steps=',data["steps"])
         steps = data["steps"]
-        #print('post steps, FinalTime=', data["time"])
         FinalTime = np.around(data["time"], decimals=2)
-        #FinalTime = 0.1
-        #print('HELLO data sz=', len(data["states"]), ' type=',
-        #      type(data["states"]))
         path = np.asarray(data["states"])
 
+        # package up the data
         test_data = (FinalTime, path, steps, )
 
-        # FIXME use a unidirectional pipe here!!
+        # call consumer callback
         self.call(test_data)
-        # self.c.send((FinalTime, path, steps, ))
 
     def __call__(self, call):
 
@@ -585,6 +496,8 @@ class Simulation(object):
             # always use uniform ic here
             swig_param.setIcType(self.parameters["ic_type"])
             swig_param.setRandomWalkType(self.parameters["rw_type"])
+            swig_param.setOmegaP(self.parameters["omega_p"])
+            swig_param.Check()
 
             print('create simulator')
             # create sim object
@@ -607,8 +520,8 @@ if __name__ == '__main__':
     # TODO read this from an XML file
     param = dict(DomainSize=10, DomainN=16,
                  diffusion_coeff=1.0, drift_coeff=40,
-                 R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.42, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_UNIFORM, ic_p=0.1,
+                 R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.82, g_type=1,
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=0.1,
                  rw_type=s.RANDOMWALK_TYPE_ADHESION,
                  space_type=s.SPACE_TYPE_ALWAYS_FREE,
                  adhesivity_type=s.ADHESIVITY_TYPE_SIMPLE)
