@@ -11,6 +11,7 @@
 #include <array>
 
 #include <make_unique.h>
+#include <iomanip>
 
 #include <iterator>
 #include <random>
@@ -130,7 +131,7 @@ public:
 
 	void testConstructNoise(void)
 	{
-		const unsigned long ic_p = 1000;
+		const unsigned long ic_p = 100;
 
 		p->setIcType(IC_TYPE::TRIG_NOISE);
 		p->setIcP(ic_p);
@@ -142,15 +143,36 @@ public:
 
 		const double coordinate {0.0};
 		const double StepSize = p->getDiscreteX();
-		const double weight {1E-3};
+		const double weight {1E-1};
+
+		std::vector<double> densities;
 
 		for (std::size_t idx = 0; idx < state->size(); idx++)
 		{
-			double value = ic_p +
+			unsigned long value = ic_p +
 				static_cast<unsigned long>(ic_p * weight *
 				std::sin(coordinate + StepSize * idx));
+
+			std::cout << "value=" << value
+				      << " sin=" << std::sin(coordinate + StepSize * idx)
+					  << " offset=" << ic_p * weight * std::sin(coordinate + StepSize * idx)
+					  <<  std::endl;
 			TS_ASSERT_DELTA(state->getDensity(idx), value, tol);
 		}
+
+		auto states = state->getStateVector();
+		auto TotalNumberOfCells = state->getTotalNumberOfCells();
+		std::cout << "TotalNumberOfCells=" << TotalNumberOfCells << std::endl;
+
+		state->print();
+
+		for (const auto& s : states)
+			densities.push_back((double)(s / (double)TotalNumberOfCells));
+
+		std::cout << "density=(";
+		for (const auto& density : densities)
+			std::cout << std::setprecision(4) << density << ", ";
+		std::cout << ")." << std::endl;
 	}
 
 	void testShiftLeft(void)
