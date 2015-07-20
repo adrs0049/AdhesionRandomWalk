@@ -128,6 +128,31 @@ public:
 		}
 	}
 
+	void testConstructNoise(void)
+	{
+		const unsigned long ic_p = 1000;
+
+		p->setIcType(IC_TYPE::TRIG_NOISE);
+		p->setIcP(ic_p);
+		p->Check();
+
+		state = std::make_shared<state_vector>(p);
+
+		TS_ASSERT_EQUALS(ic_p, p->getICp());
+
+		const double coordinate {0.0};
+		const double StepSize = p->getDiscreteX();
+		const double weight {1E-3};
+
+		for (std::size_t idx = 0; idx < state->size(); idx++)
+		{
+			double value = ic_p +
+				static_cast<unsigned long>(ic_p * weight *
+				std::sin(coordinate + StepSize * idx));
+			TS_ASSERT_DELTA(state->getDensity(idx), value, tol);
+		}
+	}
+
 	void testShiftLeft(void)
 	{
 		p->setIcType(IC_TYPE::UNIFORM);

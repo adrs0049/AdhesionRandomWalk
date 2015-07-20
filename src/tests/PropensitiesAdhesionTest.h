@@ -58,6 +58,7 @@ public:
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
+		p->setOmegaP(1.0);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::UNIFORM);
@@ -207,6 +208,7 @@ public:
         p->setDrift(10.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
+		p->setOmegaP(1.0);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::HEAVISIDE_RIGHT);
@@ -420,6 +422,7 @@ public:
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
+		p->setOmegaP(1.0);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::DELTA);
@@ -581,6 +584,7 @@ public:
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
+		p->setOmegaP(1.0);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::RANDOM);
