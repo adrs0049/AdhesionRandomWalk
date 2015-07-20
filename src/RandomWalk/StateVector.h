@@ -93,7 +93,7 @@ private:
 
 	void init_noise()
 	{
-		std::cout << "init heaviside, vector size is " <<
+		std::cout << "init trig noise, vector size is " <<
 			m_stateVector.size() << std::endl;
 
 		const double coordinate {0.0};
