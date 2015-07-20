@@ -22,6 +22,7 @@ enum class IC_TYPE : int
 	RANDOM,
 	HEAVISIDE_RIGHT,
 	HEAVISIDE_LEFT,
+	TRIG_NOISE,
 };
 
 enum class OMEGA_TYPE : int
@@ -100,6 +101,7 @@ class Parameters
 		void setLambda(double _l) { lambda = _l; }
 		void setSteps(unsigned long _steps) { steps = _steps; }
 		void setCurrentTime(const double _time) { time = _time; }
+		void setIcP(const unsigned long _ic_p) { ic_p = _ic_p; }
 		void setIcType(const IC_TYPE& type) { ic_type = type; }
 		void setOmegaType(const OMEGA_TYPE& type) { omega_type = type; }
 		void setOmegaP(const double p) { omega_p = p; }
@@ -151,7 +153,7 @@ class Parameters
 		BOUNDARY_TYPE boundary_type = BOUNDARY_TYPE::PERIODIC;
 
 		// RandomWalk type
-		RANDOMWALK_TYPE rw_type = RANDOMWALK_TYPE::ADHESION;
+		RANDOMWALK_TYPE rw_type = RANDOMWALK_TYPE::DIFFUSION;
 
 		// Space type
 		SPACE_TYPE space_type = SPACE_TYPE::ALWAYS_FREE;

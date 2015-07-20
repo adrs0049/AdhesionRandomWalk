@@ -121,7 +121,7 @@ void Parameters::update()
 	if (DomainN % 2 == 0)
 		base2 = true;
 
-    Check();
+	Check();
 }
 
 void Parameters::Check()
@@ -132,17 +132,26 @@ void Parameters::Check()
 	ASSERT(DomainSize>0.0, "DomainSize has to be larger than zero!");
 	ASSERT(DomainSizeL>0, "DomainSizeL has to be larger than zero!");
     ASSERT(StepSize>0.0, "StepSize has to be larger than zero!");
-	ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
-	ASSERT(SensingRadiusL < DomainSizeL/2, "SensingRadiusL is too large!");
 
-	WARNING(SensingRadiusL==0, "SensingRadiusL is zero!");
-	WARNING(SensingRadius==0.0, "SensingRadius is zero!");
-
-    ASSERT(ic_p!=0, "Initial number of cells can't be zero!");
+	ASSERT(ic_p!=0, "Initial number of cells can't be zero!");
     ASSERT(0.0<=InitCellDensity && InitCellDensity<=1.0, "Initial Cell Density " << InitCellDensity << " is invalid. The valid range is [0,1].");
-    ASSERT(Diffusion>=0.0, "The diffusion coefficient can't be negative");
-	WARNING(Diffusion==0.0, "The diffusion coefficient is zero!");
+    ASSERT(Diffusion>0.0, "The diffusion coefficient can't be negative");
+
+	if (rw_type == RANDOMWALK_TYPE::DIFFUSION_AND_DRIFT ||
+		rw_type == RANDOMWALK_TYPE::ADHESION)
+	{
+		ASSERT(Drift>0.0, "The drift coefficient has to be positive!");
+	}
 
 	if (rw_type == RANDOMWALK_TYPE::ADHESION)
+	{
 		ASSERT(base2, "For simulation type adhesion base2 has to be set!");
+		ASSERT(omega_p>0.0, "Omega p must be larger than 0");
+
+		ASSERT(SensingRadiusL>0, "SensingRadiusL has to be positive");
+		ASSERT(SensingRadius>0.0, "SensingRadius has to be positive!");
+
+		ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
+		ASSERT(SensingRadiusL < DomainSizeL/2, "SensingRadiusL is too large!");
+	}
 }
