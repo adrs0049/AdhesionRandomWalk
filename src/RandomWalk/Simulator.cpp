@@ -12,21 +12,26 @@
 #include "Terminate.h"
 
 #include "debug.h"
+#include "exceptions.h"
 #include "vector.h"
+
+#include <spdlog.h>
 
 EventRegistry Simulator::eventRegistry;
 
 Simulator::Simulator()
-: param(nullptr), TheRandomWalk(nullptr)
+: param(nullptr), TheRandomWalk(nullptr),
+	logger(spdlog::stdout_logger_st("simulator_log"))
 {
     Error::TerminalCatcher::init();
 }
 
 Simulator::Simulator(std::shared_ptr<Parameters> p)
-: param(p), TheRandomWalk(nullptr)
+: param(p), TheRandomWalk(nullptr),
+	logger(spdlog::stdout_logger_st("simulator_log"))
 {
     Error::TerminalCatcher::init();
-    ASSERT(p!=nullptr, "parameters is null");
+	ASSERT(p!=nullptr, "parameters is null");
 	init();
     //std::cout << "DL(sim)=" << p.DomainSizeL << std::endl;
 }
@@ -34,22 +39,41 @@ Simulator::Simulator(std::shared_ptr<Parameters> p)
 Simulator::~Simulator()
 {}
 
+void Simulator::set_logger_level(void)
+{
+	switch (debug_level)
+	{
+		case DebugLevel::DEBUG:
+			spdlog::set_level(spdlog::level::debug);
+			break;
+		case DebugLevel::NORMAL:
+			spdlog::set_level(spdlog::level::notice);
+			break;
+		case DebugLevel::VERBOSE:
+			spdlog::set_level(spdlog::level::info);
+			break;
+		case DebugLevel::QUIET:
+			spdlog::set_level(spdlog::level::off);
+			break;
+		default:
+			throw NotImplementedException {""};
+			break;
+	};
+}
+
 void Simulator::init()
 {
-    //std::cout << "Simulator init" << std::endl;
-    //std::cout << "Parameters are: ";
+	set_logger_level();
+	logger->info("Simulator init");
+	logger->info("The parameters are...");
     //param->print_info();
     TheRandomWalk = std::make_unique<RandomWalk>(param);
-    // setup event
-    //auto& event = TheRandomWalk->getEvent();
     TheRandomWalk->setSimulator(this);
 }
 
 void Simulator::registerListener(PyCallback_Fcn& l)
 {
-	//log<LOG::DEBUG>("Registering Listener");
-    std::cout << "Registering listener" << std::endl;
-    //auto& event = TheRandomWalk->getEvent();
+	logger->debug("Registering Listener");
     eventRegistry.register_handler(EventType::new_data,
             std::make_shared<event_type>());
 
@@ -70,12 +94,11 @@ void Simulator::run()
     }
     catch(const std::exception& e)
     {
-        std::cerr << "ERROR: " << e.what() << std::endl;
+		logger->error(e.what());
     }
 }
 
 AligndVector<unsigned int> Simulator::getPath() const
-//std::vector<unsigned int>& Simulator::getPath() const
 {
     return TheRandomWalk->getPath();
 }
@@ -88,6 +111,10 @@ void Simulator::notify(EventType&& e)
 			(eventRegistry.get_handler(std::move(e)));
 		event->notifyListeners({getPath(), param->getSteps(),
 				param->getCurrentTime()});
+	}
+	else
+	{
+		logger->warn("No Listener is defined!");
 	}
 }
 

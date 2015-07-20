@@ -28,6 +28,16 @@
 #include "SimulationData.h"
 #include "vector.h"
 
+#include <spdlog.h>
+
+enum class DebugLevel : int
+{
+	DEBUG,
+	VERBOSE,
+	NORMAL,
+	QUIET,
+};
+
 using namespace boundary;
 
 class RandomWalk;
@@ -68,6 +78,8 @@ public:
     }
 
 private:
+	void set_logger_level(void);
+
     // does this really have to be here??
     EventListener<data_type> listener;
 	// event registry private, should this be something else?
@@ -76,4 +88,7 @@ private:
 
     std::shared_ptr<Parameters> param;
     std::unique_ptr<RandomWalk> TheRandomWalk;
+
+	std::shared_ptr<spdlog::logger> logger;
+	DebugLevel debug_level = DebugLevel::DEBUG;
 };

@@ -11,6 +11,7 @@ include_directories(
     ${RANDOMWALK_SOURCE_DIR}
     ${RANDOMWALK_SOURCE_DIR}/utils
 	${RANDOMWALK_SOURCE_DIR}/utils/vector_simd
+	${RANDOMWALK_SOURCE_DIR}/utils/spdlog
     ${RANDOMWALK_SOURCE_DIR}/src/Random
     ${RANDOMWALK_SOURCE_DIR}/src/Boundary)
 
