@@ -97,7 +97,7 @@ private:
 			m_stateVector.size() << std::endl;
 
 		const double coordinate {0.0};
-		const double weight {1E-3};
+		const double weight {1E-1};
 		const double StepSize = p->getDiscreteX();
 
 		for (std::size_t idx = 0; idx < size(); idx++)
