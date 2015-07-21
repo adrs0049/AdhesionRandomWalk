@@ -143,10 +143,6 @@ class Player(object):
             #print('shape x=', np.shape(x))
 
             if Compare:
-
-                # get diffusion soln
-                xd, u = self.computeDiffusionSoln(key, self.getDiffusionCoeff())
-
                 # try yet another diffusion solver
                 N = self.getDomainSize() * self.param.DomainN
 
