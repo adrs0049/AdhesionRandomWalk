@@ -91,4 +91,7 @@ private:
 
 	std::shared_ptr<spdlog::logger> logger;
 	DebugLevel debug_level = DebugLevel::DEBUG;
+
+	const unsigned int id;
+	const std::string parent_name;
 };

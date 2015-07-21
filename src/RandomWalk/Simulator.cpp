@@ -20,15 +20,15 @@
 EventRegistry Simulator::eventRegistry;
 
 Simulator::Simulator()
-: param(nullptr), TheRandomWalk(nullptr),
-	logger(spdlog::stdout_logger_st("simulator_log"))
+: param(nullptr), TheRandomWalk(nullptr), id(0)
+	//logger(spdlog::stdout_logger_st("simulator_log"))
 {
     Error::TerminalCatcher::init();
 }
 
 Simulator::Simulator(std::shared_ptr<Parameters> p)
-: param(p), TheRandomWalk(nullptr),
-	logger(spdlog::stdout_logger_st("simulator_log"))
+: param(p), TheRandomWalk(nullptr), id(0)
+	//logger(spdlog::stdout_logger_st("simulator_log"))
 {
     Error::TerminalCatcher::init();
 	ASSERT(p!=nullptr, "parameters is null");
@@ -38,7 +38,7 @@ Simulator::Simulator(std::shared_ptr<Parameters> p)
 
 Simulator::~Simulator()
 {}
-
+/*
 void Simulator::set_logger_level(void)
 {
 	switch (debug_level)
@@ -60,12 +60,12 @@ void Simulator::set_logger_level(void)
 			break;
 	};
 }
-
+*/
 void Simulator::init()
 {
-	set_logger_level();
-	logger->info("Simulator init");
-	logger->info("The parameters are...");
+	//set_logger_level();
+	//logger->info("Simulator init");
+	//logger->info("The parameters are...");
     //param->print_info();
     TheRandomWalk = std::make_unique<RandomWalk>(param);
     TheRandomWalk->setSimulator(this);
@@ -73,7 +73,7 @@ void Simulator::init()
 
 void Simulator::registerListener(PyCallback_Fcn& l)
 {
-	logger->debug("Registering Listener");
+	//logger->debug("Registering Listener");
     eventRegistry.register_handler(EventType::new_data,
             std::make_shared<event_type>());
 
@@ -94,7 +94,7 @@ void Simulator::run()
     }
     catch(const std::exception& e)
     {
-		logger->error(e.what());
+		//logger->error(e.what());
     }
 }
 
@@ -114,7 +114,7 @@ void Simulator::notify(EventType&& e)
 	}
 	else
 	{
-		logger->warn("No Listener is defined!");
+		//logger->warn("No Listener is defined!");
 	}
 }
 
