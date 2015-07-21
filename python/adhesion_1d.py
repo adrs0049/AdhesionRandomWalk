@@ -46,7 +46,7 @@ class Player(object):
         self.runId = -1
 
         # number of paths to generate
-        self.NoPaths = 8
+        self.NoPaths = 32
 
         # use multiprocessors
         self.multiprocessing = True
@@ -105,7 +105,7 @@ class Player(object):
         self.getDB()
 
         sim = self.db.getSimulationFromId(simId)
-        ddf, steps = self.getCellPathFromDB(simId)
+        ddf = self.getCellPathFromDB(simId)
         self.param = sim.Parameters
 
         if not bar_width: bar_width = self.getStepSize()
@@ -119,9 +119,10 @@ class Player(object):
         print('Plotting for times ', end='')
         print(" ".join(str(x) for x in sorted(ddf.keys())))
         print('.')
-        print('The average number of steps is %d.' % steps)
 
-        for key, df in iter(sorted(ddf.items())):
+        for key, path_data in iter(sorted(ddf.items())):
+            df = path_data.dataFrame
+            steps = path_data.steps
             try:
                 x = df['avg']
             except KeyError:
@@ -180,19 +181,43 @@ class Player(object):
             else:
                 y_max = np.max(x)
 
-            plt.ylim(0, 1.1 * y_max)
-            plt.plot(bins, x, color='r')
+            plt.ylim(0, 1.5 * y_max)
+            states, = plt.plot(bins, x, 'ro', color='r', label='ssa')
+            states2, = plt.plot(bins, x, color='r', linewidth=1.0)
 
             if Compare:
                 #print('x2=', np.shape(x2), ' u2=', np.shape(u2))
-                plt.plot(x2, u2, color='g')
+                density, = plt.plot(x2, u2, color='g', linewidth=2.0, label='continuum')
                 #plt.plot(x2, u_ic, color='k')
                 #print('u2 total=', np.sum(u2))
 
             #print('total sim=', np.sum(x))
 
-            plt.title('Results of space-jump process with %d players at %f'\
-                      % (total, key))
+            rw_type = sim.Parameters.rw_type
+            simulation_name = 'Unknown'
+            if rw_type == s.RANDOMWALK_TYPE_DIFFUSION:
+                simulation_name = 'Results of a diffusion space-jump process'
+            elif rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT:
+                simulation_name = 'Results of an advection-diffusion' \
+                ' space-jump process'
+            elif rw_type == s.RANDOMWALK_TYPE_ADHESION:
+                simulation_name = 'Results of a simple adhesion space-jump' \
+                        ' process'
+            else:
+                print('WARNING Unknown random walk type')
+
+            plot_title = simulation_name + \
+                    '\n with %d players at time %2.2f' \
+                    '\n or %2.2e simulations steps'
+            plt.title(plot_title % (total, key, steps))
+
+            plt.xlabel('Spacial domain')
+            plt.ylabel('Density [UNITS]')
+
+            if Compare:
+                plt.legend(handles=[states, density])
+            else:
+                plt.legend(handles=[states])
 
             #plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
