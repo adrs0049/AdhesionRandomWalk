@@ -100,7 +100,7 @@ class Player(object):
     def getCellPathFromDB(self, simId=None):
         return self.db.returnPathsForSim(simId)
 
-    def doHistogram(self, simId=None, bar_width=None, Compare=False):
+    def doHistogram(self, simId=None, Compare=False, show=False):
         # FIXME WHY??
         self.getDB()
 
@@ -108,6 +108,9 @@ class Player(object):
         ddf = self.getCellPathFromDB(simId)
         self.param = sim.Parameters
 
+        if simId is None: simId = sim.id
+
+        bar_width = None
         if not bar_width: bar_width = self.getStepSize()
 
         assert isinstance(ddf, dict), "df is expected to be a dict"
@@ -119,6 +122,31 @@ class Player(object):
         print('Plotting for times ', end='')
         print(" ".join(str(x) for x in sorted(ddf.keys())))
         print('.')
+
+        # FIXME use time from database or sth?
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+
+        # first find max so we can plot without moving xlims
+        max_values = []
+        for key, path_data in iter(sorted(ddf.items())):
+            try:
+                # skip zero
+                if key==0.0:
+                    continue
+                df = path_data.dataFrame
+                x = df['avg']
+                total = np.sum(x)
+                x = x / total
+                print('key=', key, ' total=', total, ' max=', np.max(x))
+                max_values.append(np.max(x))
+            except KeyError:
+                print('Data returned from simulation %d is empty!' % self.runId)
+                return df
+            except:
+                raise
+
+        max_states = max(max_values)
+        print('max_states =', max_states)
 
         for key, path_data in iter(sorted(ddf.items())):
             df = path_data.dataFrame
@@ -177,38 +205,46 @@ class Player(object):
             else:
                 y_max = np.max(x)
 
-            plt.ylim(0, 1.5 * y_max)
-            states, = plt.plot(bins, x, 'ro', color='r', label='ssa')
-            states2, = plt.plot(bins, x, color='r', linewidth=1.0)
+            if plt is not None: plt.clf()
+
+            plt.ylim(0, 1.5 * max(y_max, max_states))
+            label_ssa = 'Density of Gillespie SSA simulation'
+            states, = plt.plot(bins, x, 'ro', color='r', label=label_ssa)
+            #states2, = plt.plot(bins, x, color='r', linewidth=1.0)
 
             if Compare:
                 #print('x2=', np.shape(x2), ' u2=', np.shape(u2))
-                density, = plt.plot(x2, u2, color='g', linewidth=2.0, label='continuum')
-                #plt.plot(x2, u_ic, color='k')
-                #print('u2 total=', np.sum(u2))
-
-            #print('total sim=', np.sum(x))
+                label_cont = 'FFT solution'
+                density, = plt.plot(x2, u2, color='g', linewidth=2.0,
+                                    label=label_cont)
 
             rw_type = sim.Parameters.rw_type
+            tw_type_name = 'Unknown'
             simulation_name = 'Unknown'
             if rw_type == s.RANDOMWALK_TYPE_DIFFUSION:
                 simulation_name = 'Results of a diffusion space-jump process'
+                rw_type_name = 'Diffusion'
             elif rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT:
                 simulation_name = 'Results of an advection-diffusion' \
                 ' space-jump process'
+                rw_type_name = 'Drift'
             elif rw_type == s.RANDOMWALK_TYPE_ADHESION:
                 simulation_name = 'Results of a simple adhesion space-jump' \
                         ' process'
+                rw_type_name = 'Adhesion'
             else:
                 print('WARNING Unknown random walk type')
 
             plot_title = simulation_name + \
                     '\n with %d players at time %2.2f' \
                     '\n or %2.2e simulations steps'
-            plt.title(plot_title % (total, key, steps))
+            plt.title(plot_title % (total, key, steps), fontsize=20)
 
-            plt.xlabel('Spacial domain')
-            plt.ylabel('Density [UNITS]')
+            plt.xlabel('Spacial domain', fontsize=18)
+            plt.ylabel('Density [UNITS]', fontsize=18)
+            plt.tight_layout()
+            plt.tick_params(axis='x', labelsize=15)
+            plt.tick_params(axis='y', labelsize=15)
 
             if Compare:
                 plt.legend(handles=[states, density])
@@ -217,7 +253,23 @@ class Player(object):
 
             #plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
             #ax.xlim(min(bins), max(bins))
-            plt.show()
+
+            result_dir = 'Results'
+            path = None
+            try:
+                cdir = os.getcwd()
+                path = os.path.join(cdir, result_dir)
+                path = os.path.join(path, timestr)
+                if not os.path.exists(path):
+                    os.makedirs(path)
+            except:
+                raise
+            finally:
+                fname = 'plot_'+rw_type_name+'_'+str(simId)+'_'+str(key)+'.png'
+                plt.savefig(os.path.join(path, fname))
+
+            if show:
+                plt.show()
 
     # Compute norm between vectors x, y
     def norm1(self, x, y):

@@ -17,10 +17,10 @@ if __name__ == '__main__':
 
     player = Player(param)
 
-    player.runSimulations(np.arange(0.00001,1.0,0.25), 1000)
+    player.runSimulations(np.arange(0.0,1.0,0.05), 1000)
 
     player.setNewDB()
 
-    player.doHistogram(Compare=True)
+    player.doHistogram(Compare=True, show=False)
 
 
