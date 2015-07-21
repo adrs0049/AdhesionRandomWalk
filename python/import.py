@@ -5,16 +5,16 @@ import scipy.io as sio
 import numpy as np
 
 from randomWalk_db import *
-from models import * 
+from models import *
 
-print len(sys.argv)
+print(len(sys.argv))
 
 assert len(sys.argv)==2, 'wrong cmd line options'
 
-print sys.argv
+print(sys.argv)
 input_file = sys.argv[1]
 
-print 'Reading from ', input_file, ' ...'
+print('Reading from ', input_file, ' ...')
 
 mat = sio.loadmat(input_file, squeeze_me=True, struct_as_record=False)
 output = mat['output']
@@ -23,9 +23,9 @@ time = output.t
 y = output.y
 
 matlab_to_sql = dict(domainlength='DomainSize',
-                     IC_p = 'ic_p', 
-                     IC_type = 'ic_type', 
-                     R = 'R', 
+                     IC_p = 'ic_p',
+                     IC_type = 'ic_type',
+                     R = 'R',
                      gridcells = 'DomainN',
                      DiffCoeff = 'diffusion_coeff',
                      alpha = 'drift_coeff',
@@ -47,7 +47,7 @@ for parameter in parameters:
 # BCs is not available in the actual parameters
 temp_data['bcs']='pp'
 
-print temp_data
+print(temp_data)
 
 # open database connection
 db = RandomWalkDB()
@@ -56,10 +56,10 @@ db = RandomWalkDB()
 p2 = db.param_create_if_not_exist(temp_data)
 
 # get the rw object
-rw_id = db.createRandomWalk('MATLAB-0.1', p2.id, max(time))
+sim_id = db.createSimulation('MATLAB-0.1', p2.id)
 
 # write path data to the database
 # write it for each
 for t in time:
-    db.storePath(y[t], t, rw_id, stochastic=False)
+    db.storePath(y[t], t, sim_id, '0.1', 0, stochastic=False)
 
