@@ -1,22 +1,20 @@
 import sys, os, time
 import numpy as np
-import pandas as pd
 import pickle
 import multiprocessing as mp
 import queue
 import datetime
 
 import math
-import matplotlib.pyplot as plt
 
 import simulator as s
 from simulator import DVector
 
-from diffusion import *
-from heat import *
 from randomWalk_db import *
 from swig import *
 from log import *
+
+import plot as plt
 
 def timeit(method):
 
@@ -70,10 +68,6 @@ class Player(object):
     def getSensingRadiusL(self): return self.param.getSensingRadiusL()
     def getLatticeSize(self): return self.getDomainSizeL()
     def getFinalTime(self): return self.FinalTime
-    def setDiffusionCoeff(self, D): self.swig_param.setDiffusion(D)
-    def setDriftCoeff(self, c): self.swig_param.setDrift(c)
-    def setStepSize(self, h): self.swig_param.setDiscreteX(h)
-    def setSensingRadius(self, R): self.swig_param.setSensingRadius(R)
     # TODO do something that is actually python standard
     def getVersion(self): return '0.1'
     def setSimId(self, simId):
@@ -100,188 +94,9 @@ class Player(object):
     def getCellPathFromDB(self, simId=None):
         return self.db.returnPathsForSim(simId)
 
-    def doHistogram(self, simId=None, Compare=False, show=False):
-        # FIXME WHY??
-        self.getDB()
-
-        sim = self.db.getSimulationFromId(simId)
-        ddf = self.getCellPathFromDB(simId)
-        self.param = sim.Parameters
-
-        if simId is None: simId = sim.id
-
-        bar_width = None
-        if not bar_width: bar_width = self.getStepSize()
-
-        assert isinstance(ddf, dict), "df is expected to be a dict"
-
-        if not len(ddf) > 0:
-            print('Data returned from simulation %d is empty!' % self.runId)
-            return
-
-        print('Plotting for times ', end='')
-        print(" ".join(str(x) for x in sorted(ddf.keys())))
-        print('.')
-
-        # FIXME use time from database or sth?
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-
-        # first find max so we can plot without moving xlims
-        max_values = []
-        for key, path_data in iter(sorted(ddf.items())):
-            try:
-                # skip zero
-                if key==0.0:
-                    continue
-                df = path_data.dataFrame
-                x = df['avg']
-                total = np.sum(x)
-                x = x / total
-                print('key=', key, ' total=', total, ' max=', np.max(x))
-                max_values.append(np.max(x))
-            except KeyError:
-                print('Data returned from simulation %d is empty!' % self.runId)
-                return df
-            except:
-                raise
-
-        max_states = max(max_values)
-        print('max_states =', max_states)
-
-        for key, path_data in iter(sorted(ddf.items())):
-            df = path_data.dataFrame
-            steps = path_data.steps
-            try:
-                x = df['avg']
-            except KeyError:
-                print('Data returned from simulation %d is empty!' % self.runId)
-                return df
-            except:
-                raise
-
-            # maybe do the total over a unit interval?
-            total = np.sum(x)
-            x = x / total
-
-            bins=np.arange(-self.getDomainLeftBoundary(),
-                       self.getDomainRightBoundary(),
-                       bar_width)
-
-            #print('shape bins=', np.shape(bins))
-            #print('shape x=', np.shape(x))
-
-            if Compare:
-                # try yet another diffusion solver
-                N = self.getDomainSize() * self.param.DomainN
-
-                if N<2000:
-                    print('Using a larger N')
-                    N = 2**12
-
-                x2 = np.arange(-self.getDomainLeftBoundary(),
-                               self.getDomainRightBoundary(),
-                               self.getDomainSize()/N)
-                assert len(x2)==N, ""
-                u_ic = np.zeros(N)
-
-                # index is zero based -> midpoint one lower
-                mid = int(N/2)-1
-
-                #u_ic[mid-1:mid+2]=0.33
-                u_ic = vg(x2, 1.0 / self.param.DomainN)
-                #print('u_ic total=', np.sum(u_ic))
-                assert len(u_ic)==N, ""
-
-                solver = FFTHeat1D_test(u_ic, key, self.getDomainSize(), \
-                                        self.getDiffusionCoeff(), \
-                                        self.getDriftCoeff())
-                solver.time_step()
-                u2 = solver.get_x()
-
-            if Compare:
-                y_max = max(np.max(x), np.max(u2))
-                print('y_max=', y_max, ' u2=', np.max(u2))
-
-            else:
-                y_max = np.max(x)
-
-            if plt is not None: plt.clf()
-
-            plt.ylim(0, 1.5 * max(y_max, max_states))
-            label_ssa = 'Density of Gillespie SSA simulation'
-            states, = plt.plot(bins, x, 'ro', color='r', label=label_ssa)
-            #states2, = plt.plot(bins, x, color='r', linewidth=1.0)
-
-            if Compare:
-                #print('x2=', np.shape(x2), ' u2=', np.shape(u2))
-                label_cont = 'FFT solution'
-                density, = plt.plot(x2, u2, color='g', linewidth=2.0,
-                                    label=label_cont)
-
-            rw_type = sim.Parameters.rw_type
-            tw_type_name = 'Unknown'
-            simulation_name = 'Unknown'
-            if rw_type == s.RANDOMWALK_TYPE_DIFFUSION:
-                simulation_name = 'Results of a diffusion space-jump process'
-                rw_type_name = 'Diffusion'
-            elif rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT:
-                simulation_name = 'Results of an advection-diffusion' \
-                ' space-jump process'
-                rw_type_name = 'Drift'
-            elif rw_type == s.RANDOMWALK_TYPE_ADHESION:
-                simulation_name = 'Results of a simple adhesion space-jump' \
-                        ' process'
-                rw_type_name = 'Adhesion'
-            else:
-                print('WARNING Unknown random walk type')
-
-            plot_title = simulation_name + \
-                    '\n with %d players at time %2.2f' \
-                    '\n or %2.2e simulations steps'
-            plt.title(plot_title % (total, key, steps), fontsize=20)
-
-            plt.xlabel('Spacial domain', fontsize=18)
-            plt.ylabel('Density [UNITS]', fontsize=18)
-            plt.tight_layout()
-            plt.tick_params(axis='x', labelsize=15)
-            plt.tick_params(axis='y', labelsize=15)
-
-            if Compare:
-                plt.legend(handles=[states, density])
-            else:
-                plt.legend(handles=[states])
-
-            #plt.savefig('plot_'+str(simId)+'_'+str(key)+'.png')
-            #ax.xlim(min(bins), max(bins))
-
-            result_dir = 'Results'
-            path = None
-            try:
-                cdir = os.getcwd()
-                path = os.path.join(cdir, result_dir)
-                path = os.path.join(path, timestr)
-                if not os.path.exists(path):
-                    os.makedirs(path)
-            except:
-                raise
-            finally:
-                fname = 'plot_'+rw_type_name+'_'+str(simId)+'_'+str(key)+'.png'
-                plt.savefig(os.path.join(path, fname))
-
-            if show:
-                plt.show()
-
-    # Compute norm between vectors x, y
-    def norm1(self, x, y):
-        return np.linalg.norm(x-y, ord=1)
-
-    # compute l2 between vectors x, y
-    def norm2(self, x, y):
-        return np.linalg.norm(x-y, ord=2)
-
-    def print_error(self, x, y):
-        print('The L1 error=', self.norm1(x, y))
-        print('The L2 error=', self.norm2(x, y))
+    def doHistogram(self, simId=None, Compare=False):
+        p = plt.Plotter(simId, Compare=Compare)
+        p()
 
     def checkParametersInDB(self):
         self.db.param_create_if_not_exist(self.param)
