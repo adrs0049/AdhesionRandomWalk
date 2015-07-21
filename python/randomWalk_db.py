@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import platform
 import multiprocessing as mp
+from collections import namedtuple
+import multiprocessing as mp
 
 # can we solve this better?
 cls_type = sqlalchemy.ext.declarative.api.DeclarativeMeta
@@ -30,9 +32,11 @@ class CommitError(Error):
     def __init__(self, table):
         self.table = table
 
+PathDataContainer = namedtuple('PathData', ['steps', 'dataFrame'])
+
 class RandomWalkDB(object):
 
-    def __init__(self, databaseName='RandomWalk'):
+    def __init__(self, databaseName='RandomWalk', verbose=False):
 
         self.dbName = databaseName
 
@@ -41,12 +45,14 @@ class RandomWalkDB(object):
         # setup database
         try:
             self.engine, self.Session = setup(url=databaseURL,\
-                                          databaseName=self.dbName)
+                                          databaseName=self.dbName,
+                                          verbose=verbose)
         except ImportError as e:
             # use mysql connector
             databaseURL = 'mysql+mysqlconnector://adrs0061:it4fOmen@localhost'
             self.engine, self.Session = setup(url=databaseURL,\
-                                            databaseName=self.dbName)
+                                            databaseName=self.dbName,
+                                            verbose=verbose)
         except:
             raise
 
@@ -293,6 +299,32 @@ class RandomWalkDB(object):
         # else it has to be float anyways
         return np.array(ret)
 
+    def returnPathData(self, time, simId):
+        session = self.getSession()
+        rdf = pd.DataFrame()
+
+        q = session.query(PathMetaData).\
+                filter(PathMetaData.simulation_id==simId).\
+                filter(PathMetaData.time==time)
+
+        path_data = None
+
+        idx=0
+        total_steps = 0
+        for metadata in q.all():
+            rdf[idx]=self.returnPath(metadata.id)
+            total_steps += int(metadata.steps)
+            idx+=1
+
+            total_steps /= idx
+            rdf['avg']=rdf.mean(axis=1)
+
+            # create new PathData
+            path_data = PathDataContainer(total_steps, rdf)
+
+        assert path_data is not None, ''
+        return path_data
+
     def returnPathsForSim(self, simId=None):
 
         if simId is None or simId == -1:
@@ -313,36 +345,22 @@ class RandomWalkDB(object):
         q = session.query(PathMetaData.time).\
                 filter(PathMetaData.simulation_id==simId)
 
-        time_pts = [float(x[0]) for x in q.all()]
+        time_pts = set([float(x[0]) for x in q.all()])
 
         assert len(time_pts)>0, "More than one time point is required"
-
-        q = session.query(PathMetaData).\
-                filter(PathMetaData.simulation_id==simId)
 
         # list of dataframes
         ddf = dict()
 
+        print('Retrieving data for ', end='')
         for time in time_pts:
-            # dataframe for return
-            rdf = pd.DataFrame()
+            print(time, end=', ')
+            ddf[time] = self.returnPathData(time, simId)
 
-            q = session.query(PathMetaData).\
-                filter(PathMetaData.simulation_id==simId).\
-                filter(PathMetaData.time==time)
+        print('')
+        print('Data retrieval complete.')
 
-            idx=0
-            total_steps = 0
-            for metadata in q.all():
-                rdf[idx]=self.returnPath(metadata.id)
-                total_steps += int(metadata.steps)
-                idx+=1
-
-            total_steps /= idx
-            rdf['avg']=rdf.mean(axis=1)
-            ddf[time] = rdf
-
-        return ddf, total_steps
+        return ddf
 
 # debugging
 if __name__ == '__main__':
