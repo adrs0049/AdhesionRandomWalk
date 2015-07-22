@@ -407,7 +407,7 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=16,
+    param = dict(DomainSize=10, DomainN=128,
                  diffusion_coeff=1.0, drift_coeff=40,
                  R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.82, g_type=1,
                  u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=0.1,

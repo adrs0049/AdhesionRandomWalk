@@ -94,7 +94,8 @@ class Plotter(object):
                 filter(PathMetaData.stochastic==False)
 
         # FIXME
-        assert len(q.all())==41, ''
+        print(len(q.all()))
+        assert len(q.all())==81, ''
         simId = q.all()[0][0].id
 
         print('found simulation twin at id %d.' % simId)
@@ -150,7 +151,7 @@ class Plotter(object):
             print('adata keys=', adata.keys())
 
         else:
-            print('WARNING Unknowno random walk type!')
+            print('WARNING Unknown random walk type!')
             assert False
 
         for key, path_data in iter(sorted(self.data.items())):
@@ -167,6 +168,7 @@ class Plotter(object):
             # maybe do the total over a unit interval?
             total = np.sum(x)
             x = x / total
+            print('ssa total=', total, ' after=', np.sum(x))
 
             bins=np.arange(-self.getDomainLeftBoundary(),
                        self.getDomainRightBoundary(),
@@ -181,8 +183,12 @@ class Plotter(object):
                rw_type == s.RANDOMWALK_TYPE_ADHESION:
                 try:
                     # FIXME
-                    akey = np.round(key - 0.01, decimals=1)
+                    akey = np.round(key, decimals=1)
                     u2 = adata[akey].dataFrame[0]
+                    total2 = np.sum(u2)
+                    u2 = u2  / 16
+                    print('total=', total2, ' ntotal=', np.sum(u2))
+                    # FIXME dont hard code values
                     x2 = np.arange(0.0, 10, 1.0 / 100.0)
 
                     density, = plt.plot(x2, u2, color='g', linewidth=2.0,
@@ -280,17 +286,18 @@ class Plotter(object):
         mid = int(N/2)-1
 
         #u_ic[mid-1:mid+2]=0.33
-        u_ic = vg(x2, 1.0 / self.param.DomainN)
+        u_ic = diffusion_solver.vg(x2, 1.0 / self.param.DomainN)
         #print('u_ic total=', np.sum(u_ic))
         assert len(u_ic)==N, ""
 
-        solver = FFTHeat1D_test(u_ic, time, self.getDomainSize(), \
-                                self.param.diffusion_coeff, \
-                                self.param.drift_coeff)
+        solver = diffusion_solver.FFTHeat1D_test(u_ic, float(time), \
+                                                 self.getDomainSize(), \
+                                float(self.param.diffusion_coeff), \
+                                float(self.param.drift_coeff))
         solver.time_step()
         u2 = solver.get_x()
 
         return x2, u2
 
 if __name__ == '__main__':
-    plotter = Plotter(122, Compare=True)
+    plotter = Plotter(129, Compare=True)
