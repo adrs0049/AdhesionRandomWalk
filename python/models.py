@@ -42,31 +42,31 @@ class Parameters(Base):
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
 
     # model parameters
-    diffusion_coeff = Column(Numeric(19, 4, asdecimal=True), nullable=False)
-    drift_coeff = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    diffusion_coeff = Column(Numeric(19, 7, asdecimal=True), nullable=False)
+    drift_coeff = Column(Numeric(19, 7, asdecimal=True), nullable=False)
     # the sensing radius
-    R = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    R = Column(Numeric(19, 7, asdecimal=True), nullable=False)
 
     # Domain parameters
     # DomainN stores the value per unit length
     DomainN = Column(Integer, nullable=False)
-    DomainSize = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    DomainSize = Column(Numeric(19, 7, asdecimal=True), nullable=False)
 
     # properties of omega
     omega_type = Column(Integer, nullable=False)
-    omega_p = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    omega_p = Column(Numeric(19, 7, asdecimal=True), nullable=False)
 
     # volume filling threshold in g()
     g_type = Column(Integer, nullable=False)
     # u_max in volume filling term
-    u0 = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    u0 = Column(Numeric(19, 7, asdecimal=True), nullable=False)
 
     # boundary conditions
     bcs = Column(String(3), nullable=False)
 
     # ICs
     ic_type = Column(Integer, nullable=False)
-    ic_p = Column(Numeric(19, 4, asdecimal=True), nullable=False)
+    ic_p = Column(Numeric(19, 7, asdecimal=True), nullable=False)
 
     # RandomWalk type
     rw_type = Column(Integer, nullable=True)
@@ -158,7 +158,7 @@ class PathMetaData(Base):
     # path
     path = relationship("PathData")
 
-    time = Column(Numeric(20, 9, asdecimal=True), nullable=False)
+    time = Column(Numeric(24, 14, asdecimal=True), nullable=False)
     stochastic = Column(Boolean, nullable=False)
     simulation_date = Column(DateTime, nullable=False)
     program_version = Column(String(64), nullable=False)
@@ -200,7 +200,7 @@ class DensityData(PathData):
     __tablename__ = 'density_data'
 
     id = Column(Integer, ForeignKey('path_data.id'), primary_key=True)
-    density = Column(Numeric(10, 8, asdecimal=True), nullable=False)
+    density = Column(Numeric(20, 8, asdecimal=True), nullable=False)
 
     __mapper_args__ = {
         'polymorphic_identity':'density_data',
