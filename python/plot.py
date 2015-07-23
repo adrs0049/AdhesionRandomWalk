@@ -147,8 +147,9 @@ class Plotter(object):
                     ' process'
             rw_type_name = 'Adhesion'
             label_cont = 'Adhesion cont soln'
-            adata = self.get_related_sim()
-            print('adata keys=', adata.keys())
+            if self.Compare:
+                adata = self.get_related_sim()
+                print('adata keys=', adata.keys())
 
         else:
             print('WARNING Unknown random walk type!')
@@ -166,9 +167,7 @@ class Plotter(object):
                 raise
 
             # maybe do the total over a unit interval?
-            total = np.sum(x)
-            x = x / total
-            print('ssa total=', total, ' after=', np.sum(x))
+            total = np.sum(x) * self.getStepSize()
 
             bins=np.arange(-self.getDomainLeftBoundary(),
                        self.getDomainRightBoundary(),
@@ -184,10 +183,13 @@ class Plotter(object):
                 try:
                     # FIXME
                     akey = np.round(key, decimals=1)
-                    u2 = adata[akey].dataFrame[0]
-                    total2 = np.sum(u2)
-                    u2 = u2  / 16
-                    print('total=', total2, ' ntotal=', np.sum(u2))
+                    data = adata[key].dataFrame['avg']
+                    #print('DataFrame=',
+                    #    adata[key].dataFrame.columns.values.tolist())
+                    #print('data_type=', data.dtypes)
+                    u2 = np.asarray(data)
+                    print('SSA total=', total, ' continuum_total=', \
+                          np.sum(u2) * 0.01)
                     # FIXME dont hard code values
                     x2 = np.arange(0.0, 10, 1.0 / 100.0)
 
@@ -300,4 +302,4 @@ class Plotter(object):
         return x2, u2
 
 if __name__ == '__main__':
-    plotter = Plotter(129, Compare=True)
+    plotter = Plotter(150, Compare=True)
