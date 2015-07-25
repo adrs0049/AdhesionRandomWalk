@@ -5,7 +5,7 @@
 
 struct SimulationData
 {
-	typedef AligndVector<unsigned int> data_type;
+	typedef AligndVector<int32_t> data_type;
 	//typedef std::vector<unsigned int> data_type;
 
 	SimulationData() = delete;

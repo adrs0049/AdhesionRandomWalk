@@ -98,7 +98,7 @@ void Simulator::run()
     }
 }
 
-AligndVector<unsigned int> Simulator::getPath() const
+AligndVector<int32_t> Simulator::getPath() const
 {
     return TheRandomWalk->getPath();
 }
