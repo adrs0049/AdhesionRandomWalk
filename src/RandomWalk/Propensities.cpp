@@ -98,6 +98,7 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 		case SPACE_TYPE::ALWAYS_FREE:
 			space = [this] (const long coordinate)
 			{
+				// TODO check if static helps here
 				return vec_type(1.0);
 			};
 
@@ -117,24 +118,24 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 	{
 		case ADHESIVITY_TYPE::SIMPLE:
 			// loads the values to the right of coordinate
-			adhesivity = [this] (const long coordinate)
+			adhesivity = [this] (int coordinate)
 			{
+				state->applyCondition(coordinate);
 				// check if this static cast casuses problems
-				/*
-				if (coordinate < static_cast<long>(domainSizeL - vec_size))
+				if (coordinate < static_cast<long>(domainSizeL - vec_size_int))
 				{
-					return vec_type(_mm256_castsi256_pd(
-
-				_mm256_loadu_si256((__m256i const*)state->data(coordinate))));
+					vector8i ret;
+					ret.load_u(state->data(coordinate));
+					return ret;
 				}
-				else */
+				else
 				{
-					float_type x[vec_size];
-					for (std::size_t idx = 0; idx < vec_size; idx++)
+					int32_t x[vec_size_int];
+					for (std::size_t idx = 0; idx < vec_size_int; idx++)
 					{
 						x[idx] = state->getDensityQuick(coordinate + idx);
 					}
-					vec_type ret = load_u(x);
+					vec_type_int ret = load_u(x);
 					return ret;
 				}
 			};
@@ -186,31 +187,43 @@ AdhesionPropensities::compute(const long coordinate) const
 {
 	// compute polarization
 	double total {0.0};
-	const std::size_t regularpart = sensing_radius & (-vec_size);
+	const std::size_t regularpart = sensing_radius & (-vec_size_int);
 	assert(regularpart == sensing_radius);
 
+	//std::cout <<"regular part=" << regularpart <<
+	//	" coordinate=" << coordinate << std::endl;
 	// start at offset 1
-	std::size_t i = 0;
-	vec_type sum1(0);
-	for (i = vec_size; i <= regularpart; i += vec_size)
+	int32_t i = 0;
+	vec_type_int sum1(0);
+	// TODO write as integer additions
+	for (i = vec_size_int; i <= (int)regularpart; i += vec_size_int)
 	{
-		vec_type rv = space(-i) * omega(-i) * adhesivity(coordinate - i);
+		//vec_type rv = space(-i) * omega(-i) * adhesivity(coordinate - i);
+		vec_type_int rv = adhesivity(coordinate - i);
+		//std::cout << "i=" << i<<" "<<" coord-i="<<coordinate -i<<" "<<
+		//	"rv=(" << rv[0] << ", " <<rv[1] <<", "<<rv[2]<<", "
+		//	<<rv[3]<<")."<<std::endl;
 		sum1 -= rv;
 	}
 
 	total += hadd(sum1);
 
 	std::size_t j = 1;
-	vec_type sum2(0);
-	for (;j < regularpart; j += vec_size)
+	vec_type_int sum2(0);
+	for (;j < regularpart; j += vec_size_int)
 	{
-		vec_type rv = space(j) * omega(j) * adhesivity(coordinate + j);
+		//vec_type rv = space(j) * omega(j) * adhesivity(coordinate + j);
+		vec_type_int rv = adhesivity(coordinate + j);
 		sum2 += rv;
 	}
 
 	total += hadd(sum2);
+	total *= omega_normalization_constant;
 
-	total /= TotalNumberOfCells;
+	//total /= TotalNumberOfCells;
+	//std::cout << "diffusion_coeff=" << diffusion_coeff << " " <<
+ 	//	"total=" << total << " drift=" << drift_coeff_and_h << "."
+	//	<<std::endl;
 	total *= drift_coeff_and_h;
 
 	return {diffusion_coeff + total,

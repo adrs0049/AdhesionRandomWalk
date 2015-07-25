@@ -19,7 +19,7 @@
 class PropensitiesGenerator
 {
 	protected:
-		using state_vector = const stateVector<unsigned int>;
+		using state_vector = const stateVector<int32_t>;
 		using state_vector_ptr = const state_vector*;
 
 	public:
@@ -71,7 +71,9 @@ class AdhesionPropensities : public PropensitiesGenerator
 {
 		using float_type = typename simulation_traits::float_type;
 		using vec_type = simd_traits<float_type>::type;
+		using vec_type_int = simd_traits<int32_t>::type;
 		static const std::size_t vec_size = simd_traits<float_type>::size;
+		static const std::size_t vec_size_int = simd_traits<int32_t>::size;
 
 	public:
 		AdhesionPropensities() {}
@@ -98,7 +100,7 @@ class AdhesionPropensities : public PropensitiesGenerator
 		state_vector_ptr state;
 
 		std::function<vec_type (const long)> space;
-		std::function<vec_type (const long)> adhesivity;
+		std::function<vec_type_int (const long)> adhesivity;
 		std::function<vec_type (const long)> omega;
 };
 
