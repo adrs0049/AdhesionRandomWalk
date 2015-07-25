@@ -136,10 +136,10 @@ import_array();
 
 %extend Parameters {
     Parameters(double Dsize_, double StepSize_,
-                double * FinalTimes_, int final_times_len, unsigned long _ic_p)
+                double * FinalTimes_, int final_times_len)
             {
                 std::vector<double> vec {FinalTimes_, FinalTimes_ + final_times_len};
-                return new Parameters(Dsize_, StepSize_, vec, _ic_p);
+                return new Parameters(Dsize_, StepSize_, vec);
             }
 }
 
