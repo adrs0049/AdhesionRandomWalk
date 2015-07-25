@@ -12,6 +12,7 @@
 #include "make_unique.h"
 #include "Event.h"
 #include "Propensities.h"
+#include <cstdint>
 
 class Simulator;
 
@@ -19,7 +20,7 @@ class Simulator;
 
 class RandomWalk
 {
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 	using event_type = Event<state_vector_type>;
