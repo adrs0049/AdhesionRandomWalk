@@ -6,8 +6,11 @@
 int main()
 {
 
-	Parameters p (10.0, 0.01, 0.005, 1.0);
-	Simulator sim (std::make_shared<Parameters>(p));
+	Parameters p (10.0, 0.01, 0.005);
+	p.setIcP(1);
+    p.update();
+    p.Check();
+    Simulator sim (std::make_shared<Parameters>(p));
 
 	//sim.init();
 

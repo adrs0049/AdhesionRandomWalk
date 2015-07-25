@@ -31,13 +31,15 @@ private:
     std::shared_ptr<Parameters> p;
 	std::unique_ptr<AdhesionPropensities> prop;
 
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 
 	using float_type = typename simulation_traits::float_type;
 	using vec_type = simd_traits<float_type>::type;
 	static const std::size_t vec_size = simd_traits<float_type>::size;
+	using vec_type_int = simd_traits<int32_t>::type;
+	static const std::size_t vec_size_int = simd_traits<int32_t>::size;
 
 	std::shared_ptr<state_vector> state;
 
@@ -53,15 +55,17 @@ public:
     void setUp(void)
     {
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 32, FinalTimes);
         p->setDiffusion(1.0);
-        p->setDrift(1.0);
+        p->setDrift(0.1);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
 		p->setOmegaP(1.0);
+        p->setIcP(1);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::UNIFORM);
+        p->update();
         p->Check();
 
 		state = std::make_shared<state_vector>(p);
@@ -84,8 +88,6 @@ public:
 		double diffusion_coeff = p->getDiffusionSim();
 		double drift_coeff = p->getDriftSim() * p->getDiscreteX();
 
-		long TotalNumberOfCells = p->getNumberOfCells();
-
 		double total {0.0};
 		for (std::size_t i = 1; i < p->getSensingRadiusL() + 1; i++)
 		{
@@ -100,12 +102,17 @@ public:
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
-		total /= TotalNumberOfCells;
 
 		//std::cout << "total=" << total << std::endl;
 		//std::cout << "diff coeff=" << diffusion_coeff << std::endl;
 
-		return {diffusion_coeff + total, diffusion_coeff - total};
+		auto rhs = diffusion_coeff + total;
+		auto lhs = diffusion_coeff - total;
+
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, rhs);
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, lhs);
+
+		return {rhs, lhs};
 	}
 
 	void testVectorSize(void)
@@ -122,7 +129,7 @@ public:
 		for (unsigned long run = 0; run < runs; run++)
 		{
 			long coordinate = dis(gen);
-			vec_type rv = prop->adhesivity(coordinate);
+			vec_type_int rv = prop->adhesivity(coordinate);
 
 			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
 			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
@@ -131,6 +138,7 @@ public:
 
 			if (rv[0] != (double)state->getDensityQuick(coordinate))
 			{
+                std::cerr << "computing at coordinate = " << coordinate << std::endl;
 				std::cerr << "rv=(" << rv[0] <<", " << rv[1] << ", "
 					<< rv[2] << ", " << rv[3] << ")."
 					<< " state=(" << state->getDensityQuick(coordinate)
@@ -181,13 +189,15 @@ private:
     std::shared_ptr<Parameters> p;
 	std::unique_ptr<AdhesionPropensities> prop;
 
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 
 	using float_type = typename simulation_traits::float_type;
 	using vec_type = simd_traits<float_type>::type;
 	static const std::size_t vec_size = simd_traits<float_type>::size;
+	using vec_type_int = simd_traits<int32_t>::type;
+	static const std::size_t vec_size_int = simd_traits<int32_t>::size;
 
 	std::shared_ptr<state_vector> state;
 
@@ -203,15 +213,17 @@ public:
     void setUp(void)
     {
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 128, FinalTimes);
         p->setDiffusion(1.0);
-        p->setDrift(10.0);
+        p->setDrift(0.1);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
 		p->setOmegaP(1.0);
+        p->setIcP(1);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::HEAVISIDE_RIGHT);
+        p->update();
         p->Check();
 
 		state = std::make_shared<state_vector>(p);
@@ -234,8 +246,6 @@ public:
 		double diffusion_coeff = p->getDiffusionSim();
 		double drift_coeff = p->getDriftSim() * p->getDiscreteX();
 
-		long TotalNumberOfCells = p->getNumberOfCells();
-
 		double total {0.0};
 		for (std::size_t i = 1; i < p->getSensingRadiusL() + 1; i++)
 		{
@@ -250,12 +260,17 @@ public:
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
-		total /= TotalNumberOfCells;
 
 		//std::cout << "total=" << total << std::endl;
 		//std::cout << "diff coeff=" << diffusion_coeff << std::endl;
 
-		return {diffusion_coeff + total, diffusion_coeff - total};
+		auto rhs = diffusion_coeff + total;
+		auto lhs = diffusion_coeff - total;
+
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, rhs);
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, lhs);
+
+		return {rhs, lhs};
 	}
 
 	void testVectorSize(void)
@@ -286,7 +301,7 @@ public:
 		TS_ASSERT_EQUALS(state->getDensityQuick(coordinate+1), 1);
 
 		// we don't care about what is at the coordinate
-		vec_type rv = prop->adhesivity(coordinate + 1);
+		vec_type_int rv = prop->adhesivity(coordinate + 1);
 
 		TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate + 1), tol);
 		TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 2), tol);
@@ -333,7 +348,7 @@ public:
 		for (unsigned long run = 0; run < runs; run++)
 		{
 			long coordinate = dis(gen);
-			vec_type rv = prop->adhesivity(coordinate);
+			vec_type_int rv = prop->adhesivity(coordinate);
 
 			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
 			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
@@ -386,22 +401,21 @@ public:
     }
 };
 
-
-
-
 class AdhesionPropensitiesNonUniformTest : public CxxTest::TestSuite
 {
 private:
     std::shared_ptr<Parameters> p;
 	std::unique_ptr<AdhesionPropensities> prop;
 
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 
 	using float_type = typename simulation_traits::float_type;
 	using vec_type = simd_traits<float_type>::type;
 	static const std::size_t vec_size = simd_traits<float_type>::size;
+	using vec_type_int = simd_traits<int32_t>::type;
+	static const std::size_t vec_size_int = simd_traits<int32_t>::size;
 
 	std::shared_ptr<state_vector> state;
 
@@ -417,15 +431,17 @@ public:
     void setUp(void)
     {
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 32, FinalTimes);
         p->setDiffusion(1.0);
-        p->setDrift(1.0);
+        p->setDrift(0.1);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
 		p->setOmegaP(1.0);
+        p->setIcP(1);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::DELTA);
+        p->update();
         p->Check();
 
 		state = std::make_shared<state_vector>(p);
@@ -448,8 +464,6 @@ public:
 		double diffusion_coeff = p->getDiffusionSim();
 		double drift_coeff = p->getDriftSim() * p->getDiscreteX();
 
-		long TotalNumberOfCells = p->getNumberOfCells();
-
 		double total {0.0};
 		for (std::size_t i = 1; i < p->getSensingRadiusL() + 1; i++)
 		{
@@ -464,12 +478,17 @@ public:
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
-		total /= TotalNumberOfCells;
 
 		//std::cout << "total=" << total << std::endl;
 		//std::cout << "diff coeff=" << diffusion_coeff << std::endl;
 
-		return {diffusion_coeff + total, diffusion_coeff - total};
+		auto rhs = diffusion_coeff + total;
+		auto lhs = diffusion_coeff - total;
+
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, rhs);
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, lhs);
+
+		return {rhs, lhs};
 	}
 
 	void testVectorSize(void)
@@ -486,7 +505,7 @@ public:
 		for (unsigned long run = 0; run < runs; run++)
 		{
 			long coordinate = dis(gen);
-			vec_type rv = prop->adhesivity(coordinate);
+			vec_type_int rv = prop->adhesivity(coordinate);
 			vec_type ov = prop->omega(coordinate);
 			vec_type fv = prop->space(coordinate);
 
@@ -557,13 +576,15 @@ private:
     std::shared_ptr<Parameters> p;
 	std::unique_ptr<AdhesionPropensities> prop;
 
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 
 	using float_type = typename simulation_traits::float_type;
 	using vec_type = simd_traits<float_type>::type;
 	static const std::size_t vec_size = simd_traits<float_type>::size;
+	using vec_type_int = simd_traits<int32_t>::type;
+	static const std::size_t vec_size_int = simd_traits<int32_t>::size;
 
 	std::shared_ptr<state_vector> state;
 
@@ -579,15 +600,17 @@ public:
     void setUp(void)
     {
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 32, FinalTimes);
         p->setDiffusion(1.0);
-        p->setDrift(1.0);
+        p->setDrift(0.1);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
 		p->setOmegaP(1.0);
+        p->setIcP(1);
 
 		// FIXME do this test without a perfect uniform ic
 		p->setIcType(IC_TYPE::RANDOM);
+        p->update();
         p->Check();
 
 		state = std::make_shared<state_vector>(p);
@@ -610,8 +633,6 @@ public:
 		double diffusion_coeff = p->getDiffusionSim();
 		double drift_coeff = p->getDriftSim() * p->getDiscreteX();
 
-		long TotalNumberOfCells = p->getNumberOfCells();
-
 		double total {0.0};
 		for (std::size_t i = 1; i < p->getSensingRadiusL() + 1; i++)
 		{
@@ -626,12 +647,17 @@ public:
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
-		total /= TotalNumberOfCells;
 
 		//std::cout << "total=" << total << std::endl;
 		//std::cout << "diff coeff=" << diffusion_coeff << std::endl;
 
-		return {diffusion_coeff + total, diffusion_coeff - total};
+		auto rhs = diffusion_coeff + total;
+		auto lhs = diffusion_coeff - total;
+
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, rhs);
+		TS_ASSERT_LESS_THAN_EQUALS(0.0, lhs);
+
+		return {rhs, lhs};
 	}
 
 	void testVectorSize(void)
@@ -648,7 +674,7 @@ public:
 		for (unsigned long run = 0; run < runs; run++)
 		{
 			long coordinate = dis(gen);
-			vec_type rv = prop->adhesivity(coordinate);
+			vec_type_int rv = prop->adhesivity(coordinate);
 
 			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
 			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);

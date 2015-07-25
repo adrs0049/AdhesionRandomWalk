@@ -10,7 +10,7 @@
 
 int main(int argc, const char* argv[])
 {
-	long NumberOfCells = 10;
+	long NumberOfCells = 100;
 	if (argc==2)
 	{
 		std::istringstream ss(argv[1]);
@@ -31,12 +31,17 @@ int main(int argc, const char* argv[])
 
 		chronos::Chronos timer;
 
-		Parameters p (10.0, 20, FinalTimes, NumberOfCells);
+		Parameters p (10.0, 16, FinalTimes);
 		p.setDiffusion(1.0);
-		p.setDrift(1.0);
+		p.setDrift(0.003);
 		p.setSensingRadius(1.0);
 		p.setIcType(IC_TYPE::UNIFORM);
 		p.setRandomWalkType(RANDOMWALK_TYPE::ADHESION);
+		p.setOmegaP(0.82);
+		p.setLambda(5.0);
+		p.setIcP(NumberOfCells);
+		p.update();
+		p.print_info();
 
 		Simulator sim (std::make_shared<Parameters>(p));
 

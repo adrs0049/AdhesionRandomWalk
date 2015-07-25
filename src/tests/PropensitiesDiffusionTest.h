@@ -31,7 +31,7 @@ private:
     std::shared_ptr<Parameters> p;
 	std::unique_ptr<DiffusionPropensities> prop;
 
-	using state_vector = stateVector<unsigned int>;
+	using state_vector = stateVector<int32_t>;
 	using state_vector_type = typename state_vector::storage_type;
 	using state_vector_ptr = std::shared_ptr<const state_vector>;
 
@@ -48,12 +48,14 @@ public:
     void setUp(void)
     {
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 32, FinalTimes);
         p->setDiffusion(1.0);
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::DIFFUSION);
 		p->setIcType(IC_TYPE::UNIFORM);
+        p->setIcP(1);
+        p->update();
         p->Check();
 
 		state = std::make_shared<state_vector>(p);

@@ -48,12 +48,14 @@ public:
     {
         std::cerr << "setup" << std::endl;
 		std::vector<double> FinalTimes = {0.1, 0.2, 0.3};
-		p = std::make_shared<Parameters>(5, 32, FinalTimes, 1);
+		p = std::make_shared<Parameters>(5, 32, FinalTimes);
         p->setDiffusion(1.0);
         p->setDrift(1.0);
         p->setSensingRadius(1.0);
 		p->setRandomWalkType(RANDOMWALK_TYPE::DIFFUSION);
 		p->setIcType(IC_TYPE::UNIFORM);
+        p->setIcP(1);
+        p->update();
 
         p->Check();
 
