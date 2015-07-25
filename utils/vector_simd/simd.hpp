@@ -20,3 +20,11 @@
 #include <vector4i.h>
 #include <vector8i.h>
 
+
+// TODO MOVE these functions somewhere else
+
+static inline vector4d to_double(const vector4i& a)
+{
+    return _mm256_cvtepi32_pd(a);
+}
+

@@ -35,6 +35,11 @@ if (CXXTEST_FOUND)
 		${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
 	    ${CMAKE_CURRENT_SOURCE_DIR}/Vector8iTest.h)
 
+        CXXTEST_ADD_TEST(VectorCommonTest common_test.cc 
+		${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
+	    ${CMAKE_CURRENT_SOURCE_DIR}/common_test.h)
+
+
 	#CXXTEST_ADD_TEST(Vector256bTest Vector256bTest.cc 
 	#	${RANDOMWALK_SOURCE_DIR}/utils/aligned_allocator_detail.cpp
 	#    ${CMAKE_CURRENT_SOURCE_DIR}/Vector256bTest.h)

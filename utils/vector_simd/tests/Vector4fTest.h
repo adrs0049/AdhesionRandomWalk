@@ -36,14 +36,11 @@ public:
 
     void setUp(void)
     {
-        std::cerr << "setup" << std::endl;
 		Error::TerminalCatcher::init();
     }
 
     void tearDown(void)
-    {
-        std::cerr << "TearDown" << std::endl;
-    }
+    {}
 
 	void testBasic(void)
 	{

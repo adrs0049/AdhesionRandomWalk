@@ -40,8 +40,7 @@ public:
     }
 
     void tearDown(void)
-    {
-    }
+    {}
 
     void testConstructorConstant(void)
 	{

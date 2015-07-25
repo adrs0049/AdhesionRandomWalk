@@ -257,6 +257,37 @@ inline vector8i operator*(const vector8i& lhs, const vector8i& rhs)
     return _mm256_mullo_epi32(lhs,rhs);
 }
 
+inline vector8i abs(const vector8i& a)
+{
+	return _mm256_sign_epi32(a, a);
+}
+
+inline vector8i abs_saturated(const vector8i& a)
+{
+	__m256i absa = abs(a);
+	__m256i overfl = _mm256_srai_epi32(absa, 31);
+	return _mm256_add_epi32(absa, overfl);
+}
+
+inline vector8i max(const vector8i& a, const vector8i& b)
+{
+	return _mm256_max_epi32(a, b);
+}
+
+inline vector8i min(const vector8i& a, const vector8i& b)
+{
+	return _mm256_min_epi32(a, b);
+}
+
+inline int32_t hadd(const vector8i& a)
+{
+	__m256i t1 = _mm256_hadd_epi32(a, a);
+	__m256i t2 = _mm256_hadd_epi32(t1, t1);
+	__m128i t3 = _mm256_extracti128_si256(t2, 1);
+	__m128i t4 = _mm_add_epi32(_mm256_castsi256_si128(t2), t3);
+	return _mm_cvtsi128_si32(t4);
+}
+
 inline vector8ib operator&(const vector8i& lhs, const vector8i& rhs)
 {
     return _mm256_and_si256(lhs,rhs);
