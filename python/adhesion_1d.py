@@ -6,6 +6,7 @@ import queue
 import datetime
 
 import math
+import logging
 
 import simulator as s
 from simulator import DVector
@@ -15,6 +16,10 @@ from swig import *
 from log import *
 
 import plot as plt
+
+logging.basicConfig(format='[%(asctime)s] %(message)s', \
+                    datefmt='%d/%m/%Y %H:%M:%S',\
+                    level=logging.INFO)
 
 def timeit(method):
 
@@ -44,7 +49,7 @@ class Player(object):
         self.runId = -1
 
         # number of paths to generate
-        self.NoPaths = 32
+        self.NoPaths = 64
 
         # use multiprocessors
         self.multiprocessing = True
@@ -102,11 +107,11 @@ class Player(object):
         self.db.param_create_if_not_exist(self.param)
 
     @timeit
-    def runSimulations(self, FinalTimes, NoPlayers=500):
+    def runSimulations(self, FinalTimes):
 
         feedback_q = mp.Queue()
         p = mp.Process(target=self.__runSimulations__,
-                       args=(feedback_q, FinalTimes, NoPlayers,))
+                       args=(feedback_q, FinalTimes,))
         try:
             p.start()
 
@@ -141,7 +146,7 @@ class Player(object):
             p.join()
 
     """ run several simulations """
-    def __runSimulations__(self, feedback_q, FinalTimes, NoPlayers=500):
+    def __runSimulations__(self, feedback_q, FinalTimes):
 
         print('Preparing simulation...')
         # NoPaths, number of paths to generate for each config
@@ -188,7 +193,7 @@ class Player(object):
         # enqueue jobs
         print('Enqueuing simulations')
         for i in range(NoPaths):
-            tasks.put(Simulation(NoPlayers, FinalTimes, self.dparam))
+            tasks.put(Simulation(FinalTimes, self.dparam, i))
 
         print('Appending poison pill...')
         # send poison pill to all simulations
@@ -266,15 +271,16 @@ class storePath(SafeProcess):
             try:
                 next_result = self.q.get(timeout=100)
             except queue.Empty:
-                print('still empty')
+                logging.info('%s: Result queue is still empty!' % proc_name)
                 continue
 
             if next_result == None:
-                print('%s: Exiting' % proc_name)
+                logging.info('%s: Exiting' % proc_name)
                 return
 
-            print('%s: Storing path for time %f and simulation %d'
-                  % (proc_name, next_result[0], self.runId))
+            logging.info('%s: Storing path for time %2.2f and simulation '
+                         '%d' % (proc_name, next_result[0], \
+                                 self.runId))
 
             self.db.storePath(next_result[1], next_result[0],
                               self.runId, self.version, next_result[2])
@@ -293,10 +299,10 @@ class Consumer(SafeProcess):
         while True:
             next_task = self.task_queue.get()
             if next_task is None:
-                print('%s: Exiting' % proc_name)
+                logging.info('%s: Exiting' % proc_name)
                 self.task_queue.task_done()
                 break
-            print('%s: %s' % (proc_name, next_task))
+            logging.info('%s: %s' % (proc_name, next_task))
             try:
                 next_task(self)
             except:
@@ -323,22 +329,21 @@ class Consumer(SafeProcess):
 
 class Simulation(object):
 
-    def __init__(self, NoPlayers, FinalTimes, parameters):
+    def __init__(self, FinalTimes, parameters, simulation_id):
 
-        assert (NoPlayers>0), "Number of players has to be larger 0"
         assert (np.max(FinalTimes)>0), "Number of steps has to be larger 0"
         if np.max(FinalTimes)>1E3:
             print ('WARNING number of steps is very large!!')
 
-        self.NoPlayers = NoPlayers
         self.FinalTimes = FinalTimes
         self.parameters = parameters
+        self.simulation_id = simulation_id
 
         self.call = None
 
     def __str__(self):
-        return "Executing Simulation up to '%f' with '%d' players." \
-                % (np.max(self.FinalTimes), self.NoPlayers)
+        return "Executing Simulation %d up to '%f'." \
+                % (self.simulation_id, np.max(self.FinalTimes))
 
     # FIXME use a unidirectional pipe here!!!
     # the callback function
@@ -352,17 +357,16 @@ class Simulation(object):
         # package up the data
         test_data = (FinalTime, path, steps, )
 
+        logging.info('Simulator %d: Send path for time %2.2f with %d steps ' \
+                     'to MySQL writer.' %(self.simulation_id, FinalTime, steps))
+
         # call consumer callback
         self.call(test_data)
 
-    def __call__(self, call):
+    def __call__(self, callback):
 
-        self.call = call
-
-        #self.callback = callback
-        #print('callback=', callback)
-
-        #assert self.c!=None, "Connection cannot be None"
+        # set callback function!
+        self.call = callback
 
         # FIXME
         domainSizeHalf = int(self.parameters["DomainSize"]/2)
@@ -375,8 +379,7 @@ class Simulation(object):
 
             swig_param = PickalableParameters(domainShape,
                                               self.parameters["DomainN"],
-                                              DVector(self.FinalTimes),
-                                              self.NoPlayers)
+                                              DVector(self.FinalTimes))
 
             swig_param.setDiffusion(self.parameters["diffusion_coeff"])
             swig_param.setDrift(self.parameters["drift_coeff"])
@@ -386,9 +389,12 @@ class Simulation(object):
             swig_param.setIcType(self.parameters["ic_type"])
             swig_param.setRandomWalkType(self.parameters["rw_type"])
             swig_param.setOmegaP(self.parameters["omega_p"])
-            swig_param.Check()
+            swig_param.setLambda(50.0)
+            swig_param.setIcP(int(self.parameters["ic_p"]))
+            swig_param.update()
+            swig_param.print_info()
 
-            print('create simulator')
+            logging.info('Creating simulator %d.' % self.simulation_id)
             # create sim object
             sim = PickalableSimulator(swig_param)
 
@@ -396,7 +402,6 @@ class Simulation(object):
             raise
 
         # register callback function
-        print('self=',self)
         sim.registerPyListener(self)
 
         # run the simulation
@@ -407,15 +412,13 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=128,
-                 diffusion_coeff=1.0, drift_coeff=40,
+    param = dict(DomainSize=10, DomainN=32,
+                 diffusion_coeff=1.0, drift_coeff=0.003,
                  R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.82, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=0.1,
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=50.0,
                  rw_type=s.RANDOMWALK_TYPE_ADHESION,
                  space_type=s.SPACE_TYPE_ALWAYS_FREE,
                  adhesivity_type=s.ADHESIVITY_TYPE_SIMPLE)
 
+    # setup player
     player = Player(param)
-    db=player.getDB()
-
-    #player.runSimulation()
