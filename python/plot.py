@@ -1,16 +1,16 @@
 
-from models import *
 import matplotlib.pyplot as plt
 import simulator as s
+from models import Simulation, PathMetaData, Parameters
 
-import sys,os
+import os
 
 import heat as diffusion_solver
 import numpy as np
-import pandas as pd
 
 import randomWalk_db as rw
 import time
+
 
 class Plotter(object):
     def __init__(self, simId, Compare=False):
@@ -24,9 +24,14 @@ class Plotter(object):
     def __call__(self):
         self.plot()
 
-    def getDomainSize(self): return float(self.param.DomainSize)
-    def getDomainLeftBoundary(self): return 0.0
-    def getDomainRightBoundary(self): return self.getDomainSize()
+    def getDomainSize(self):
+        return float(self.param.DomainSize)
+
+    def getDomainLeftBoundary(self):
+        return 0.0
+
+    def getDomainRightBoundary(self):
+        return self.getDomainSize()
 
     def verify_data(self, data):
         assert isinstance(data, dict), "df is expected to be a dict"
@@ -34,7 +39,7 @@ class Plotter(object):
         # TODO raise exception
         if not len(data) > 0:
             print('Data returned from simulation %d is empty!' % self.sim.id)
-            return false
+            return False
         else:
             return True
 
@@ -55,13 +60,9 @@ class Plotter(object):
         max_values = []
         for key, path_data in iter(sorted(self.data.items())):
             try:
-                # skip zero
-                if key==0.0:
-                    continue
                 df = path_data.dataFrame
                 x = df['avg']
                 total = np.sum(x)
-                x = x / total
                 #print('key=', key, ' total=', total, ' max=', np.max(x))
                 max_values.append(np.max(x))
             except KeyError:
@@ -95,7 +96,7 @@ class Plotter(object):
 
         # FIXME
         print(len(q.all()))
-        assert len(q.all())==81, ''
+        print('Found ', len(q.all()), ' paths.')
         simId = q.all()[0][0].id
 
         print('found simulation twin at id %d.' % simId)
@@ -109,7 +110,8 @@ class Plotter(object):
         self.get_sim()
         self.get_param()
 
-        if self.simId is None: self.simId = self.sim.id
+        if self.simId is None:
+            self.simId = self.sim.id
 
         self.data = self.get_data_from_db(self.simId)
         bar_width = self.getStepSize()
@@ -138,7 +140,7 @@ class Plotter(object):
 
         elif rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT:
             simulation_name = 'Results of an advection-diffusion' \
-                    ' space-jump process'
+               ' space-jump process'
             rw_type_name = 'Drift'
             label_cont = 'FFT solution'
 
@@ -159,7 +161,8 @@ class Plotter(object):
             df = path_data.dataFrame
             steps = path_data.steps
             try:
-                x = df['avg']
+                avg = df['avg']
+                avg = avg / self.getStepSize()
             except KeyError:
                 print('Data returned from simulation %d is empty!' % self.runId)
                 return df
@@ -167,16 +170,38 @@ class Plotter(object):
                 raise
 
             # maybe do the total over a unit interval?
-            total = np.sum(x) * self.getStepSize()
+            total = np.sum(avg) * self.getStepSize()
 
             bins=np.arange(-self.getDomainLeftBoundary(),
-                       self.getDomainRightBoundary(),
-                       bar_width)
+                            self.getDomainRightBoundary(),
+                            bar_width)
 
             # should we check all?
             stochastic = self.sim.paths[0].stochastic
 
             if plt is not None: plt.clf()
+
+            label_ssa = 'Density of Gillespie SSA simulation'
+
+            labels = []
+
+            colors = ['c', 'm', 'y', 'k', 'r', 'b', 'g', 'w']
+            idx = 0
+            for column in df:
+                if idx==8:
+                    idx=0
+                if column == 'avg':
+                    continue
+
+                x = df[column]
+                x = x / self.getStepSize()
+                print('idx=', idx, ' len=', len(colors))
+                l = plt.plot(bins, x, 'ro', color=colors[idx])
+                idx += 1
+                labels.append(l)
+
+            #states, = plt.plot(bins, x, 'ro', color='r', label=label_ssa)
+            states, = plt.plot(bins, avg, color='k', linewidth=2.5)
 
             if self.Compare and \
                rw_type == s.RANDOMWALK_TYPE_ADHESION:
@@ -184,14 +209,11 @@ class Plotter(object):
                     # FIXME
                     akey = np.round(key, decimals=1)
                     data = adata[key].dataFrame['avg']
-                    #print('DataFrame=',
-                    #    adata[key].dataFrame.columns.values.tolist())
-                    #print('data_type=', data.dtypes)
                     u2 = np.asarray(data)
-                    print('SSA total=', total, ' continuum_total=', \
-                          np.sum(u2) * 0.01)
+                    print('Key=', key, ' SSA total=', total, ' continuum_total=', \
+                          np.sum(u2) * 1.0 / 16.0)
                     # FIXME dont hard code values
-                    x2 = np.arange(0.0, 10, 1.0 / 100.0)
+                    x2 = np.arange(0.0, 10, 1.0 / 16.0)
 
                     density, = plt.plot(x2, u2, color='g', linewidth=2.0,
                                     label=label_cont)
@@ -205,24 +227,27 @@ class Plotter(object):
             if self.Compare and (\
                 rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT or\
                 rw_type == s.RANDOMWALK_TYPE_DIFFUSION):
-                x2, u2 = self.compute_fft(key)
 
-                y_max = max(np.max(x), np.max(u2))
-                print('y_max=', y_max, ' u2=', np.max(u2))
-            else:
-                y_max = np.max(x)
-
-            plt.ylim(0, 1.5 * max(y_max, max_states))
-            label_ssa = 'Density of Gillespie SSA simulation'
-            states, = plt.plot(bins, x, 'ro', color='r', label=label_ssa)
-            #states2, = plt.plot(bins, x, color='r', linewidth=1.0)
-
+                density, = plt.plot(x2, u2, color='g', linewidth=2.0,
+                                    label=label_cont)
             if self.Compare and (\
                 rw_type == s.RANDOMWALK_TYPE_DIFFUSION_AND_DRIFT or\
                 rw_type == s.RANDOMWALK_TYPE_DIFFUSION):
 
-                density, = plt.plot(x2, u2, color='g', linewidth=2.0,
-                                    label=label_cont)
+                x2, u2 = self.compute_fft(key)
+
+                y_max = max(np.max(x), np.max(u2))
+                print('y_max=', y_max, ' u2=', np.max(u2))
+            elif self.Compare and \
+                rw_type == s.RANDOMWALK_TYPE_ADHESION:
+
+                y_max = max(np.max(x), np.max(u2))
+                print('y_max=', y_max, ' u2=', np.max(u2))
+
+            else:
+                y_max = np.max(x)
+
+            plt.ylim(0, 1.5 * max(y_max, max_states))
 
             plot_title = simulation_name + \
                     '\n with %d players at time %2.2f' \
@@ -235,10 +260,10 @@ class Plotter(object):
             plt.tick_params(axis='x', labelsize=15)
             plt.tick_params(axis='y', labelsize=15)
 
-            try:
-                plt.legend(handles=[states, density])
-            except:
-                plt.legend(handles=[states])
+            #try:
+            #    plt.legend(handles=[states, density])
+            #except:
+            #    plt.legend(handles=[states])
 
             result_dir = 'Results'
             path = None
