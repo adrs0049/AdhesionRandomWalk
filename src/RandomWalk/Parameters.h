@@ -49,17 +49,16 @@ class Parameters
 	public:
 		Parameters();
 		Parameters(double Dsize_, unsigned int DomainN_,
-				double FinalTime_, unsigned long _ic_p);
+				double FinalTime_);
 
         Parameters(double Dsize_, unsigned int DomainN_,
-				std::vector<double> FinalTimes_, unsigned long _ic_p);
+				std::vector<double> FinalTimes_);
 
 		Parameters(std::vector<double> _shape, unsigned int _DomainN,
-				double _finalTime, unsigned long _ic_p);
+				double _finalTime);
 
 		Parameters(std::vector<double> _shape, unsigned int _DomainN,
-				std::vector<double> FinalTimes_,
-				unsigned long _ic_p);
+				std::vector<double> FinalTimes_);
 
 		void print_info();
 		void update();
@@ -130,7 +129,7 @@ class Parameters
 		std::vector<double> FinalTimes;
 
 		// see random jump derivation
-		double lambda;
+		double lambda = 1E2;
 
 		double SensingRadius = 1.0;
 		unsigned long SensingRadiusL;

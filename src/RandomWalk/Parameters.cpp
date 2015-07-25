@@ -2,13 +2,15 @@
 #include "Parameters.h"
 #include "debug.h"
 
+#include <format.h>
+
 Parameters::Parameters() {}
 
 Parameters::Parameters(double Dsize_, unsigned int DomainN_,
-        double FinalTime_, unsigned long _ic_p)
+        double FinalTime_)
 : DomainSize(Dsize_), DomainSizeL(0),
     DomainN(DomainN_), FinalTimes(1, FinalTime_),
-    ic_p(_ic_p)
+    ic_p(0)
 {
     // TODO check if this is correct
     domainShape.resize(2, 0);
@@ -16,16 +18,13 @@ Parameters::Parameters(double Dsize_, unsigned int DomainN_,
     domainShape[1] = DomainSize/2;
 
     NumberOfCells = 0;
-
-    update();
-    print_info();
 }
 
 Parameters::Parameters(double Dsize_, unsigned int DomainN_,
-        std::vector<double> FinalTimes_, unsigned long _ic_p)
+        std::vector<double> FinalTimes_)
 : DomainSize(Dsize_), DomainSizeL(0),
     DomainN(DomainN_), FinalTimes(FinalTimes_),
-    ic_p(_ic_p)
+    ic_p(0)
 {
     // TODO check if this is correct
     domainShape.resize(2, 0);
@@ -33,49 +32,41 @@ Parameters::Parameters(double Dsize_, unsigned int DomainN_,
     domainShape[1] = DomainSize/2;
 
     NumberOfCells = 0;
-
-    update();
-    print_info();
 }
 
 Parameters::Parameters(std::vector<double> _shape, unsigned int _DomainN,
-        double _finalTime,
-        unsigned long _ic_p)
+        double _finalTime)
 : domainShape(_shape), DomainN(_DomainN), FinalTimes(1, _finalTime),
-    ic_p(_ic_p)
+    ic_p(0)
 {
     ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
 
     DomainSize = domainShape[1] - domainShape[0];
-
-    update();
-    print_info();
 }
 
 Parameters::Parameters(std::vector<double> _shape, unsigned int _DomainN,
-        std::vector<double> FinalTimes_,
-        unsigned long _ic_p)
+        std::vector<double> FinalTimes_)
 : domainShape(_shape), DomainN(_DomainN),
-    FinalTimes(FinalTimes_), ic_p(_ic_p)
+    FinalTimes(FinalTimes_), ic_p(0)
 {
     ASSERT(_shape.size()==2, "shape size of " << _shape.size() << " is invalid!");
 
     DomainSize = domainShape[1] - domainShape[0];
-
-	std::cerr << "update" << std::endl;
-    update();
-    print_info();
 }
 
 void Parameters::print_info()
 {
+	// FIXME USE CPPFORMAT
     Check();
-    std::cout << "Domain Size:" << DomainSize;
-    std::cout << " Domain Size L:" << DomainSizeL;
-    std::cout << " Domain = (" << domainShape[0] << ", "
-        << domainShape[1] << ").";
-    std::cout << " StepSize:" << StepSize << std::endl;
-    std::cout << " Sensing Radius:" << SensingRadiusL;
+
+	fmt::printf("Domain Size=%2.1f, domain size L=%d", DomainSize, DomainSizeL);
+	fmt::printf(" Domain=(%2.1f, %2.1f)\n", domainShape[0], domainShape[1]);
+	fmt::printf("The simulation parameters are,\n");
+	fmt::printf("Diffusion=%3.10f, Drift=%3.10f", getDiffusionSim(), getDriftSim());
+	fmt::printf(" StepSize=%1.5f, Sensing Radius=%2.1f, Sensing L=%d", StepSize, SensingRadius, SensingRadiusL);
+	fmt::printf(" Lambda=%5.2f.", lambda);
+
+	fmt::printf("\nThe times at which the simulation gives out results are,\n");
     std::cout << " FinalTimes=(";
     std::copy(FinalTimes.begin(), FinalTimes.end(),
             std::ostream_iterator<double>(std::cout, ", "));
@@ -87,6 +78,7 @@ void Parameters::update()
     // sort elements of FinalTimes, required!!
     std::sort(FinalTimes.begin(), FinalTimes.end());
 
+	/*
 	if (base2)
 	{
 		std::cerr << "Base2 is on!";
@@ -108,13 +100,14 @@ void Parameters::update()
 
 		std::cerr << " SesningRad=" << SensingRadiusL << std::endl;
 	}
-	else
-	{
+	*/
+	//else
+	//{
 		StepSize = 1.0 / DomainN;
 		DomainSizeL = DomainSize / StepSize;
 		SensingRadiusL = SensingRadius / StepSize;
-	}
-    lambda = 1E2;
+	//}
+
     set = true;
 
 	// FIXME
