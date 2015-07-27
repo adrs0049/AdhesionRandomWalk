@@ -55,6 +55,7 @@ db = RandomWalkDB()
 # get parameter object
 p2 = db.param_create_if_not_exist(temp_data)
 
+print('parameters=', p2)
 # get the rw object
 sim_id = db.createSimulation('MATLAB-0.1', p2.id)
 
