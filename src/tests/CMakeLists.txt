@@ -52,6 +52,15 @@ if (CXXTEST_FOUND)
 		${CMAKE_CURRENT_SOURCE_DIR}/PropensitiesAdhesionTest.h)
 	target_link_libraries(AdhesionPropensitiesTest ${RANDOMWALK_LIBS})
 
+	CXXTEST_ADD_TEST(StateVectorAccessorCacheTest StateVectorAccessorCacheTest.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/StateVectorAccessorCacheTest.h)
+	target_link_libraries(StateVectorAccessorCacheTest ${RANDOMWALK_LIBS})
+
+	CXXTEST_ADD_TEST(StateVectorAccessorCacheTest_v2 StateVectorAccessorCacheTest_v2.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/StateVectorAccessorCacheTest_v2.h)
+	target_link_libraries(StateVectorAccessorCacheTest_v2 ${RANDOMWALK_LIBS})
+
+
 endif()
 
 

@@ -77,7 +77,7 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 			omega_normalization_constant =
 				p->getOmegaP() / (2.0 * p->getSensingRadius());
 
-			omega = [this] (const long coordinate)
+			omega = [this] (const int coordinate)
 			{
 				return vec_type(omega_normalization_constant);
 			};
@@ -96,7 +96,7 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 	switch (space_type)
 	{
 		case SPACE_TYPE::ALWAYS_FREE:
-			space = [this] (const long coordinate)
+			space = [this] (const int coordinate)
 			{
 				// TODO check if static helps here
 				return vec_type(1.0);
@@ -117,27 +117,34 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 	switch (adhesivity_type)
 	{
 		case ADHESIVITY_TYPE::SIMPLE:
+			max_idx = static_cast<long>(domainSizeL - vec_size_int);
 			// loads the values to the right of coordinate
 			adhesivity = [this] (int coordinate)
 			{
-				state->applyCondition(coordinate);
-				// check if this static cast casuses problems
-				if (coordinate < static_cast<long>(domainSizeL - vec_size_int))
+				vector8i ret;
+				if (coordinate >= 0 && coordinate < max())
 				{
-					vector8i ret;
 					ret.load_u(state->data(coordinate));
-					return ret;
 				}
 				else
 				{
+					state->applyCondition(coordinate);
+					if (coordinate < max())
+					{
+						ret.load_u(state->data(coordinate));
+					}
+					else
+					{
 					int32_t x[vec_size_int];
 					for (std::size_t idx = 0; idx < vec_size_int; idx++)
 					{
 						x[idx] = state->getDensityQuick(coordinate + idx);
 					}
-					vec_type_int ret = load_u(x);
-					return ret;
+					ret.load_u(x);
+					}
 				}
+
+				return ret;
 			};
 
 			break;
@@ -180,6 +187,9 @@ void AdhesionPropensities::verify(void) const
 	ASSERT(sensing_radius % vec_size == 0, "sensing radius has to be a multiple of vec_size!");
 
 	if (!state) throw NullPtrDereference {"state_ptr"};
+
+	const std::size_t regularpart = sensing_radius & (-vec_size_int);
+	assert(regularpart == sensing_radius);
 }
 
 inline std::array<double, 2>
@@ -187,18 +197,14 @@ AdhesionPropensities::compute(const long coordinate) const
 {
 	// compute polarization
 	double total {0.0};
-	const std::size_t regularpart = sensing_radius & (-vec_size_int);
-	assert(regularpart == sensing_radius);
-
 	//std::cout <<"regular part=" << regularpart <<
 	//	" coordinate=" << coordinate << std::endl;
 	// start at offset 1
 	int32_t i = 0;
 	vec_type_int sum1(0);
 	// TODO write as integer additions
-	for (i = vec_size_int; i <= (int)regularpart; i += vec_size_int)
+	for (i = vec_size_int; i <= (int)sensing_radius; i += vec_size_int)
 	{
-		//vec_type rv = space(-i) * omega(-i) * adhesivity(coordinate - i);
 		vec_type_int rv = adhesivity(coordinate - i);
 		//std::cout << "i=" << i<<" "<<" coord-i="<<coordinate -i<<" "<<
 		//	"rv=(" << rv[0] << ", " <<rv[1] <<", "<<rv[2]<<", "
@@ -210,7 +216,7 @@ AdhesionPropensities::compute(const long coordinate) const
 
 	std::size_t j = 1;
 	vec_type_int sum2(0);
-	for (;j < regularpart; j += vec_size_int)
+	for (;j < sensing_radius; j += vec_size_int)
 	{
 		//vec_type rv = space(j) * omega(j) * adhesivity(coordinate + j);
 		vec_type_int rv = adhesivity(coordinate + j);

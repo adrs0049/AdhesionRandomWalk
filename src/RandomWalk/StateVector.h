@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <memory>
 #include <random>
+//#include <StateVectorAccessorCache_v2.h>
 
 #include "debug.h"
 #include <cassert>
@@ -36,6 +37,7 @@ protected:
 private:
 	BoundaryPtr b;
     ParameterPtr p;
+	//StateVectorAccessorCache_v2 cache;
 
 	// buffer the domain size locally it's used a lot
 	// shared ptr access seems expensive is this true??
@@ -201,6 +203,7 @@ public:
 		: m_stateVector(p_->getDomainSizeL(), 0), b(nullptr), p(p_)
     {
         init();
+		//cache.setup(p_);
     }
 
 	storage_type getStateVector() const { return m_stateVector; }
@@ -240,6 +243,19 @@ public:
 		return m_stateVector[idx];
 	}
 
+	/*
+	int getIndex(const int coordinate, const int idx)
+	{
+		return cache(coordinate, idx);
+	}
+
+	const int getIndex(const int coordinate, const int idx) const
+	{
+		//std::cout << "getIndex("<<coordinate<<", " << idx << ") = " << cache(coordinate, idx) <<"." << std::endl;
+		return cache(coordinate, idx);
+	}
+	*/
+
 	T& getDensityQuick(int idx)
 	{
 		applyCondition(idx);
@@ -254,6 +270,38 @@ public:
 	const T* data(const int idx) const
 	{
 		return (m_stateVector.data() + idx);
+	}
+
+	/*
+	T* data(const int coordinate, const int idx)
+	{
+		return (m_stateVector.data() + getIndex(coordinate, idx));
+	}
+
+	const T* data(const int coordinate, const int idx) const
+	{
+		return (m_stateVector.data() + getIndex(coordinate, idx));
+	}
+
+	T& getDensityDirect(int coordinate, int idx)
+	{
+		return m_stateVector[getIndex(coordinate, idx)];
+	}
+
+	const T& getDensityDirect(int coordinate, int idx) const
+	{
+		return m_stateVector[getIndex(coordinate, idx)];
+	}
+	*/
+
+	T& getDensityDirect(int idx)
+	{
+		return m_stateVector[idx];
+	}
+
+	const T& getDensityDirect(int idx) const
+	{
+		return m_stateVector[idx];
 	}
 
 	const T& getDensityQuick(int idx) const

@@ -2,7 +2,6 @@
 #include <cxxtest/TestSuite.h>
 
 #include <iostream>
-#include "Parameters.h"
 #include <memory>
 #include <iterator>
 #include <vector>
@@ -17,7 +16,9 @@
 #include <random>
 
 #define private public
+#define protected public
 #include "StateVector.h"
+#include "Parameters.h"
 
 class StateVectorTest : public CxxTest::TestSuite
 {
@@ -32,6 +33,11 @@ private:
 
     double tol = 1E-5;
 	unsigned long runs = 1E6;
+
+	int begin() const { return - p->getSensingRadiusL(); }
+	int end() const { return state->size() + p->getSensingRadiusL() + 1; }
+	int sbegin() const { return -p->getSensingRadiusL(); }
+	int send() const { return p->getSensingRadiusL() + 1; }
 
 public:
 
@@ -132,6 +138,76 @@ public:
 		}
 	}
 
+	void testGetDensity(void)
+	{
+		p->setIcType(IC_TYPE::RANDOM);
+        p->update();
+		p->Check();
+
+		state = std::make_shared<state_vector>(p);
+		unsigned long runs = 20;
+
+		for (std::size_t run = 0; run < runs; run++)
+		{
+			for (std::size_t idx = 0; idx < state->size(); idx++)
+			{
+				int index = run * state->size() + idx;
+				TS_ASSERT_EQUALS(state->getDensity(index), *(state->data(idx)));
+			}
+
+			for (std::size_t idx = 0; idx < state->size(); idx++)
+			{
+				int index = - run * state->size() + idx;
+				TS_ASSERT_EQUALS(state->getDensity(index), *(state->data(idx)));
+			}
+		}
+	}
+
+	void testGetDensityQuick(void)
+	{
+		p->setIcType(IC_TYPE::RANDOM);
+        p->update();
+		p->Check();
+
+		state = std::make_shared<state_vector>(p);
+		unsigned long runs = 20;
+
+		for (std::size_t run = 0; run < runs; run++)
+		{
+			for (std::size_t idx = 0; idx < state->size(); idx++)
+			{
+				int index = run * state->size() + idx;
+				TS_ASSERT_EQUALS(state->getDensityQuick(index), *(state->data(idx)));
+			}
+
+			for (std::size_t idx = 0; idx < state->size(); idx++)
+			{
+				int index = - run * state->size() + idx;
+				TS_ASSERT_EQUALS(state->getDensityQuick(index), *(state->data(idx)));
+			}
+		}
+	}
+
+    //void testGetDensityDirect(void)
+	/*
+	{
+		p->setIcType(IC_TYPE::RANDOM);
+        p->update();
+		p->Check();
+
+		state = std::make_shared<state_vector>(p);
+
+        for (std::size_t idx = 0; idx < state->size(); idx++)
+        {
+            TS_ASSERT_EQUALS(state->getDensityDirect(idx),
+                    *(state->data(idx)));
+
+            TS_ASSERT_EQUALS(state->getDensityDirect(idx),
+                    *(state->data(idx)));
+        }
+	}
+	*/
+
     void testDataAccessor(void)
 	{
 		p->setIcType(IC_TYPE::RANDOM);
@@ -149,6 +225,39 @@ public:
                     *(state->data(idx)));
         }
 	}
+
+	//void testCache(void)
+	/*
+	{
+		p->setIcType(IC_TYPE::RANDOM);
+        p->update();
+		p->Check();
+
+		state = std::make_shared<state_vector>(p);
+
+		for (int coordinate = begin(); coordinate < end(); coordinate++)
+		{
+			for (int offset = sbegin(); offset < send(); offset++)
+			{
+				//std::cout << "(coord, off)=" <<coordinate << ", " <<offset << ")";
+				int offset_tmp  = coordinate + offset;
+				//std::cout << " off_tmp=" << offset_tmp;
+				int c = state->getIndex(coordinate, offset);
+
+				TS_ASSERT_EQUALS(state->getDensityDirect(c), state->getDensityQuick(offset_tmp));
+
+				// test again with the offset applied before
+				state->applyCondition(offset_tmp);
+				//std::cout << " off_temp_after=" << offset_tmp << " c=" << c << std::endl;
+				TS_ASSERT_EQUALS(c, offset_tmp);
+
+				// also verify that data match
+				TS_ASSERT_EQUALS(state->getDensityQuick(coordinate + offset),
+						state->getDensityDirect(c));
+			}
+		}
+	}
+	*/
 
 	void testConstructNoise(void)
 	{

@@ -29,8 +29,6 @@ int main(int argc, const char* argv[])
 	{
 		std::cout << "Running simulation up to " << time << "." << std::endl;
 
-		chronos::Chronos timer;
-
 		Parameters p (10.0, 16, FinalTimes);
 		p.setDiffusion(1.0);
 		p.setDrift(0.003);
@@ -44,6 +42,8 @@ int main(int argc, const char* argv[])
 		p.print_info();
 
 		Simulator sim (std::make_shared<Parameters>(p));
+
+		chronos::Chronos timer;
 
 		sim.run();
 	}

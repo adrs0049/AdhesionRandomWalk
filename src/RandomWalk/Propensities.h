@@ -87,21 +87,25 @@ class AdhesionPropensities : public PropensitiesGenerator
 		compute(const long coordinate) const;
 
 	private:
+
+		const long max() const { return max_idx; }
+
 		double diffusion_coeff;
 		double drift_coeff_and_h;
 		unsigned long sensing_radius;
 		unsigned long TotalNumberOfCells;
 		unsigned long domainSizeL;
 
+		long max_idx;
 		double omega_normalization_constant;
 
 		// TODO better solns? readonly shared ptr?
 		//std::shared_ptr<state_vector> state;
 		state_vector_ptr state;
 
-		std::function<vec_type (const long)> space;
-		std::function<vec_type_int (const long)> adhesivity;
-		std::function<vec_type (const long)> omega;
+		std::function<vec_type (const int)> space;
+		std::function<vec_type_int (int)> adhesivity;
+		std::function<vec_type (const int)> omega;
 };
 
 

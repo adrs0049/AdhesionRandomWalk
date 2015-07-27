@@ -48,7 +48,7 @@ private:
 	double omega = 0.5;
 	double space = 1.0;
 
-	unsigned long runs = 1E6;
+	unsigned long runs = 1E7;
 
 public:
 
@@ -98,7 +98,7 @@ public:
 		total *= space;
 		total *= omega;
 
-		//TS_ASSERT_DELTA(total, p->getICp() * p->getSensingRadiusL()
+		//TS_ASSERT_EQUALS(total, p->getICp() * p->getSensingRadiusL()
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
@@ -131,10 +131,10 @@ public:
 			long coordinate = dis(gen);
 			vec_type_int rv = prop->adhesivity(coordinate);
 
-			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
-			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
-			TS_ASSERT_DELTA(rv[2], state->getDensityQuick(coordinate + 2), tol);
-			TS_ASSERT_DELTA(rv[3], state->getDensityQuick(coordinate + 3), tol);
+			TS_ASSERT_EQUALS(rv[0], state->getDensityQuick(coordinate));
+			TS_ASSERT_EQUALS(rv[1], state->getDensityQuick(coordinate + 1));
+			TS_ASSERT_EQUALS(rv[2], state->getDensityQuick(coordinate + 2));
+			TS_ASSERT_EQUALS(rv[3], state->getDensityQuick(coordinate + 3));
 
 			if (rv[0] != (double)state->getDensityQuick(coordinate))
 			{
@@ -256,7 +256,7 @@ public:
 		total *= space;
 		total *= omega;
 
-		//TS_ASSERT_DELTA(total, p->getICp() * p->getSensingRadiusL()
+		//TS_ASSERT_EQUALS(total, p->getICp() * p->getSensingRadiusL()
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
@@ -303,10 +303,10 @@ public:
 		// we don't care about what is at the coordinate
 		vec_type_int rv = prop->adhesivity(coordinate + 1);
 
-		TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate + 1), tol);
-		TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 2), tol);
-		TS_ASSERT_DELTA(rv[2], state->getDensityQuick(coordinate + 3), tol);
-		TS_ASSERT_DELTA(rv[3], state->getDensityQuick(coordinate + 4), tol);
+		TS_ASSERT_EQUALS(rv[0], state->getDensityQuick(coordinate + 1));
+		TS_ASSERT_EQUALS(rv[1], state->getDensityQuick(coordinate + 2));
+		TS_ASSERT_EQUALS(rv[2], state->getDensityQuick(coordinate + 3));
+		TS_ASSERT_EQUALS(rv[3], state->getDensityQuick(coordinate + 4));
 
 		if (rv[0] != (double)state->getDensityQuick(coordinate + 1))
 		{
@@ -350,10 +350,10 @@ public:
 			long coordinate = dis(gen);
 			vec_type_int rv = prop->adhesivity(coordinate);
 
-			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
-			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
-			TS_ASSERT_DELTA(rv[2], state->getDensityQuick(coordinate + 2), tol);
-			TS_ASSERT_DELTA(rv[3], state->getDensityQuick(coordinate + 3), tol);
+			TS_ASSERT_EQUALS(rv[0], state->getDensityQuick(coordinate));
+			TS_ASSERT_EQUALS(rv[1], state->getDensityQuick(coordinate + 1));
+			TS_ASSERT_EQUALS(rv[2], state->getDensityQuick(coordinate + 2));
+			TS_ASSERT_EQUALS(rv[3], state->getDensityQuick(coordinate + 3));
 
 			if (rv[0] != (double)state->getDensityQuick(coordinate))
 			{
@@ -474,7 +474,7 @@ public:
 		total *= space;
 		total *= omega;
 
-		//TS_ASSERT_DELTA(total, p->getICp() * p->getSensingRadiusL()
+		//TS_ASSERT_EQUALS(total, p->getICp() * p->getSensingRadiusL()
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
@@ -509,10 +509,10 @@ public:
 			vec_type ov = prop->omega(coordinate);
 			vec_type fv = prop->space(coordinate);
 
-			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
-			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
-			TS_ASSERT_DELTA(rv[2], state->getDensityQuick(coordinate + 2), tol);
-			TS_ASSERT_DELTA(rv[3], state->getDensityQuick(coordinate + 3), tol);
+			TS_ASSERT_EQUALS(rv[0], state->getDensityQuick(coordinate));
+			TS_ASSERT_EQUALS(rv[1], state->getDensityQuick(coordinate + 1));
+			TS_ASSERT_EQUALS(rv[2], state->getDensityQuick(coordinate + 2));
+			TS_ASSERT_EQUALS(rv[3], state->getDensityQuick(coordinate + 3));
 
 			TS_ASSERT_DELTA(ov[0], omega, tol);
 			TS_ASSERT_DELTA(ov[1], omega, tol);
@@ -643,7 +643,7 @@ public:
 		total *= space;
 		total *= omega;
 
-		//TS_ASSERT_DELTA(total, p->getICp() * p->getSensingRadiusL()
+		//TS_ASSERT_EQUALS(total, p->getICp() * p->getSensingRadiusL()
 	 	//		* space * omega, tol);
 
 		total *= drift_coeff;
@@ -676,10 +676,10 @@ public:
 			long coordinate = dis(gen);
 			vec_type_int rv = prop->adhesivity(coordinate);
 
-			TS_ASSERT_DELTA(rv[0], state->getDensityQuick(coordinate), tol);
-			TS_ASSERT_DELTA(rv[1], state->getDensityQuick(coordinate + 1), tol);
-			TS_ASSERT_DELTA(rv[2], state->getDensityQuick(coordinate + 2), tol);
-			TS_ASSERT_DELTA(rv[3], state->getDensityQuick(coordinate + 3), tol);
+			TS_ASSERT_EQUALS(rv[0], state->getDensityQuick(coordinate));
+			TS_ASSERT_EQUALS(rv[1], state->getDensityQuick(coordinate + 1));
+			TS_ASSERT_EQUALS(rv[2], state->getDensityQuick(coordinate + 2));
+			TS_ASSERT_EQUALS(rv[3], state->getDensityQuick(coordinate + 3));
 
 			if (rv[0] != (double)state->getDensityQuick(coordinate))
 			{
