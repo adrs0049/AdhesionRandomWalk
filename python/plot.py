@@ -1,5 +1,6 @@
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import simulator as s
 from models import Simulation, PathMetaData, Parameters
 
@@ -152,7 +153,9 @@ class Plotter(object):
 
     """ get extrema of path """
     def compute_path_extrema(self, path):
-        return sp.argrelextrema(path, np.greater)
+        width = 2.0 * float(self.param.R) / self.getStepSize()
+        return sp.find_peaks_cwt(path, np.arange(1, int(width)))
+        #return sp.argrelextrema(path, np.greater)
 
     """ get x and u for Container at key """
     def getStateAtKey(self, dataContainer, key):
@@ -185,15 +188,16 @@ class Plotter(object):
             raise
 
     """ elim too small extrema """
-    def elim_small_extrema(self, extrema_path, path):
+    def elim_small_extrema(self, extrema_path, path, threshold_percentage=0.8):
 
         max_state = np.max(path)
+        print('max=', max_state)
 
-        threshold_percentage = 0.8
         indeces = []
         idx=0
         for point in extrema_path:
             if path[point] < threshold_percentage * max_state:
+                print('path[', point, ']=', path[point], ' eliminating')
                 indeces.append(idx)
             idx+=1
 
@@ -233,7 +237,7 @@ class Plotter(object):
     """ path is a numpy array """
     def compute_path_correction(self, prediction, path):
         # find max in continuum data first
-        extrema_predicted, = self.compute_path_extrema(prediction)
+        extrema_predicted = self.compute_path_extrema(prediction)
         extrema_predicted = self.elim_small_extrema(extrema_predicted,
                                                     prediction)
 
@@ -246,11 +250,32 @@ class Plotter(object):
                   'path are different!')
         #print('prediction=', prediction)
         print('extrema prediction=', extrema_predicted)
-        extrema_path, = self.compute_path_extrema(path.values)
-        #print('extrema_path=', extrema_path)
+        extrema_path = self.compute_path_extrema(path.values)
+
+        assert len(extrema_path)>=len(extrema_predicted), \
+               'not enough peaks found in the data'
+        print('path=', path.values)
+        print('extrema_path_before=', extrema_path)
         #print('len_path=', len(path.values))
 
-        extrema_path = self.elim_small_extrema(extrema_path, path.values)
+        threshold_percentage = 0.9
+        while True:
+            extrema_path_tmp = self.elim_small_extrema(extrema_path,
+                                                   path.values,
+                                                   threshold_percentage)
+
+            if len(extrema_path_tmp)>=len(extrema_predicted):
+                print('Found enough peaks with at a threshold of %1.1f' \
+                      % threshold_percentage)
+                extrema_path = extrema_path_tmp
+                break
+
+            print('extrema_path=', extrema_path, ' threshold=', \
+                  threshold_percentage)
+            threshold_percentage -= 0.1
+            if threshold_percentage <= 0.5:
+                assert False, 'couldn\'t find enough peaks in path data'
+
         extrema_path = np.sort(extrema_path)
         extrema_path = self.find_duplicate_peaks(extrema_path, \
                                                  len(extrema_predicted))
@@ -259,11 +284,14 @@ class Plotter(object):
         print('path extrema=', extrema_path)
         # what to do in this case=
         if len(extrema_path) != len(extrema_predicted):
+            print('WARNING a different number of extrema found!')
             print('len_path=', len(extrema_path), ' len_pred=', \
                   len(extrema_predicted))
-            #print('path=', path.values)
-            print('WARNING a different number of extrema found!')
-            correction = extrema_predicted
+
+            print('prediction=', extrema_predicted, \
+                  'extrema_comp=', extrema_path)
+
+            correction = np.zeros(len(extrema_predicted))
         else:
             print('prediction[', extrema_predicted[0], ', ',\
                   extrema_predicted[1],']=(', prediction[extrema_predicted[0]], \
@@ -343,19 +371,49 @@ class Plotter(object):
 
         ax.set_ylim(0, 1.5 * values["ylim_max"])
         ax.set_xlabel('Spacial domain', fontsize=18)
-        ax.set_ylabel('Density [UNITS]', fontsize=18)
+        ax.set_ylabel('Density [CELLS / UNIT LENGTH]', fontsize=18)
         #ax.tight_layout()
         ax.tick_params(axis='x', labelsize=15)
         ax.tick_params(axis='y', labelsize=15)
 
-        fname = 'plot_'+rw_type_name+'_'+str(self.simId)+\
-                '_'+str(key)+'.png'
+        # get the legends
+        if subdir == 'avg':
+            extra = mpatches.Rectangle((0,0), 1, 1, fc="w", fill=False, \
+                                       edgecolor='none', linewidth=0)
+            handles, labels = ax.get_legend_handles_labels()
+
+            handles.append(extra)
+            labels.append('The relative L2 Error is %2.2f%%' \
+                          % values["error"])
+        else:
+            handles, labels = ax.get_legend_handles_labels()
+
+        ax.legend(handles, labels)
+
+        try:
+            fname = 'plot_'+rw_type_name+'_'+str(values["name"])+'_'\
+                +str(self.simId)+\
+                '_'+str(key).replace('.', '_')+'.png'
+        except KeyError:
+            fname = 'plot_'+rw_type_name+'_'+str(self.simId)+\
+                '_'+str(key).replace('.', '_')+'.png'
+
         print('path=', os.path.join(path, fname))
+        plt.tight_layout()
         fig.savefig(os.path.join(path, fname))
 
     def plot_individual_paths(self, path_data, prediction, time, tag=None):
+
+        """ Colors: c = cyan
+                    m = magenta
+                    y = yellow
+                    k = black
+                    r = red
+                    b = blue
+                    g = green
+                    w = white
+        """
         colors = ['c', 'm', 'y', 'k', 'r', 'b', 'g', 'w']
-        labels = []
 
         if tag is None:
             name = 'individual'
@@ -364,35 +422,45 @@ class Plotter(object):
 
         df = path_data.dataFrame
         idx=0
+        num=0
         total=0
         ylim_max=0.0
         # recompute average
         df['avg']=df.mean(axis=1)
 
+        print('len=', len(df.columns))
         for column in df:
             #print('column=', column)
             if column == 'avg':
                 continue
-            if idx == 0:
-                fig = plt.figure()
-                fig.subplots_adjust(top=0.8)
-                ax = fig.add_subplot(111)
 
             if idx == 8:
                 values = dict(total=total, steps=path_data.steps, time=time,\
-                              ylim_max=max(ylim_max, np.max(prediction)))
+                              ylim_max=max(ylim_max, np.max(prediction)), \
+                              name=num)
                 avg = df['avg']
                 avg = avg / self.getStepSize()
-                ax.plot(self.bins, avg, color='k', linewidth=2.0)
-                ax.plot(self.bins, prediction, color='r', linewidth=2.0)
+                ax.plot(self.bins, avg, color='k', linewidth=2.0, \
+                        label='Gillespie average over %d runs' % len(df.columns))
+                ax.plot(self.bins, prediction, color='r', linewidth=2.0, \
+                        label='Continuum solution')
                 self.finalize_figure(fig, ax, values, name)
+                num+=1
                 idx=0
 
+            if idx == 0:
+                print('create new figure')
+                fig = plt.figure()
+                ax = plt.subplot(111)
+
             x = df[column]
-            x = x / self.getStepSize()
 
             if total==0: total = np.sum(x)
             total_tmp = np.sum(x)
+
+            # rescale after total calculation
+            x = x / self.getStepSize()
+
             if ylim_max <= np.max(x):
                 ylim_max = np.max(x)
 
@@ -404,15 +472,50 @@ class Plotter(object):
 
         if idx is not 0:
             values = dict(total=total, steps=path_data.steps, time=time,\
-                          ylim_max=max(ylim_max, np.max(prediction)))
+                          ylim_max=max(ylim_max, np.max(prediction)),\
+                          name=num)
 
             avg = df['avg']
             avg = avg / self.getStepSize()
-            ax.plot(self.bins, avg, color='k', linewidth=2.0)
-            ax.plot(self.bins, prediction, color='r', linewidth=2.0)
+            ax.plot(self.bins, avg, color='k', linewidth=2.0,  \
+                    label='Gillespie average over %d runs' % len(df.columns))
+            ax.plot(self.bins, prediction, color='r', linewidth=2.0, \
+                    label='Continuum solution')
             self.finalize_figure(fig, ax, values, name)
 
-    def plot(self):
+    def plot_avg(self, path_data, prediction, time, tag='avg'):
+        df = path_data.dataFrame
+        idx=0
+        total=0
+        ylim_max=0.0
+        # recompute average
+        df['avg']=df.mean(axis=1)
+        x = df['avg']
+
+        # sum before rescaling to a density
+        total = np.sum(x)
+
+        # rescale to a density
+        x = x / self.getStepSize()
+
+        fig = plt.figure()
+        ax = plt.subplot(111)
+
+        values = dict(total=total, steps=path_data.steps, time=time,\
+                      ylim_max=max(np.max(x), np.max(prediction)), \
+                      error=self.rel_norm2(prediction,x) * 100.0)
+
+        ax.plot(self.bins, x, 'ro', color='k', linewidth=2.0, \
+                label='Gillespie average over %d runs' % len(df.columns))
+        ax.plot(self.bins, prediction, color='r', linewidth=2.0, \
+                label='Continuum solution')
+
+        self.finalize_figure(fig, ax, values, tag)
+
+    """ do a plot for adhesion simulation data
+        the list keys is there to restrict keys to be plotted
+        this is useful for debugging """
+    def plot(self, keys=[]):
 
         self.get_data()
         bar_width = self.getStepSize()
@@ -440,19 +543,11 @@ class Plotter(object):
 
         for key, path_data in iter(sorted(self.data.items())):
 
+            if keys and key not in keys:
+                continue
+
             df = path_data.dataFrame
             steps = path_data.steps
-            try:
-                avg = df['avg']
-                avg = avg / self.getStepSize()
-            except KeyError:
-                print('Data returned from simulation %d is empty!' % self.runId)
-                return df
-            except:
-                raise
-
-            # maybe do the total over a unit interval?
-            total = np.sum(avg) * self.getStepSize()
 
             self.bins=np.arange(-self.getDomainLeftBoundary(),
                             self.getDomainRightBoundary(),
@@ -469,32 +564,16 @@ class Plotter(object):
                 self.plot_individual_paths(path_data, u_prediction, key)
                 # don't compute correction if peaks haven't formed
                 # maybe just make the computation silently fail
-                if key > 5.0:
+                if key > 2.0:
                     print('computing correction for %f.' % key)
                     df = self.correct_paths(df, u_prediction)
                     path_data2 = rw.PathDataContainer(steps, df)
-                    self.plot_individual_paths(path_data2, u_prediction, key, tag='corrected')
+                    self.plot_individual_paths(path_data2, u_prediction,
+                                               key, tag='corrected')
 
-                #density, = plt.plot(x2, u2, color='g', linewidth=2.0,
-                #                    label=label_cont)
-
-            #colors = ['c', 'm', 'y', 'k', 'r', 'b', 'g', 'w']
-            #idx = 0
-            #for column in df:
-            #    if idx==8:
-            #        idx=0
-            #    if column == 'avg':
-            #        continue
-
-            #    x = df[column]
-            #    x = x / self.getStepSize()
-            #    print('idx=', idx, ' len=', len(colors))
-            #    l = plt.plot(bins, x, 'ro', color=colors[idx])
-            #    idx += 1
-            #    labels.append(l)
-
-            #states, = plt.plot(bins, x, 'ro', color='r', label=label_ssa)
-            #states, = plt.plot(bins, avg, color='k', linewidth=2.5)
+                    self.plot_avg(path_data2, u_prediction, key)
+                else:
+                    self.plot_avg(path_data, u_prediction, key)
 
             #if self.isFFTCompare(rw_type):
             #    density, = plt.plot(x2, u2, color='g', linewidth=2.0,
@@ -503,49 +582,17 @@ class Plotter(object):
             #    y_max = max(np.max(x), np.max(u2))
             #    print('y_max=', y_max, ' u2=', np.max(u2))
 
-            #elif self.isAdhesionCompare(rw_type):
-            #    y_max = max(np.max(x), np.max(u2))
-            #    print('y_max=', y_max, ' u2=', np.max(u2))
-
-            #else:
-            #    y_max = np.max(x)
-
-            #x = 100
-            #y_max = 10000
-            #plt.ylim(0, 1.5 * max(y_max, max_states))
-
-            #plot_title = simulation_name + \
-            #        '\n with %d players at time %2.2f' \
-            #       '\n or %2.2e simulations steps'
-            #plt.title(plot_title % (total, key, steps), fontsize=20)
-
-            #plt.xlabel('Spacial domain', fontsize=18)
-            #plt.ylabel('Density [UNITS]', fontsize=18)
-            #plt.tight_layout()
-            #plt.tick_params(axis='x', labelsize=15)
-            #plt.tick_params(axis='y', labelsize=15)
-
-            #try:
-            #    plt.legend(handles=[states, density])
-            #except:
-            #    plt.legend(handles=[states])
-
-            #result_dir = 'Results'
-            #path = self.get_output_dir()
-            #fname = 'plot_'+rw_type_name+'_'+str(self.simId)+\
-            #    '_'+str(key)+'.png'
-            #plt.savefig(os.path.join(path, fname))
-
-            #if show:
-            #    plt.show()
-
     # Compute norm between vectors x, y
-    def norm1(self, x, y):
-        return np.linalg.norm(x-y, ord=1)
+    def norm1(self, x):
+        return np.linalg.norm(x, ord=1)
 
     # compute l2 between vectors x, y
-    def norm2(self, x, y):
-        return np.linalg.norm(x-y, ord=2)
+    def norm2(self, x):
+        return np.linalg.norm(x, ord=2)
+
+    """ computs ||x - y||^2 / ||x||^2 """
+    def rel_norm2(self, x, y):
+        return (self.norm2(x-y) / self.norm2(x))
 
     def print_error(self, x, y):
         print('The L1 error=', self.norm1(x, y))
@@ -583,5 +630,5 @@ class Plotter(object):
         return x2, u2
 
 if __name__ == '__main__':
-    plotter = Plotter(189, Compare=True)
-    plotter.plot()
+    plotter = Plotter(193, Compare=True)
+    #plotter.plot()
