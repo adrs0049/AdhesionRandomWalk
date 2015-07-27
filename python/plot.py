@@ -393,14 +393,14 @@ class Plotter(object):
         try:
             fname = 'plot_'+rw_type_name+'_'+str(values["name"])+'_'\
                 +str(self.simId)+\
-                '_'+str(key).replace('.', '_')+'.png'
+                '_'+str(key).replace('.', '_')+'.eps'
         except KeyError:
             fname = 'plot_'+rw_type_name+'_'+str(self.simId)+\
-                '_'+str(key).replace('.', '_')+'.png'
+                '_'+str(key).replace('.', '_')+'.eps'
 
         print('path=', os.path.join(path, fname))
         plt.tight_layout()
-        fig.savefig(os.path.join(path, fname))
+        fig.savefig(os.path.join(path, fname), format='eps', dpi=900)
 
     def plot_individual_paths(self, path_data, prediction, time, tag=None):
 
