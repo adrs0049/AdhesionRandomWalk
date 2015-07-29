@@ -74,7 +74,7 @@ class Player(object):
     def getLatticeSize(self): return self.getDomainSizeL()
     def getFinalTime(self): return self.FinalTime
     # TODO do something that is actually python standard
-    def getVersion(self): return '0.1'
+    def getVersion(self): return '0.2'
     def setSimId(self, simId):
         try:
             self.db.getSimulationFromId(simId)
