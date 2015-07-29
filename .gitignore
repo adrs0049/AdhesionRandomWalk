@@ -6,3 +6,4 @@ build/
 *.pyo
 ./python/Results/*
 */Results/*
+.ropeproject/*
