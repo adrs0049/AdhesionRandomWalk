@@ -106,7 +106,7 @@ def test_drift():
     plt.show()
 
 def g(x, h):
-    value = 1000.0
+    value = 50000.0
     mid = 5.0
     if np.abs(x - mid) < 1.5*h:
         return value
