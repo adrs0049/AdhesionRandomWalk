@@ -22,6 +22,7 @@ class Plotter(object):
         self.sim = None
         self.param = None
         self.bins = None
+        self.x_prediction = None
         self.timestr = time.strftime("%Y%m%d-%H%M%S")
 
     def __call__(self):
@@ -377,7 +378,7 @@ class Plotter(object):
         ax.tick_params(axis='y', labelsize=15)
 
         # get the legends
-        if subdir == 'avg':
+        try:
             extra = mpatches.Rectangle((0,0), 1, 1, fc="w", fill=False, \
                                        edgecolor='none', linewidth=0)
             handles, labels = ax.get_legend_handles_labels()
@@ -385,7 +386,7 @@ class Plotter(object):
             handles.append(extra)
             labels.append('The relative L2 Error is %2.2f%%' \
                           % values["error"])
-        else:
+        except:
             handles, labels = ax.get_legend_handles_labels()
 
         ax.legend(handles, labels)
@@ -501,13 +502,20 @@ class Plotter(object):
         fig = plt.figure()
         ax = plt.subplot(111)
 
-        values = dict(total=total, steps=path_data.steps, time=time,\
+        try:
+            values = dict(total=total, steps=path_data.steps, time=time,\
                       ylim_max=max(np.max(x), np.max(prediction)), \
                       error=self.rel_norm2(prediction,x) * 100.0)
+        except ValueError:
+            values = dict(total=total, steps=path_data.steps, time=time,\
+                      ylim_max=max(np.max(x), np.max(prediction)))
+        except:
+            raise
 
         ax.plot(self.bins, x, 'ro', color='k', linewidth=2.0, \
                 label='Gillespie average over %d runs' % len(df.columns))
-        ax.plot(self.bins, prediction, color='r', linewidth=2.0, \
+
+        ax.plot(self.x_prediction, prediction, color='r', linewidth=2.0, \
                 label='Continuum solution')
 
         self.finalize_figure(fig, ax, values, tag)
@@ -559,7 +567,7 @@ class Plotter(object):
             labels = []
 
             if self.isAdhesionCompare(rw_type):
-                x_prediction, u_prediction = self.getStateAtKey(adata, key)
+                self.x_prediction, u_prediction = self.getStateAtKey(adata, key)
 
                 self.plot_individual_paths(path_data, u_prediction, key)
                 # don't compute correction if peaks haven't formed
@@ -575,12 +583,10 @@ class Plotter(object):
                 else:
                     self.plot_avg(path_data, u_prediction, key)
 
-            #if self.isFFTCompare(rw_type):
-            #    density, = plt.plot(x2, u2, color='g', linewidth=2.0,
-            #                        label=label_cont)
-            #    x2, u2 = self.compute_fft(key)
-            #    y_max = max(np.max(x), np.max(u2))
-            #    print('y_max=', y_max, ' u2=', np.max(u2))
+            if self.isFFTCompare(rw_type):
+
+                self.x_prediction, u_prediction = self.compute_fft(key)
+                self.plot_avg(path_data, u_prediction, key)
 
     # Compute norm between vectors x, y
     def norm1(self, x):
