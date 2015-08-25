@@ -369,7 +369,7 @@ class Simulation(object):
         self.call = callback
 
         # FIXME
-        domainSizeHalf = int(self.parameters["DomainSize"]/2)
+        domainSizeHalf = float(self.parameters["DomainSize"]/2.0)
         domainShape = DVector([-domainSizeHalf, domainSizeHalf])
 
         if isinstance(self.FinalTimes, np.ndarray):
@@ -412,10 +412,10 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=10, DomainN=16,
+    param = dict(DomainSize=3, DomainN=48,
                  diffusion_coeff=1.0, drift_coeff=0.003,
                  R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.82, g_type=1,
-                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=100.0,
+                 u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=50.0,
                  rw_type=s.RANDOMWALK_TYPE_ADHESION,
                  space_type=s.SPACE_TYPE_ALWAYS_FREE,
                  adhesivity_type=s.ADHESIVITY_TYPE_SIMPLE)
