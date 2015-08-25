@@ -25,11 +25,25 @@ class Plotter(object):
         self.x_prediction = None
         self.timestr = time.strftime("%Y%m%d-%H%M%S")
 
+        # counter to catch errors in recursion
+        # TODO there must be a better way to do this
+        self.counter = 0
+
+        # Compare threshold
+        self.CompareThreshold = 5.0
+
     def __call__(self):
         self.plot()
 
     def getDomainSize(self):
         return float(self.param.DomainSize)
+
+    def getR(self):
+        return float(self.param.R)
+
+    def getW(self):
+        w = self.getR()
+        return w * self.param.DomainN
 
     def getDomainLeftBoundary(self):
         return 0.0
@@ -154,21 +168,26 @@ class Plotter(object):
 
     """ get extrema of path """
     def compute_path_extrema(self, path):
-        width = 2.0 * float(self.param.R) / self.getStepSize()
-        return sp.find_peaks_cwt(path, np.arange(1, int(width)))
-        #return sp.argrelextrema(path, np.greater)
+        step = 0.25
+        widths = np.arange(step, int(3.0 * self.getR()), step)
+        print('widths=', widths)
+        print('other extrema=', sp.argrelextrema(path, np.greater))
+        print('extrema=', sp.find_peaks_cwt(path, widths))
+        extrema = sp.argrelextrema(path, np.greater)
+        extrema = np.append(extrema, sp.find_peaks_cwt(path, widths))
+        return np.unique(extrema)
 
     """ get x and u for Container at key """
     def getStateAtKey(self, dataContainer, key):
-        normalization = 1.0 / self.param.DomainN
+        stepSize = 1.0 / self.param.DomainN
         try:
-            key = np.round(key, decimals=1)
+            key = np.round(key, decimals=2)
             data = dataContainer[key].dataFrame['avg']
             u = np.asarray(data)
 
             x = np.arange(self.getDomainLeftBoundary(),
                           self.getDomainRightBoundary(),
-                          normalization)
+                          stepSize)
 
             return x, u
         except KeyError as e:
@@ -192,11 +211,14 @@ class Plotter(object):
     def elim_small_extrema(self, extrema_path, path, threshold_percentage=0.8):
 
         max_state = np.max(path)
-        print('max=', max_state)
+        print('PathMax=%5.2f, Threshold is %2.0f, Threshold values is %5.2f' \
+              % (max_state, 100.0 * threshold_percentage, \
+                 max_state * threshold_percentage))
 
         indeces = []
         idx=0
         for point in extrema_path:
+            print('path[', point, ']=', path[point], ' considering')
             if path[point] < threshold_percentage * max_state:
                 print('path[', point, ']=', path[point], ' eliminating')
                 indeces.append(idx)
@@ -213,7 +235,8 @@ class Plotter(object):
         width_threshold = 10
         # detect extreme points that may be double
         idx_del = []
-        print('extrema_path=', extrema_path)
+        print('extrema_path=', extrema_path, ' predicted peaks=', \
+              number_predicted_peaks)
         for i in range(0, len(extrema_path)-1):
             if np.abs(extrema_path[i] - extrema_path[i+1]) < width_threshold:
                 # found two points that are large and close together
@@ -229,7 +252,7 @@ class Plotter(object):
         print('idx_del=', idx_del, ' epts=', epts)
         extrema_path = np.delete(extrema_path, idx_del)
         extrema_path = np.append(extrema_path, epts)
-        if len(extrema_path)>number_predicted_peaks:
+        if len(extrema_path)>number_predicted_peaks and number_predicted_peaks>1:
             extrema_path = self.find_duplicate_peaks(extrema_path, \
                                                      number_predicted_peaks)
 
@@ -237,15 +260,30 @@ class Plotter(object):
 
     """ path is a numpy array """
     def compute_path_correction(self, prediction, path):
+        # roughly one extreme per 3 * R
+        number_of_extrema = self.getDomainSize() / (3.0 * self.getR())
+        threshold_percentage = 0.95
+
+        print('Looking for %d extrema with an initial threshold of %f' \
+              % (number_of_extrema, threshold_percentage))
+
         # find max in continuum data first
         extrema_predicted = self.compute_path_extrema(prediction)
+        print('extrema_pred=', extrema_predicted)
         extrema_predicted = self.elim_small_extrema(extrema_predicted,
-                                                    prediction)
+                                                    prediction,
+                                                    threshold_percentage)
+
+        if np.max(extrema_predicted) - np.min(extrema_predicted) < self.getW():
+            extrema_predicted = np.array([int(np.average(extrema_predicted))])
+            print('extrema_predicted=', extrema_predicted)
 
         extrema_predicted = np.sort(extrema_predicted)
-        if len(extrema_predicted)!=2:
+        if len(extrema_predicted)!=number_of_extrema:
             print('%d Extrema predicted!.' % len(extrema_predicted))
-            return
+            print('extrema_prediction=', extrema_predicted)
+            print('The path is ', prediction)
+            assert False
         if len(prediction) != len(path):
             print('WARNING careful length of prediction and length of ' \
                   'path are different!')
@@ -257,49 +295,61 @@ class Plotter(object):
                'not enough peaks found in the data'
         print('path=', path.values)
         print('extrema_path_before=', extrema_path)
-        #print('len_path=', len(path.values))
 
-        threshold_percentage = 0.9
         while True:
             extrema_path_tmp = self.elim_small_extrema(extrema_path,
                                                    path.values,
                                                    threshold_percentage)
 
+            print('extrema_path_tmp=', extrema_path_tmp)
             if len(extrema_path_tmp)>=len(extrema_predicted):
-                print('Found enough peaks with at a threshold of %1.1f' \
+                print('Found enough peaks with at a threshold of %1.2f' \
                       % threshold_percentage)
                 extrema_path = extrema_path_tmp
                 break
 
-            print('extrema_path=', extrema_path, ' threshold=', \
-                  threshold_percentage)
             threshold_percentage -= 0.1
             if threshold_percentage <= 0.5:
                 assert False, 'couldn\'t find enough peaks in path data'
 
         extrema_path = np.sort(extrema_path)
+        print('Find duplicates.')
         extrema_path = self.find_duplicate_peaks(extrema_path, \
                                                  len(extrema_predicted))
         extrema_path = np.sort(extrema_path)
 
-        print('path extrema=', extrema_path)
+        if np.max(extrema_path) - np.min(extrema_path) < self.getW():
+            extrema_path = np.array([int(np.average(extrema_path))])
+            print('extrema_path=', extrema_path)
+
+        print('path extrema=', extrema_path, ' len(ext_path)=', \
+              len(extrema_path), ' len(ext_pred)=', len(extrema_predicted))
         # what to do in this case=
         if len(extrema_path) != len(extrema_predicted):
             print('WARNING a different number of extrema found!')
             print('len_path=', len(extrema_path), ' len_pred=', \
                   len(extrema_predicted))
 
-            print('prediction=', extrema_predicted, \
-                  'extrema_comp=', extrema_path)
+                        #extrema_path = np.array(int(np.average(extrema_path)))
+            #print(' after filter=', extrema_path)
+            #correction = extrema_predicted  - extrema_path
+            extrema_path = np.array(int(np.average(extrema_path)))
+            #correction = np.zeros(len(extrema_predicted))
+            correction = extrema_predicted - extrema_path
 
-            correction = np.zeros(len(extrema_predicted))
+            print('prediction=', extrema_predicted, \
+                  'extrema_path=', extrema_path, \
+                  'correction=', correction)
+
+            assert False, 'DEBUG FIX ME'
+
         else:
-            print('prediction[', extrema_predicted[0], ', ',\
-                  extrema_predicted[1],']=(', prediction[extrema_predicted[0]], \
-                  ', ', prediction[extrema_predicted[1]], '). The path=',\
-                  '. It has a length of ', len(prediction), \
-                  ' The path extrema are=(', extrema_path[0], ', ', \
-                    extrema_path[1], ').')
+            #print('prediction[', extrema_predicted[0], ', ',\
+            #      extrema_predicted[1],']=(', prediction[extrema_predicted[0]], \
+            #      ', ', prediction[extrema_predicted[1]], '). The path=',\
+            #      '. It has a length of ', len(prediction), \
+            #      ' The path extrema are=(', extrema_path[0], ', ', \
+            #        extrema_path[1], ').')
 
             correction = extrema_predicted - extrema_path
 
@@ -468,6 +518,7 @@ class Plotter(object):
             assert total_tmp == total, 'Total values do not fit!'
 
             print('idx=', idx, ' len=', len(colors), ' color=', colors[idx])
+            print('bins_length=', len(self.bins), ' len(x)=', len(x))
             ax.plot(self.bins, x, 'ro', color=colors[idx])
             idx+=1
 
@@ -498,6 +549,7 @@ class Plotter(object):
 
         # rescale to a density
         x = x / self.getStepSize()
+        print('stepSize=', self.getStepSize())
 
         fig = plt.figure()
         ax = plt.subplot(111)
@@ -554,12 +606,20 @@ class Plotter(object):
             if keys and key not in keys:
                 continue
 
+            if key < 25.0:
+                continue
+
             df = path_data.dataFrame
             steps = path_data.steps
 
+            print('step_width=', bar_width, end='')
             self.bins=np.arange(-self.getDomainLeftBoundary(),
                             self.getDomainRightBoundary(),
                             bar_width)
+
+            print(' Length_bins=', len(self.bins), ' Domain=[', \
+                  -self.getDomainLeftBoundary(), ', ', \
+                  self.getDomainRightBoundary(), '].')
 
             if plt is not None: plt.clf()
 
@@ -568,12 +628,14 @@ class Plotter(object):
 
             if self.isAdhesionCompare(rw_type):
                 self.x_prediction, u_prediction = self.getStateAtKey(adata, key)
+                print('prediction=', u_prediction)
 
                 self.plot_individual_paths(path_data, u_prediction, key)
                 # don't compute correction if peaks haven't formed
                 # maybe just make the computation silently fail
-                if key > 2.0:
+                if key > self.CompareThreshold:
                     print('computing correction for %f.' % key)
+                    self.counter = 0
                     df = self.correct_paths(df, u_prediction)
                     path_data2 = rw.PathDataContainer(steps, df)
                     self.plot_individual_paths(path_data2, u_prediction,
