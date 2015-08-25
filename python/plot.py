@@ -12,6 +12,7 @@ import scipy.signal as sp
 
 import randomWalk_db as rw
 import time
+import statistics
 
 class Plotter(object):
     def __init__(self, simId, Compare=False):
@@ -37,6 +38,9 @@ class Plotter(object):
 
     def getDomainSize(self):
         return float(self.param.DomainSize)
+
+    def getDomainSizeL(self):
+        return self.getDomainSize() * self.param.DomainN
 
     def getR(self):
         return float(self.param.R)
@@ -218,7 +222,7 @@ class Plotter(object):
         indeces = []
         idx=0
         for point in extrema_path:
-            print('path[', point, ']=', path[point], ' considering')
+            #print('path[', point, ']=', path[point], ' considering')
             if path[point] < threshold_percentage * max_state:
                 print('path[', point, ']=', path[point], ' eliminating')
                 indeces.append(idx)
@@ -258,103 +262,162 @@ class Plotter(object):
 
         return extrema_path
 
-    """ path is a numpy array """
-    def compute_path_correction(self, prediction, path):
+    def distanceVector(self, _from, _to):
+        dim = self.getDomainSizeL()
+        shift = _from - dim / 2.0
+        x0 = _from - shift
+        x1 = _to - shift
+        if (x1 < 0):
+            x1 += dim
+        elif (x1 > dim - 1):
+            x1 -= dim
+
+        print('dim=', dim, ' from=', _from, ' to=', _to, \
+              ' shift=', shift, ' diff=', x1-x0)
+        return x1 - x0
+
+    """ compute path median """
+    def compute_path_median(self, path):
+        l=[]
+        for idx in range(len(path)):
+            for n in range(path[idx]):
+                l.append(idx)
+
+        return statistics.median(l)
+
+    def compute_peaks(self, path):
         # roughly one extreme per 3 * R
         number_of_extrema = self.getDomainSize() / (3.0 * self.getR())
-        threshold_percentage = 0.95
+        threshold_percentage = 0.9
 
         print('Looking for %d extrema with an initial threshold of %f' \
               % (number_of_extrema, threshold_percentage))
 
-        # find max in continuum data first
-        extrema_predicted = self.compute_path_extrema(prediction)
-        print('extrema_pred=', extrema_predicted)
-        extrema_predicted = self.elim_small_extrema(extrema_predicted,
-                                                    prediction,
-                                                    threshold_percentage)
+        extrema = self.compute_path_extrema(path)
+        print('extrema=', extrema)
 
-        if np.max(extrema_predicted) - np.min(extrema_predicted) < self.getW():
-            extrema_predicted = np.array([int(np.average(extrema_predicted))])
-            print('extrema_predicted=', extrema_predicted)
+        # filter extrema
+        extrema = self.elim_small_extrema(extrema, path, threshold_percentage)
 
-        extrema_predicted = np.sort(extrema_predicted)
-        if len(extrema_predicted)!=number_of_extrema:
-            print('%d Extrema predicted!.' % len(extrema_predicted))
-            print('extrema_prediction=', extrema_predicted)
+        if np.max(extrema) - np.min(extrema) < self.getW():
+            extrema = np.array([int(np.average(extrema))])
+            print('extrema_predicted=', extrema)
+
+        if len(extrema)!=number_of_extrema:
+            print('%d Extrema predicted!.' % len(extrema))
+            print('extrema_prediction=', extrema)
             print('The path is ', prediction)
             assert False
-        if len(prediction) != len(path):
-            print('WARNING careful length of prediction and length of ' \
-                  'path are different!')
+
+        return np.sort(extrema)
+
+    """ path is a numpy array """
+    def compute_path_correction(self, extrema_predicted, path):
+
+        #extrema_predicted = self.compute_peaks(prediction)
+
+        #if len(extrema_predicted)!=number_of_extrema:
+        #    print('%d Extrema predicted!.' % len(extrema_predicted))
+        #    print('extrema_prediction=', extrema_predicted)
+        #    print('The path is ', prediction)
+        #    assert False
+        #if len(prediction) != len(path):
+        #    print('WARNING careful length of prediction and length of ' \
+        #          'path are different!')
         #print('prediction=', prediction)
-        print('extrema prediction=', extrema_predicted)
-        extrema_path = self.compute_path_extrema(path.values)
+        #print('extrema prediction=', extrema_predicted)
+        #extrema_path = self.compute_path_extrema(path.values)
 
-        assert len(extrema_path)>=len(extrema_predicted), \
-               'not enough peaks found in the data'
-        print('path=', path.values)
-        print('extrema_path_before=', extrema_path)
+        #assert len(extrema_path)>=len(extrema_predicted), \
+        #       'not enough peaks found in the data'
+        #print('path=', path.values)
+        #print('extrema_path_before=', extrema_path)
 
-        while True:
-            extrema_path_tmp = self.elim_small_extrema(extrema_path,
-                                                   path.values,
-                                                   threshold_percentage)
+        #while True:
+        #    extrema_path_tmp = self.elim_small_extrema(extrema_path,
+        #                                           path.values,
+        #                                           threshold_percentage)
 
-            print('extrema_path_tmp=', extrema_path_tmp)
-            if len(extrema_path_tmp)>=len(extrema_predicted):
-                print('Found enough peaks with at a threshold of %1.2f' \
-                      % threshold_percentage)
-                extrema_path = extrema_path_tmp
-                break
+        #    print('extrema_path_tmp=', extrema_path_tmp)
+        #    if len(extrema_path_tmp)>=len(extrema_predicted):
+        #        print('Found enough peaks with at a threshold of %1.2f' \
+        #              % threshold_percentage)
+        #       extrema_path = extrema_path_tmp
+        #        break
 
-            threshold_percentage -= 0.1
-            if threshold_percentage <= 0.5:
-                assert False, 'couldn\'t find enough peaks in path data'
+        #    threshold_percentage -= 0.1
+        #    if threshold_percentage <= 0.5:
+        #        assert False, 'couldn\'t find enough peaks in path data'
 
-        extrema_path = np.sort(extrema_path)
-        print('Find duplicates.')
-        extrema_path = self.find_duplicate_peaks(extrema_path, \
-                                                 len(extrema_predicted))
-        extrema_path = np.sort(extrema_path)
+        #extrema_path = np.sort(extrema_path)
+        #print('Find duplicates.')
+        #extrema_path = self.find_duplicate_peaks(extrema_path, \
+        #                                         len(extrema_predicted))
+        #extrema_path = np.sort(extrema_path)
 
-        if np.max(extrema_path) - np.min(extrema_path) < self.getW():
-            extrema_path = np.array([int(np.average(extrema_path))])
-            print('extrema_path=', extrema_path)
+        #distance = np.abs(self.distanceVector(np.max(extrema_path),
+        #                              np.min(extrema_path)))
 
-        print('path extrema=', extrema_path, ' len(ext_path)=', \
-              len(extrema_path), ' len(ext_pred)=', len(extrema_predicted))
+        #print('distance=', distance)
+
+        #if np.max(extrema_path) - np.min(extrema_path) < self.getW():
+        #    extrema_path = np.array([int(np.average(extrema_path))])
+        #    print('extrema_path=', extrema_path)
+
+        #quit = False
+        #if len(extrema_path)!=len(extrema_predicted):
+        #    quit=True
+
+        #if np.abs(self.distanceVector(np.max(extrema_path),
+        #                              np.min(extrema_path))) < self.getW():
+        #    print('Taking the average')
+        #    l = []
+        #    for x in extrema_path:
+        #        if x < self.getDomainSizeL() / 2.0:
+        #            l.append(x + self.getDomainSizeL())
+        #        else:
+        #            l.append(x)
+        #    extrema_path = np.array([int(np.average(l))])
+        #    print('extrema_path=', extrema_path)
+
+        #print('path extrema=', extrema_path, ' len(ext_path)=', \
+        #      len(extrema_path), ' len(ext_pred)=', len(extrema_predicted))
+
         # what to do in this case=
-        if len(extrema_path) != len(extrema_predicted):
-            print('WARNING a different number of extrema found!')
-            print('len_path=', len(extrema_path), ' len_pred=', \
-                  len(extrema_predicted))
+        #if len(extrema_path) != len(extrema_predicted):
+        #    print('WARNING a different number of extrema found!')
+        #    print('len_path=', len(extrema_path), ' len_pred=', \
+        #          len(extrema_predicted))
+        #
+        #                #extrema_path = np.array(int(np.average(extrema_path)))
+        #    #print(' after filter=', extrema_path)
+        #    #correction = extrema_predicted  - extrema_path
+        #    extrema_path = np.array(int(np.average(extrema_path)))
+        #    #correction = np.zeros(len(extrema_predicted))
+        #    correction = extrema_predicted - extrema_path
 
-                        #extrema_path = np.array(int(np.average(extrema_path)))
-            #print(' after filter=', extrema_path)
-            #correction = extrema_predicted  - extrema_path
-            extrema_path = np.array(int(np.average(extrema_path)))
-            #correction = np.zeros(len(extrema_predicted))
-            correction = extrema_predicted - extrema_path
+        #    print('prediction=', extrema_predicted, \
+        #          'extrema_path=', extrema_path, \
+        #          'correction=', correction, \
+        #          ' correction2=', self.compute_path_median(path.values))
 
-            print('prediction=', extrema_predicted, \
-                  'extrema_path=', extrema_path, \
-                  'correction=', correction)
+        #    assert False, 'DEBUG FIX ME'
 
-            assert False, 'DEBUG FIX ME'
+        #else:
+        #    #print('prediction[', extrema_predicted[0], ', ',\
+        #    #      extrema_predicted[1],']=(', prediction[extrema_predicted[0]], \
+        #    #      ', ', prediction[extrema_predicted[1]], '). The path=',\
+        #    #      '. It has a length of ', len(prediction), \
+        #    #      ' The path extrema are=(', extrema_path[0], ', ', \
+        #    #        extrema_path[1], ').')
+        #
+        #    correction = extrema_predicted - extrema_path
 
-        else:
-            #print('prediction[', extrema_predicted[0], ', ',\
-            #      extrema_predicted[1],']=(', prediction[extrema_predicted[0]], \
-            #      ', ', prediction[extrema_predicted[1]], '). The path=',\
-            #      '. It has a length of ', len(prediction), \
-            #      ' The path extrema are=(', extrema_path[0], ', ', \
-            #        extrema_path[1], ').')
+        correction = extrema_predicted - self.compute_path_median(path)
 
-            correction = extrema_predicted - extrema_path
-
-        print('correction=', correction, ' extrema_predicted=',\
-              extrema_predicted, ' extrema_path=', extrema_path)
+        #print('correction=', correction, ' extrema_predicted=',\
+        #      extrema_predicted, ' extrema_path=', extrema_path, \
+        #      ' correction2=', self.compute_path_median(path.values))
         #correction = extrema_predicted
         return correction
 
@@ -366,10 +429,23 @@ class Plotter(object):
 
             print('computing for column ', column)
             x = df[column]
-            correction = self.compute_path_correction(prediction, x)
-            correction = np.int(np.round(np.average(correction), decimals=0))
-            print('correction %d' % correction)
-            x = np.roll(x, correction)
+            x = x.values
+
+            extrema_predicted = self.compute_peaks(prediction)
+            extrema_predicted -= 1
+
+            correction = 0
+            i = 0
+            while i < 20:
+                correction = self.compute_path_correction(extrema_predicted, x)
+                correction = np.int(np.round(np.average(correction), decimals=0))
+                print('correction %d' % correction)
+                x = np.roll(x, correction)
+                i+=1
+
+            norm = self.norm2(x - prediction)
+            relNorm = self.rel_norm2(x, prediction)
+            print('norm=', norm, ' RelNorm=', relNorm)
 
             df[column] = x
 
