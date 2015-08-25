@@ -61,6 +61,7 @@ sim_id = db.createSimulation('MATLAB-0.1', p2.id)
 
 # write path data to the database
 # write it for each
-for t in time:
-    db.storePath(y[t], t, sim_id, '0.1', 0, stochastic=False)
+for path, t in zip(y, time):
+    #print('y[', t, ']=', path, ' sim_id=', sim_id)
+    db.storePath(path, t, sim_id, '0.1', 0, stochastic=False)
 
