@@ -99,14 +99,12 @@ private:
 			m_stateVector.size() << std::endl;
 
 		const double coordinate {0.0};
-		const double weight {1E-1};
 		const double StepSize = p->getDiscreteX();
-		const double kappa = 1.0;
 
 		for (std::size_t idx = 0; idx < size(); idx++)
 		{
 			m_stateVector[idx] = p->getICp() +
-				static_cast<unsigned long>(kappa * weight * p->getICp() *
+				static_cast<unsigned long>(p->getICweight() * p->getICp() *
 						std::sin(coordinate + idx * StepSize) );
 		}
 

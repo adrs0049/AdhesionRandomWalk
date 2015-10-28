@@ -87,10 +87,12 @@ class Parameters
 		const IC_TYPE& getIcType() const { return ic_type; }
 		const OMEGA_TYPE& getOmegaType() const { return omega_type; }
 		const double getOmegaP() const { return omega_p; }
+		const double getICweight() const { return ic_weight; }
 		const BOUNDARY_TYPE& getBoundaryType() const { return boundary_type; }
 		const RANDOMWALK_TYPE& getRandomWalkType() const { return rw_type; }
 		const SPACE_TYPE& getSpaceType() const { return space_type; }
-		const ADHESIVITY_TYPE& getAdhesivityType() const { return adhesivity_type; }
+		const ADHESIVITY_TYPE& getAdhesivityType() const
+			{ return adhesivity_type; }
 
 		void setDiffusion(double _Diffusion) { Diffusion = _Diffusion; }
 		void setNumberOfCells(long number) { NumberOfCells = number; }
@@ -112,6 +114,8 @@ class Parameters
 			{ space_type = type; }
 		void setAdhesivityType(const ADHESIVITY_TYPE& type)
 			{ adhesivity_type = type; }
+		void setICweight(const double w)
+			{ ic_weight = w; }
 		// TODO add high dimensions if needed
 		std::vector<double> getDomainShape() const { return domainShape; }
 		void toggleBase2(void) { base2 = !base2; }
@@ -143,6 +147,7 @@ class Parameters
 		// ic density
 		unsigned long ic_p = 0;
 		IC_TYPE ic_type;
+		double ic_weight = 0.1;
 
 		// data for omega function
 		double omega_p = 0.0;

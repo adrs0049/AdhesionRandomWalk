@@ -67,6 +67,7 @@ class Parameters(Base):
     # ICs
     ic_type = Column(Integer, nullable=False)
     ic_p = Column(Numeric(19, 7, asdecimal=True), nullable=False)
+    ic_weigth = Column(Numeric(19, 7, asdecimal=True), nullable=True)
 
     # RandomWalk type
     rw_type = Column(Integer, nullable=True)
