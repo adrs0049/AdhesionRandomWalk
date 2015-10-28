@@ -114,6 +114,7 @@ class Plotter(object):
                 filter(Parameters.DomainN==self.param.DomainN).\
                 filter(Parameters.diffusion_coeff==self.param.diffusion_coeff).\
                 filter(Parameters.drift_coeff==self.param.drift_coeff).\
+                filter(Parameters.ic_p==self.param.ic_p).\
                 filter(PathMetaData.simulation_id==Simulation.id).\
                 filter(PathMetaData.stochastic==False)
 
@@ -575,9 +576,6 @@ class Plotter(object):
         for key, path_data in iter(sorted(self.data.items())):
 
             if keys and key not in keys:
-                continue
-
-            if key < 25.0:
                 continue
 
             df = path_data.dataFrame
