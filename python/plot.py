@@ -114,7 +114,7 @@ class Plotter(object):
                 filter(Parameters.DomainN==self.param.DomainN).\
                 filter(Parameters.diffusion_coeff==self.param.diffusion_coeff).\
                 filter(Parameters.drift_coeff==self.param.drift_coeff).\
-                filter(Parameters.ic_p==self.param.ic_p).\
+                filter(Parameters.ic_p==self.param.ic_p * self.param.DomainN).\
                 filter(PathMetaData.simulation_id==Simulation.id).\
                 filter(PathMetaData.stochastic==False)
 
