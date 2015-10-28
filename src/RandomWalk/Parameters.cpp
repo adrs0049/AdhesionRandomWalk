@@ -144,7 +144,7 @@ void Parameters::Check()
 		ASSERT(SensingRadiusL>0, "SensingRadiusL has to be positive");
 		ASSERT(SensingRadius>0.0, "SensingRadius has to be positive!");
 
-		ASSERT(SensingRadius < DomainSize/2, "SensingRadius is too large!");
-		ASSERT(SensingRadiusL < DomainSizeL/2, "SensingRadiusL is too large!");
+		ASSERT(SensingRadius <= DomainSize/2.0, "SensingRadius is too large!");
+		ASSERT(SensingRadiusL <= DomainSizeL/2.0, "SensingRadiusL is too large!");
 	}
 }
