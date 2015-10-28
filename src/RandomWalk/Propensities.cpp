@@ -122,18 +122,13 @@ AdhesionPropensities& AdhesionPropensities::set(const std::shared_ptr<Parameters
 			adhesivity = [this] (int coordinate)
 			{
 				vector8i ret;
-				if (coordinate >= 0 && coordinate < max())
+				state->applyCondition(coordinate);
+				if (coordinate < max())
 				{
 					ret.load_u(state->data(coordinate));
 				}
 				else
 				{
-					state->applyCondition(coordinate);
-					if (coordinate < max())
-					{
-						ret.load_u(state->data(coordinate));
-					}
-					else
 					{
 					int32_t x[vec_size_int];
 					for (std::size_t idx = 0; idx < vec_size_int; idx++)
