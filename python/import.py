@@ -46,6 +46,7 @@ for parameter in parameters:
 
 # BCs is not available in the actual parameters
 temp_data['bcs']='pp'
+temp_data['ic_weigth']=0.09
 
 print(temp_data)
 
@@ -62,6 +63,6 @@ sim_id = db.createSimulation('MATLAB-0.1', p2.id)
 # write path data to the database
 # write it for each
 for path, t in zip(y, time):
-    #print('y[', t, ']=', path, ' sim_id=', sim_id)
-    db.storePath(path, t, sim_id, '0.1', 0, stochastic=False)
+    #print('y[', np.around(t+1E-3, decimals=2), ']=', path, ' sim_id=', sim_id)
+    db.storePath(path, np.around(t+1E-3, decimals=2), sim_id, '0.1', 0, stochastic=False)
 
