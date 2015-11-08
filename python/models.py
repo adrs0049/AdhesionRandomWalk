@@ -120,9 +120,11 @@ class Parameters(Base):
         self.last_updated_date = datetime.datetime.utcnow()
 
     def __repr__(self):
-        return "<Parameters(Diffusion='%s', Drift='%s', DomainN='%s', R='%s',\
-        DomainSize='%s'>" % (self.diffusion_coeff, self.drift_coeff, \
-                self.DomainN, self.R, self.DomainSize)
+        return "Parameters<%d>(Diffusion='%s', Drift='%s', DomainN='%s',"\
+               "R='%s', DomainSize='%s', IC_p='%s', IC_w='%s')" % \
+                (self.id, self.diffusion_coeff, self.drift_coeff, \
+                self.DomainN, self.R, self.DomainSize, \
+                self.ic_p, self.ic_weigth)
 
 class Simulation(Base):
     __tablename__ = 'simulation'
