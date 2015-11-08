@@ -63,7 +63,8 @@ class RandomWalkDB(object):
     def getEngine(self): return self.engine
 
     def commit(self):
-        self.session.commit()
+        session = self.getSession()
+        session.commit()
 
     def add_and_commit(self, obj):
         session = self.getSession()
@@ -361,6 +362,57 @@ class RandomWalkDB(object):
         print('Data retrieval complete.')
 
         return ddf
+
+    def deleteSim(self, SimId):
+        sim = self.getSimulationFromId(SimId)
+        session = self.getSession()
+        session.delete(sim)
+        self.commit()
+
+    """List the most recent number of simulations + parameters"""
+    def listSimulations(self, NoSims=10):
+
+        SimsFound = 0
+        SimId = self.getMostRecentSimulation()
+        print('Most Recent Simulation is %d' % SimId)
+
+        while SimsFound < NoSims:
+            if SimId<0:
+                break
+
+            try:
+                sim = self.getSimulationFromId(SimId)
+            except InvalidEntry:
+                continue
+            except:
+                assert False
+            finally:
+                SimId-=1
+
+            if sim.description == 'MATLAB-0.1':
+                continue
+            else:
+                SimsFound+=1
+
+            print('Found simulation %d ' % sim.id, end='')
+            print(sim.Parameters)
+
+            pathTime = map(lambda path : path.time, sim.paths)
+            time = [i for i in pathTime]
+
+            try:
+                max_time = max(time)
+            except ValueError:
+                print('Simulation %d has no paths!!' % sim.id)
+                continue
+
+            if max_time == 0:
+                print('Simulation %d max time is 0!' % sim.id)
+                continue
+
+            print('It contains %d paths, a maximum time of %f.' \
+                  % (len(sim.paths), max_time))
+
 
 # debugging
 if __name__ == '__main__':
