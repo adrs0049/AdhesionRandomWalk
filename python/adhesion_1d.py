@@ -109,6 +109,9 @@ class Player(object):
     @timeit
     def runSimulations(self, FinalTimes):
 
+        assert len(FinalTimes)>0, 'FinalTimes has to contain something!'
+        assert np.max(FinalTimes)>0.0, 'FinalTimes has to contain time larger 0'
+
         feedback_q = mp.Queue()
         p = mp.Process(target=self.__runSimulations__,
                        args=(feedback_q, FinalTimes,))
@@ -413,11 +416,11 @@ class Simulation(object):
 if __name__ == '__main__':
 
     # TODO read this from an XML file
-    param = dict(DomainSize=3, DomainN=48,
-                 diffusion_coeff=1.0, drift_coeff=0.003,
+    param = dict(DomainSize=3, DomainN=96,
+                 diffusion_coeff=1.0, drift_coeff=0.02,
                  R=1.0, omega_type=s.OMEGA_TYPE_UNIFORM, omega_p=0.82, g_type=1,
                  u0=0.8, bcs='pp', ic_type=s.IC_TYPE_TRIG_NOISE, ic_p=50.0,
-                 ic_weigth=0.2,
+                 ic_weigth=0.09,
                  rw_type=s.RANDOMWALK_TYPE_ADHESION,
                  space_type=s.SPACE_TYPE_ALWAYS_FREE,
                  adhesivity_type=s.ADHESIVITY_TYPE_SIMPLE)
