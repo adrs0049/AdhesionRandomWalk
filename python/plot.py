@@ -24,6 +24,8 @@ class Plotter(object):
         self.param = None
         self.bins = None
         self.x_prediction = None
+        self.max_key = None
+        self.extrema_predicted = None
         self.timestr = time.strftime("%Y%m%d-%H%M%S")
 
         # counter to catch errors in recursion
@@ -31,7 +33,7 @@ class Plotter(object):
         self.counter = 0
 
         # Compare threshold
-        self.CompareThreshold = 5.0
+        self.CompareThreshold = 0.1
 
     def __call__(self):
         self.plot()
@@ -103,10 +105,15 @@ class Plotter(object):
         for key in sorted(self.data.keys()):
             yield key
 
-    def get_related_sim(self):
+    def get_related_sim(self, twin):
         # get the numerical solns
         # FIXME
         print('GETTING REALTED DATA')
+
+        if twin is not None:
+            data = self.get_data_from_db(twin)
+            return data
+
         session = self.db.getSession()
         q = session.query(Simulation, Parameters, PathMetaData).\
                 filter(Simulation.parameter_id==Parameters.id).\
@@ -115,6 +122,7 @@ class Plotter(object):
                 filter(Parameters.diffusion_coeff==self.param.diffusion_coeff).\
                 filter(Parameters.drift_coeff==self.param.drift_coeff).\
                 filter(Parameters.ic_p==self.param.ic_p * self.param.DomainN).\
+                filter(Parameters.ic_weigth==self.param.ic_weigth).\
                 filter(PathMetaData.simulation_id==Simulation.id).\
                 filter(PathMetaData.stochastic==False)
 
@@ -307,14 +315,19 @@ class Plotter(object):
         if len(extrema)!=number_of_extrema:
             print('%d Extrema predicted!.' % len(extrema))
             print('extrema_prediction=', extrema)
-            print('The path is ', prediction)
-            assert False
+            #print('The path is ', path)
+            return False
 
         return np.sort(extrema)
 
     """ path is a numpy array """
     def compute_path_correction(self, extrema_predicted, path):
-        correction = extrema_predicted - self.compute_path_median(path)
+        median = self.compute_path_median(path)
+        correction = extrema_predicted - median
+
+        print('Predicted extrema %d, current path median %d' \
+              ', correction %d.' % (extrema_predicted, median, correction))
+
         return correction
 
     def correct_paths(self, df, prediction):
@@ -323,25 +336,44 @@ class Plotter(object):
             if column == 'avg':
                 continue
 
+            extrema_predicted = self.extrema_predicted
+            if self.extrema_predicted is None:
+                continue
+
             print('computing for column ', column)
             x = df[column]
             x = x.values
 
-            extrema_predicted = self.compute_peaks(prediction)
-            extrema_predicted -= 1
+            # TODO check if this is still needed!
+            #extrema_predicted2 = self.compute_peaks(prediction)
+            #print('extrema_predicted2 %d' % extrema_predicted2)
+            #if extrema_predicted == False:
+            #    continue
+            #extrema_predicted -= 1
 
             correction = 0
             i = 0
+            error = self.norm2(x - prediction)
             while i < 20:
                 correction = self.compute_path_correction(extrema_predicted, x)
                 correction = np.int(np.round(np.average(correction), decimals=0))
-                print('correction %d' % correction)
-                x = np.roll(x, correction)
-                i+=1
+                x_temp = np.roll(x, correction)
+                new_error = self.norm2(x_temp - prediction)
 
-            norm = self.norm2(x - prediction)
-            relNorm = self.rel_norm2(x, prediction)
-            print('norm=', norm, ' RelNorm=', relNorm)
+                i+=1
+                if new_error < error:
+                    x = x_temp
+                else:
+                    continue
+
+                error = new_error
+
+                if correction == 0 and i > 5:
+                    break
+
+                norm = self.norm2(x - prediction)
+                relNorm = self.rel_norm2(x, prediction)
+                print('norm=', norm, ' RelativeError=', relNorm * 100.0)
 
             df[column] = x
 
@@ -361,8 +393,9 @@ class Plotter(object):
         path = None
         try:
             cdir = os.getcwd()
+            dname = self.timestr+'_'+str(self.simId)
             path = os.path.join(cdir, result_dir)
-            path = os.path.join(path, self.timestr)
+            path = os.path.join(path, dname)
             if subdir is not None:
                 path = os.path.join(path, subdir)
             if not os.path.exists(path):
@@ -372,9 +405,6 @@ class Plotter(object):
             raise
 
         return path
-
-    def create_figure(self):
-        return plt.figure()
 
     def finalize_figure(self, fig, ax, values, subdir):
         assert isinstance(values, dict), 'values is expected to be dict'
@@ -424,6 +454,7 @@ class Plotter(object):
         print('path=', os.path.join(path, fname))
         plt.tight_layout()
         fig.savefig(os.path.join(path, fname), format='eps', dpi=900)
+        plt.close('all')
 
     def plot_individual_paths(self, path_data, prediction, time, tag=None):
 
@@ -473,6 +504,7 @@ class Plotter(object):
 
             if idx == 0:
                 print('create new figure')
+                plt.clf()
                 fig = plt.figure()
                 ax = plt.subplot(111)
 
@@ -544,10 +576,19 @@ class Plotter(object):
 
         self.finalize_figure(fig, ax, values, tag)
 
+    def compute_expected_extrema(self, adata, key):
+        x_prediction, u_prediction = self.getStateAtKey(adata, key)
+        print('prediction=', u_prediction)
+        extrema_predicted = self.compute_peaks(u_prediction)
+        if extrema_predicted == False:
+            return None
+
+        return extrema_predicted
+
     """ do a plot for adhesion simulation data
         the list keys is there to restrict keys to be plotted
         this is useful for debugging """
-    def plot(self, keys=[]):
+    def plot(self, keys=[], twin=None):
 
         self.get_data()
         bar_width = self.getStepSize()
@@ -556,6 +597,7 @@ class Plotter(object):
         print(" ".join(str(x) for x in self.data_keys()))
         print('.')
 
+        self.max_key = max(self.data_keys())
         # FIXME use time from database or sth?
         timestr = time.strftime("%Y%m%d-%H%M%S")
 
@@ -568,10 +610,12 @@ class Plotter(object):
 
         rw_type_name, simulation_name, label_cont, = self.get_plot_names(rw_type)
         if self.isAdhesionCompare(rw_type):
-            adata = self.get_related_sim()
+            adata = self.get_related_sim(twin)
             if adata is None:
                 return
             print('adata keys=', adata.keys())
+            self.extrema_predicted = self.compute_expected_extrema(adata,
+                                                                   self.max_key)
 
         for key, path_data in iter(sorted(self.data.items())):
 
@@ -618,6 +662,8 @@ class Plotter(object):
 
                 self.x_prediction, u_prediction = self.compute_fft(key)
                 self.plot_avg(path_data, u_prediction, key)
+
+        plt.close('all')
 
     # Compute norm between vectors x, y
     def norm1(self, x):
