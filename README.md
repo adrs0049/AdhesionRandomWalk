@@ -20,6 +20,7 @@ For the moment this only compiles on a X86 cpu with the AVX2 instruction set. Fu
 ToDos:
 1) Tell the compiler consistently that we are using aligned data types!
 2) Remove some of the hand written AVX code, and see if the compiler can take care of optimizing those where those things are supported.
+3) Parameters should be a singleton
 
 Quick guide:
 
